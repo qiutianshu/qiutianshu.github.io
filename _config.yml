@@ -1,6 +1,6 @@
 # Site settings
-title: 的 Blog
-SEOTitle: 仇天舒的博客 | Qts Blog
+title: 极目楚天舒的 Blog
+SEOTitle: 极目楚天舒的博客 | Qts Blog
 header-img: img/home-bg.jpg
 email: 1270566865@qq.com
 description: "程序与设计 | RE手 | Pwn to Own | Linux内核研究"
@@ -15,7 +15,7 @@ future: true
 RSS: false
 weibo_username:     仇天舒
 zhihu_username:     仇天舒
-github_username:    仇天舒
+github_username:    极目楚天舒
 twitter_username:   仇天舒
 
 
