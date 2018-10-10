@@ -1,5 +1,5 @@
 # Site settings
-title: qiutianshu Blog
+title: 仇天舒的 Blog
 SEOTitle: 仇天舒的博客 | Qts Blog
 header-img: img/home-bg.jpg
 email: 1270566865@qq.com
@@ -13,7 +13,7 @@ future: true
 
 # SNS settings
 RSS: false
-weibo_username:     qiutianshu
+weibo_username:     仇天舒
 zhihu_username:     qiutianshu
 github_username:    qiutianshu
 twitter_username:   qiutianshu
