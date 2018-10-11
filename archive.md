@@ -1,7 +1,7 @@
 ---
 layout: page
 title: "Archive"
-description: "文章归档"
+description: "学而不思则罔"
 header-img: "img/archive.jpg"
 ---
 
