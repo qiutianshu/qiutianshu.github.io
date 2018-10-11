@@ -1,7 +1,7 @@
 ---
 layout: page
 title: "About"
-description: "专注" 
+description: "持久 专注" 
 header-img: "img/about.jpg"
 ---
 
