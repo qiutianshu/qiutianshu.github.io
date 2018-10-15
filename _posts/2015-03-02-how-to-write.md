@@ -1,13 +1,13 @@
 ---
 layout: post
-title: 这是一篇博客文章模板
-date: 2015-3-02
+title: 栈及其应用
+date: 2018-10-15
 categories: blog
-tags: [标签一,标签二]
-description: 文章金句。
+tags: [数据结构,算法]
+description: 本文介绍了栈数据结构以及常见的应用场景。
 ---
 
-这里是博客正文。
+TODO
 
 
 
