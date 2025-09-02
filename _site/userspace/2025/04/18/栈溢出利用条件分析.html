@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <link rel="stylesheet" href="http://localhost:4000/assets/fonts/fonts.css"/>
+<link rel="stylesheet" href="http://localhost:4000/assets/style.css"/>
+<link rel="stylesheet" href="http://localhost:4000/assets/js/lity.min.css"/>
+
+
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<meta property="og:site_name" content="极目楚天舒" />
+<meta 
+    property="og:title"
+    content="
+        
+            栈溢出利用条件分析
+        
+    " 
+/>
+
+<meta property="og:url" content="http://localhost:4000//userspace/2025/04/18/%E6%A0%88%E6%BA%A2%E5%87%BA%E5%88%A9%E7%94%A8%E6%9D%A1%E4%BB%B6%E5%88%86%E6%9E%90.html" />
+
+    <meta property="og:type" content="article" />
+
+
+
+    <meta property="fb:app_id" content="" />
+
+
+
+<title>
+    
+        栈溢出利用条件分析
+    
+</title>
+</head>
+<body class="index">
+    
+        <div class="page-container">
+            <aside class="main-sidebar">
+                <!-- 包含 TOC -->
+                <sidebar class="sidebar">
+<ul class="toc-list"><li><a href="#栈溢出关注的点">栈溢出关注的点</a></li><li><a href="#栈溢出的一些终止条件">栈溢出的一些终止条件</a></li></ul></sidebar>
+            </aside>
+            <!-- 主内容区域 -->
+            <main class="main-content">
+                <header class="header">
+    <section class="logo">
+        <a href="http://localhost:4000/" class="logo__link">
+            
+                <h1>极目楚天舒</h1>
+            
+        </a>
+    </section>
+    <button id="menuToggle">
+        <div></div>
+        <div></div>
+        <div></div>
+    </button>
+    <nav class="menu">
+        
+<ul class="list primary">
+
+    
+        <li class="item">
+
+            <div class="item-controls">
+                <a href="http://localhost:4000/category/linux_kernel.html">
+                
+                    <img src="http://localhost:4000/assets/img/icons/tux.png"/>
+                
+                
+                    <p style="color: var(--c-themeHueRed)">Linux kernel</p>
+                
+                </a>
+
+            
+            </div>
+            
+        </li>   
+    
+        <li class="item">
+
+            <div class="item-controls">
+                <a href="http://localhost:4000/category/linux_userspace.html">
+                
+                    <img src="http://localhost:4000/assets/img/icons/userspace.png"/>
+                
+                
+                    <p style="color: var(--c-themeHueRed)">Linux userspace</p>
+                
+                </a>
+
+            
+            </div>
+            
+        </li>   
+    
+        <li class="item">
+
+            <div class="item-controls">
+                <a href="http://localhost:4000/category/hardware.html">
+                
+                    <img src="http://localhost:4000/assets/img/icons/chip.svg"/>
+                
+                
+                    <p style="color: var(--c-themeHueRed)">Hardware</p>
+                
+                </a>
+
+            
+            </div>
+            
+        </li>   
+    
+        <li class="item">
+
+            <div class="item-controls">
+                <a href="http://localhost:4000/category/meltdown_spectre.html">
+                
+                    <img src="http://localhost:4000/assets/img/icons/meltdown_spectre.png"/>
+                
+                
+                    <p style="color: var(--c-themeHueRed)">Side Channel</p>
+                
+                </a>
+
+            
+            </div>
+            
+        </li>   
+    
+        <li class="item">
+
+            <div class="item-controls">
+                <a href="http://localhost:4000/category/riscv.html">
+                
+                    <img src="http://localhost:4000/assets/img/icons/riscv.png"/>
+                
+                
+                    <p style="color: var(--c-themeHueRed)">Riscv</p>
+                
+                </a>
+
+            
+            </div>
+            
+        </li>   
+    
+</ul>
+    </nav>
+</header>
+                
+                <article class="post">
+
+    <div class="post__title">
+       栈溢出利用条件分析
+    </div>
+    <div class="post__meta"> 
+        <div class="post__meta__category">
+            
+                <p class="post__meta__category__title" style="background: var(--c-themeHueRed)">Userspace</p>
+            
+        </div>
+        <p class="post__meta__divider">·</p>
+        <div class="post__meta__date">
+            April 18, 2025
+        </div>
+        
+    </div>
+
+    
+
+    <div class="post__content">
+        <p>是不是下面这些问题解决了，才会有后面的地址泄露、rop执行、shellcode执行这些利用手段？</p>
+
+<p>这些问题不回答清楚，往往后面的事情想了一半才发现前面的条件不满足，又回过头来思考前面这些问题，造成了时间的浪费，精力的损耗。</p>
+
+<h1 id="栈溢出关注的点">栈溢出关注的点</h1>
+
+<p>是不是下面这些问题解决了，才会有后面的地址泄露、rop执行、shellcode执行这些利用手段？</p>
+
+<p>这些问题不回答清楚，往往后面的事情想了一半才发现前面的条件不满足，又回过头来思考前面这些问题，造成了时间的浪费，精力的损耗。</p>
+
+<ul>
+  <li>保护情况怎么样？按照关注度排序
+    <ul>
+      <li>Canary，有了它是不是直接就宣告死亡了？</li>
+      <li>NX</li>
+      <li>ASLR、PIE</li>
+    </ul>
+  </li>
+  <li>是否可以交互？</li>
+</ul>
+
+<p>这个决定了后面的漏洞利用是payload一把梭哈，还是可以多次交互把漏洞利用过程分为多步来实现</p>
+
+<ul>
+  <li>覆盖的长度是多少？
+    <ul>
+      <li>部分覆盖返回地址，那么就只能做partial overwrite返回到有限的地址范围</li>
+      <li>完全覆盖返回地址</li>
+      <li>往返回地址后面继续覆盖
+        <ul>
+          <li>返回地址后面还可以写有限个字节，rop或者shellcode要控制长度</li>
+          <li>无限长度写，任意长度rop或者shellcode</li>
+        </ul>
+      </li>
+    </ul>
+  </li>
+  <li>攻击者对覆盖的内容是否可控？
+    <ul>
+      <li>完全可控，不添加任何其他内容</li>
+      <li>部分可控，程序会往中间或者两头加入东西，或者做内容过滤
+        <ul>
+          <li>末尾写0</li>
+          <li>末尾写入其他字符串</li>
+          <li>如果有内容过滤，那么payload要尝试避开这些东西</li>
+        </ul>
+      </li>
+    </ul>
+  </li>
+  <li>是否存在NULL字符截断？
+    <ul>
+      <li>不存在，攻击者可以往栈上面写NULL</li>
+      <li>存在，一旦写入NULL就会截断</li>
+    </ul>
+  </li>
+</ul>
+
+<p>以上这些点既是具体问题的抽象总结，又离不开具体问题具体分析！</p>
+
+<p>以上栈溢出漏洞条件的每一种排列组合情况，如果人类都能够找到利用的方式，那么机器也应该可以学会。</p>
+
+<p>strcpy溢出，要解决x64模式下的0截断问题</p>
+
+<h1 id="栈溢出的一些终止条件">栈溢出的一些终止条件</h1>
+
+<ul>
+  <li>遇到Canary</li>
+  <li>（x64环境下） &amp;&amp; （ 存在NULL字符截断） &amp;&amp; （末尾会添加攻击者不可控的内容）
+    <ul>
+      <li><a href="https://www.notion.so/Crashmail-1-6-1d73f4b7819d8049b9fcfc9dff8a19ae?pvs=21">crashmail</a>栈溢出</li>
+      <li><a href="https://www.notion.so/Exim-4-41-dns_build_reverse-1c23f4b7819d80f490c3e4fc91884fe7?pvs=21">exim</a>栈溢出</li>
+    </ul>
+  </li>
+</ul>
+
+    </div>
+</article>
+
+                
+                <footer class="footer">
+        <section class="footer__about">
+                <p class="footer__about__copyright">© qts588 2025</p>
+                
+                <span class="divider">·</span>
+                
+                <span class="footer__about__theme"><p>theme</p><a id="simplex-logo" href="https://github.com/andreondra/jekyll-theme-simplex" target="_blank"><img alt="Simplex theme logo" src="http://localhost:4000/assets/img/icons/simplex_logo.svg"/></a><p>by <a href="https://ondrej.golasowski.com/">golas</a></p></span>
+        </section>
+</footer>
+            </main>
+            <script src="http://localhost:4000/assets/js/jquery.slim.min.js"></script>
+<script src="http://localhost:4000/assets/js/lity.min.js"></script>
+<script src="http://localhost:4000/assets/js/tools.js"></script>
+<script src="http://localhost:4000/assets/js/pic.js"></script>
+<script src="http://localhost:4000/assets/js/toc-highlight.js"></script>
+        </div>
+    
+</body>
+</html>

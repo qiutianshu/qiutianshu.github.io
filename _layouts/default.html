@@ -1,0 +1,35 @@
+---
+
+---
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    {% include head.html %}
+</head>
+<body class="index">
+    {% if page.sidebar != false %}
+        <div class="page-container">
+            <aside class="main-sidebar">
+                <!-- 包含 TOC -->
+                {% include sidebar.html html=content sanitize=true class="toc-list" h_min=1 h_max=3 %}
+            </aside>
+            <!-- 主内容区域 -->
+            <main class="main-content">
+                {% include header.html %}
+                
+                {{content}}
+                
+                {% include footer.html %}
+            </main>
+            {% include scripts.html %}
+        </div>
+    {% else %}
+        {% include header.html %}
+                
+        {{content}}
+                
+        {% include footer.html %}
+    {% endif %}
+</body>
+</html>

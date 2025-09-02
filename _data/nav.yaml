@@ -1,0 +1,32 @@
+- title: Linux kernel
+  url: category/linux_kernel.html
+  icon: assets/img/icons/tux.png
+  hue: "var(--c-themeHueRed)"
+
+- title: Linux userspace
+  url: category/linux_userspace.html
+  icon: assets/img/icons/userspace.png
+  hue: "var(--c-themeHueRed)"
+
+- title: Hardware
+  url: category/hardware.html
+  icon: assets/img/icons/chip.svg
+  hue: "var(--c-themeHueRed)"
+
+- title: Side Channel #Menu item title.
+  url: category/meltdown_spectre.html #Menu item url.
+  icon: assets/img/icons/meltdown_spectre.png #Menu item icon.
+  hue: "var(--c-themeHueRed)" #Menu item hue - see note [1].
+
+- title: Riscv #Menu item title.
+  url: category/riscv.html #Menu item url.
+  icon: assets/img/icons/riscv.png #Menu item icon.
+  hue: "var(--c-themeHueRed)" #Menu item hue - see note [1].
+#  subnav: #Subnav. See note [2].
+#      - title: C++ #Submenu item title.
+#        url: category/cpp.html #Submenu item url.
+#        hue: "var(--c-themeHueOrange)" #Submenu item hue.
+#        subnav: #Another subnav
+#            - title: Libraries
+#              url: libs.html
+#              hue: "var(--c-themeHueBlue)"

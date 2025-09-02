@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <link rel="stylesheet" href="http://localhost:4000/assets/fonts/fonts.css"/>
+<link rel="stylesheet" href="http://localhost:4000/assets/style.css"/>
+<link rel="stylesheet" href="http://localhost:4000/assets/js/lity.min.css"/>
+
+
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<meta property="og:site_name" content="极目楚天舒" />
+<meta 
+    property="og:title"
+    content="
+        
+            ramoops越界拷贝bug分析
+        
+    " 
+/>
+
+<meta property="og:url" content="http://localhost:4000//linux_kernel/2024/08/26/ramoops%E8%B6%8A%E7%95%8C%E6%8B%B7%E8%B4%9Dbug%E5%88%86%E6%9E%90.html" />
+
+    <meta property="og:type" content="article" />
+
+
+
+    <meta property="fb:app_id" content="" />
+
+
+
+<title>
+    
+        ramoops越界拷贝bug分析
+    
+</title>
+</head>
+<body class="index">
+    
+        <div class="page-container">
+            <aside class="main-sidebar">
+                <!-- 包含 TOC -->
+                <sidebar class="sidebar">
+<ul class="toc-list"><li><a href="#一环境配置">一、环境配置</a><ul><li><a href="#1-内核环境配置">1. 内核环境配置</a></li><li><a href="#2-用户空间环境配置">2. 用户空间环境配置</a></li></ul></li><li><a href="#二pstoreramoops功能分析">二、pstore/ramoops功能分析</a></li><li><a href="#三关键的内核结构体">三、关键的内核结构体</a></li><li><a href="#四漏洞产生的原因">四、漏洞产生的原因</a><ul><li><a href="#przbuffersize的修改路径">prz→buffer→size的修改路径：</a></li><li><a href="#przbuffersize的约束">prz→buffer→size的约束：</a></li><li><a href="#漏洞场景">漏洞场景：</a></li></ul></li><li><a href="#五漏洞调试过程">五、漏洞调试过程</a><ul><li><a href="#systemd选项unlinkno的作用">systemd选项unlink=no的作用</a></li></ul></li><li><a href="#六漏洞可利用性分析">六、漏洞可利用性分析</a></li><li><a href="#七补丁建议">七、补丁建议</a></li></ul></sidebar>
+            </aside>
+            <!-- 主内容区域 -->
+            <main class="main-content">
+                <header class="header">
+    <section class="logo">
+        <a href="http://localhost:4000/" class="logo__link">
+            
+                <h1>极目楚天舒</h1>
+            
+        </a>
+    </section>
+    <button id="menuToggle">
+        <div></div>
+        <div></div>
+        <div></div>
+    </button>
+    <nav class="menu">
+        
+<ul class="list primary">
+
+    
+        <li class="item">
+
+            <div class="item-controls">
+                <a href="http://localhost:4000/category/linux_kernel.html">
+                
+                    <img src="http://localhost:4000/assets/img/icons/tux.png"/>
+                
+                
+                    <p style="color: var(--c-themeHueRed)">Linux kernel</p>
+                
+                </a>
+
+            
+            </div>
+            
+        </li>   
+    
+        <li class="item">
+
+            <div class="item-controls">
+                <a href="http://localhost:4000/category/linux_userspace.html">
+                
+                    <img src="http://localhost:4000/assets/img/icons/userspace.png"/>
+                
+                
+                    <p style="color: var(--c-themeHueRed)">Linux userspace</p>
+                
+                </a>
+
+            
+            </div>
+            
+        </li>   
+    
+        <li class="item">
+
+            <div class="item-controls">
+                <a href="http://localhost:4000/category/hardware.html">
+                
+                    <img src="http://localhost:4000/assets/img/icons/chip.svg"/>
+                
+                
+                    <p style="color: var(--c-themeHueRed)">Hardware</p>
+                
+                </a>
+
+            
+            </div>
+            
+        </li>   
+    
+        <li class="item">
+
+            <div class="item-controls">
+                <a href="http://localhost:4000/category/meltdown_spectre.html">
+                
+                    <img src="http://localhost:4000/assets/img/icons/meltdown_spectre.png"/>
+                
+                
+                    <p style="color: var(--c-themeHueRed)">Side Channel</p>
+                
+                </a>
+
+            
+            </div>
+            
+        </li>   
+    
+        <li class="item">
+
+            <div class="item-controls">
+                <a href="http://localhost:4000/category/riscv.html">
+                
+                    <img src="http://localhost:4000/assets/img/icons/riscv.png"/>
+                
+                
+                    <p style="color: var(--c-themeHueRed)">Riscv</p>
+                
+                </a>
+
+            
+            </div>
+            
+        </li>   
+    
+</ul>
+    </nav>
+</header>
+                
+                <article class="post">
+
+    <div class="post__title">
+       ramoops越界拷贝bug分析
+    </div>
+    <div class="post__meta"> 
+        <div class="post__meta__category">
+            
+                <p class="post__meta__category__title" style="background: var(--c-themeHueBlue)">Linux内核漏洞</p>
+            
+        </div>
+        <p class="post__meta__divider">·</p>
+        <div class="post__meta__date">
+            August 26, 2024
+        </div>
+        
+    </div>
+
+    
+
+    <div class="post__content">
+        <p><a href="https://mp.weixin.qq.com/s/Sr4qIy-AdLhpkus6q1su9w">是谁在LINUX内核中开了这个大洞？</a></p>
+
+<h2 id="一环境配置">一、环境配置</h2>
+
+<h3 id="1-内核环境配置">1. 内核环境配置</h3>
+
+<p>内核版本：Linux-6.1.43</p>
+
+<p>ramoops的内核部分的配置用于指定日志在内存中保存的位置、日志的总空间大小、分配给不同日志的空间、使能向用户态文件系统的更新。</p>
+
+<p><img src="/assets/posts/2024-08-26-ramoops越界拷贝bug分析/1.png" alt="截屏2024-08-26 09.09.29.png" /></p>
+
+<p>通过向grub启动配置文件中“GRUB_CMDLINE_LINUX_DEFAULT”选项添加内核启动参数即可完成配置。</p>
+
+<p>这部分选项内容可以参考文件“fs/pstore/ram.c”和“fs/pstore/platform.c”中对ramoops模块和pstore模块参数定义的部分</p>
+
+<h3 id="2-用户空间环境配置">2. 用户空间环境配置</h3>
+
+<p>修改/etc/systemd/pstore.conf的”Unlink=no“，这一行默认是被注释掉的，需要手动打开并且指定为no，这个关系到我们能否触发bug。</p>
+
+<p><img src="/assets/posts/2024-08-26-ramoops越界拷贝bug分析/2.png" alt="截屏2024-08-26 09.20.34.png" /></p>
+
+<h2 id="二pstoreramoops功能分析">二、pstore/ramoops功能分析</h2>
+
+<p>ramoops是众多pstore底层介质之一，用于在计算机reboot的过程中保存上一次开机运行时产生的内核oops日志，所依赖的底层原理是reboot过程中内存不会断电，保存在特定物理内存地址的内容在开机过程中就可以被重新读取。</p>
+
+<p>这个功能为内核开发者提供了在内核崩溃的情况下查看崩溃现场的手段。</p>
+
+<p>该功能由两部分组成：1. 位于内核的pstore/ramoops  2. 位于用户态的systemd和systemd.pstore服务。</p>
+
+<p>发生oops的日志保存流程：</p>
+
+<p><img src="/assets/posts/2024-08-26-ramoops越界拷贝bug分析/3.jpg" alt="0day-oops打印流程.jpg" /></p>
+
+<p><img src="/assets/posts/2024-08-26-ramoops越界拷贝bug分析/4.jpg" alt="0day-第 4 页.jpg" /></p>
+
+<p>日志的提取和导出到sys文件系统的流程：</p>
+
+<p><img src="/assets/posts/2024-08-26-ramoops越界拷贝bug分析/5.png" alt="截屏2024-08-26 10.02.44.png" /></p>
+
+<p>ramoops将回调函数注册到内核打印函数上，一旦发生oops便会调用ramoops功能，将日志写入用户指定的物理地址，同时将日志以文件的形式导出到/sys/fs/pstore目录下。</p>
+
+<p>pstore文件系统的开机挂载过程：</p>
+
+<p><img src="/assets/posts/2024-08-26-ramoops越界拷贝bug分析/6.jpg" alt="0day-systemd挂载流程.jpg" /></p>
+
+<p>systemd.pstore服务的配置解析：</p>
+
+<p><img src="/assets/posts/2024-08-26-ramoops越界拷贝bug分析/7.png" alt="截屏2024-08-26 10.16.17.png" /></p>
+
+<p>systemd在系统初始化过程中,把pstore文件系统挂载到/sys/fs/pstore目录下。systemd.pstore服务用于将/sys/fs/pstore目录下的日志文件转移到/var/lib/systemd/pstore目录下并持久化。</p>
+
+<h2 id="三关键的内核结构体">三、关键的内核结构体</h2>
+
+<p><img src="/assets/posts/2024-08-26-ramoops越界拷贝bug分析/8.jpg" alt="0day-白板.jpg" /></p>
+
+<h2 id="四漏洞产生的原因">四、漏洞产生的原因</h2>
+
+<p><img src="/assets/posts/2024-08-26-ramoops越界拷贝bug分析/9.jpg" alt="0day.jpg" /></p>
+
+<p><img src="/assets/posts/2024-08-26-ramoops越界拷贝bug分析/10.png" alt="截屏2024-08-26 10.58.32.png" /></p>
+
+<h3 id="przbuffersize的修改路径">prz→buffer→size的修改路径：</h3>
+
+<p><img src="/assets/posts/2024-08-26-ramoops越界拷贝bug分析/11.jpg" alt="0day-第 6 页.jpg" /></p>
+
+<p>在向ramoops内存区域写入日志过程中，首先把prz→buffer→size和prz→buffer→start两个字段清零，再根据日志内容长度，调用buffer_size_add()函数重新设置size和start字段，再向prz→buffer→data区域写入日志数据。</p>
+
+<h3 id="przbuffersize的约束">prz→buffer→size的约束：</h3>
+
+<p>prz→buffer→size不超过prz→buffer_size。</p>
+
+<p><img src="/assets/posts/2024-08-26-ramoops越界拷贝bug分析/12.png" alt="截屏2024-08-26 11.26.58.png" /></p>
+
+<p>prz→buffer_size由size减去结构体buffer头部结构的大小，而size由内核启动参数中的ramoops.record_size传递进来，所以prz→buffer_size可以由“攻击者”控制。</p>
+
+<p>进而导致prz→buffer→size的上限可以由“攻击者”控制。</p>
+
+<h3 id="漏洞场景">漏洞场景：</h3>
+
+<p>step1: 写一个内核模块，触发空指针引用，产生一个较小的oops日志，reboot；</p>
+
+<p>step2: reboot之后，内核分配一个较小的old_size对象存储oops日志；</p>
+
+<p>step3: 重新写一个内核模块，在函数嵌套中触发空指针引用，产生一个较大的oops日志；</p>
+
+<p>step4: 在定时器的作用下，内核按照500ms的时间间隔触发漏洞函数，将较大的oops日志写入之前的old_log对象中，触发越界写。</p>
+
+<h2 id="五漏洞调试过程">五、漏洞调试过程</h2>
+
+<p>断点：</p>
+
+<div class="language-jsx highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nx">b</span> <span class="nx">ram</span><span class="p">.</span><span class="nx">c</span><span class="p">:</span><span class="mi">385</span><span class="p">.</span>           <span class="nx">#breakpoint</span> <span class="mi">32</span>  <span class="nx">检查第二次日志的长度是否大于old_log_size</span>
+</code></pre></div></div>
+
+<p><img src="/assets/posts/2024-08-26-ramoops越界拷贝bug分析/13.png" alt="截屏2024-08-23 13.18.47.png" /></p>
+
+<p>确认第二次的日志长度大于old_log_size，c继续运行，让定时器回调函数调用漏洞函数</p>
+
+<p>ctrl+c，回过头检查一下是否发生溢出</p>
+
+<h3 id="systemd选项unlinkno的作用">systemd选项unlink=no的作用</h3>
+
+<p>在前期调试过程中发现，在断点处old_log被释放掉了，导致prz→old_log=0，old_log_size=0。</p>
+
+<p><img src="/assets/posts/2024-08-26-ramoops越界拷贝bug分析/14.png" alt="截屏2024-08-26 13.00.01.png" /></p>
+
+<p>old_log对象由persistent_ram_free_old()函数释放，对该函数下断点，并且栈回溯，发现由用户态调用过来的，最终调用到ramoops_pstore_erase函数，该函数的作用是清除旧的日志，瞬间联想到systemd.pstore配置文件中unlink选项的作用，将日志从/sys目录搬到/var之后清除/sys目录下的内容。因此设置unlink=no就可以避免进入释放old_log的路径。</p>
+
+<p><img src="/assets/posts/2024-08-26-ramoops越界拷贝bug分析/15.png" alt="截屏2024-08-26 13.03.21.png" /></p>
+
+<h2 id="六漏洞可利用性分析">六、漏洞可利用性分析</h2>
+
+<table>
+  <thead>
+    <tr>
+      <th>需要root权限</th>
+      <th>✅</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>攻击者控制堆块内容</td>
+      <td>❓🤔</td>
+    </tr>
+    <tr>
+      <td>堆喷射？</td>
+      <td>😭😭</td>
+    </tr>
+    <tr>
+      <td>攻击者精准控制覆盖指针</td>
+      <td>😭😭😭</td>
+    </tr>
+  </tbody>
+</table>
+
+<h2 id="七补丁建议">七、补丁建议</h2>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kt">void</span> <span class="nf">persistent_ram_save_old</span><span class="p">(</span><span class="k">struct</span> <span class="n">persistent_ram_zone</span> <span class="o">*</span><span class="n">prz</span><span class="p">)</span>
+<span class="p">{</span>
+		<span class="k">struct</span> <span class="n">persistent_ram_buffer</span> <span class="o">*</span><span class="n">buffer</span> <span class="o">=</span> <span class="n">prz</span><span class="o">-&gt;</span><span class="n">buffer</span><span class="p">;</span>
+		<span class="kt">size_t</span> <span class="n">size</span> <span class="o">=</span> <span class="n">buffer_size</span><span class="p">(</span><span class="n">prz</span><span class="p">);</span>
+		<span class="kt">size_t</span> <span class="n">start</span> <span class="o">=</span> <span class="n">buffer_start</span><span class="p">(</span><span class="n">prz</span><span class="p">);</span>
+
+		<span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="n">size</span><span class="p">)</span>
+				<span class="k">return</span><span class="p">;</span>
+				
+<span class="o">++</span>  <span class="k">if</span><span class="err">（</span><span class="n">size</span> <span class="o">&gt;</span> <span class="n">prz</span><span class="o">-&gt;</span><span class="n">old_log_size</span> <span class="o">&amp;&amp;</span> <span class="n">prz</span><span class="o">-&gt;</span><span class="n">old_log_size</span> <span class="o">!=</span> <span class="mi">0</span> <span class="o">&amp;&amp;</span> <span class="n">prz</span><span class="o">-&gt;</span><span class="n">old_log</span> <span class="o">!=</span> <span class="nb">NULL</span><span class="err">）</span><span class="p">{</span>
+<span class="o">++</span>		  <span class="n">persistent_ram_ecc_old</span><span class="p">(</span><span class="n">prz</span><span class="p">);</span>              <span class="c1">//更新ecc info</span>
+<span class="o">++</span>			<span class="n">kfree</span><span class="p">(</span><span class="n">prz</span><span class="o">-&gt;</span><span class="n">old_log</span><span class="p">);</span>                      <span class="c1">//释放掉旧的old_log</span>
+<span class="o">++</span>		  <span class="n">prz</span><span class="o">-&gt;</span><span class="n">old_log</span> <span class="o">=</span> <span class="n">kmalloc</span><span class="p">(</span><span class="n">size</span><span class="p">,</span> <span class="n">GFP_KERNEL</span><span class="p">);</span> <span class="c1">//分配新的old_log</span>
+<span class="o">++</span>	<span class="p">}</span>
+
+		<span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="n">prz</span><span class="o">-&gt;</span><span class="n">old_log</span><span class="p">)</span> <span class="p">{</span>
+				<span class="n">persistent_ram_ecc_old</span><span class="p">(</span><span class="n">prz</span><span class="p">);</span>
+				<span class="n">prz</span><span class="o">-&gt;</span><span class="n">old_log</span> <span class="o">=</span> <span class="n">kmalloc</span><span class="p">(</span><span class="n">size</span><span class="p">,</span> <span class="n">GFP_KERNEL</span><span class="p">);</span>
+		<span class="p">}</span>
+			
+		<span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="n">prz</span><span class="o">-&gt;</span><span class="n">old_log</span><span class="p">)</span> <span class="p">{</span>
+				<span class="n">pr_err</span><span class="p">(</span><span class="s">"failed to allocate buffer</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
+				<span class="k">return</span><span class="p">;</span>
+		<span class="p">}</span>
+
+		<span class="n">prz</span><span class="o">-&gt;</span><span class="n">old_log_size</span> <span class="o">=</span> <span class="n">size</span><span class="p">;</span>                    <span class="c1">//更新old_log_size</span>
+		<span class="n">memcpy_fromio</span><span class="p">(</span><span class="n">prz</span><span class="o">-&gt;</span><span class="n">old_log</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">buffer</span><span class="o">-&gt;</span><span class="n">data</span><span class="p">[</span><span class="n">start</span><span class="p">],</span> <span class="n">size</span> <span class="o">-</span> <span class="n">start</span><span class="p">);</span>
+		<span class="n">memcpy_fromio</span><span class="p">(</span><span class="n">prz</span><span class="o">-&gt;</span><span class="n">old_log</span> <span class="o">+</span> <span class="n">size</span> <span class="o">-</span> <span class="n">start</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">buffer</span><span class="o">-&gt;</span><span class="n">data</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">start</span><span class="p">);</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+    </div>
+</article>
+
+                
+                <footer class="footer">
+        <section class="footer__about">
+                <p class="footer__about__copyright">© qts588 2025</p>
+                
+                <span class="divider">·</span>
+                
+                <span class="footer__about__theme"><p>theme</p><a id="simplex-logo" href="https://github.com/andreondra/jekyll-theme-simplex" target="_blank"><img alt="Simplex theme logo" src="http://localhost:4000/assets/img/icons/simplex_logo.svg"/></a><p>by <a href="https://ondrej.golasowski.com/">golas</a></p></span>
+        </section>
+</footer>
+            </main>
+            <script src="http://localhost:4000/assets/js/jquery.slim.min.js"></script>
+<script src="http://localhost:4000/assets/js/lity.min.js"></script>
+<script src="http://localhost:4000/assets/js/tools.js"></script>
+<script src="http://localhost:4000/assets/js/pic.js"></script>
+<script src="http://localhost:4000/assets/js/toc-highlight.js"></script>
+        </div>
+    
+</body>
+</html>

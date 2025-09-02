@@ -1,0 +1,80 @@
+/* 整体页面布局容器 */
+.page-container {
+    display: flex;
+    min-height: 100vh;
+    flex-direction: row; /* 确保横向排列 */
+}
+
+/* 主侧边栏样式 */
+.main-sidebar {
+    width: 350px; /* 侧边栏宽度 */
+    min-width: 280px; /* 防止侧边栏被压缩 */
+    background-color: var(--c-pageBackground); /* 可选背景色 */
+    padding: 20px;
+    position: fixed;
+    left: 0;
+    top: 100;
+    align-self: flex-start;
+    height: 100vh;
+    overflow-y: auto;
+}
+
+/* 针对 Webkit 内核浏览器 (Chrome, Safari, Edge) */
+.main-sidebar::-webkit-scrollbar-track {
+  background-color: var(--c-sideBarTrack); /* 滚动条轨道的底色 */
+  border-radius: 4px;
+}
+
+.main-sidebar::-webkit-scrollbar {
+  width: 10px; /* 设置滚动条的宽度 */
+}
+
+.main-sidebar::-webkit-scrollbar-thumb {
+  background-color: var(--c-sideBarSlider); /* 滚动条滑块的底色 */
+  border-radius: 4px;
+}
+
+.main-sidebar::-webkit-scrollbar-thumb:hover {
+  background-color: #a8a8a8; /* 鼠标悬停时滑块的底色 */
+}
+
+/* 主内容区域 */
+.main-content {
+    flex: 1; /* 占据剩余所有空间 */
+    min-width: 0; /* 重要：防止flex项目溢出 */
+    display: flex;
+    flex-direction: column;
+//    justify-content: center; // 水平居中
+    margin-left: 200px; // 与侧边栏宽度相同
+}
+
+/* 内容包装器 */
+.content-wrapper {
+    flex: 1; /* 让内容区域占据剩余垂直空间 */
+    padding: 20px;
+    max-width: 100%;
+}
+
+/* 响应式设计：在小屏幕上堆叠显示 */
+@media (max-width: 768px) {
+    .page-container {
+        flex-direction: column;
+    }
+    
+    .main-sidebar {
+        width: 100%;
+        min-width: 100%;
+        max-height: none;
+        position: static;
+        order: 2; /* 在移动端让侧边栏显示在内容之后 */
+    }
+    
+    .main-content {
+        order: 1; /* 在移动端让内容显示在前面 */
+    }
+}
+
+/* 确保header和footer在全宽显示 */
+header, footer {
+    width: 100%;
+}

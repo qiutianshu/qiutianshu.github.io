@@ -1,0 +1,23 @@
+// =============================
+// global.scss
+// =============================
+// Used for single page styles.
+
+.page{
+
+    color: var(--c-pageText);
+    justify-self: center;
+    margin: 0 2rem;
+    max-width: 1000px;
+    @include flexbox{
+        flex-direction: column;
+        justify-content: flex-start;
+        align-items: center;
+    }
+
+    img{
+        display: block; // 关键：让图片成为块级元素才能使用margin居中
+        margin: 0 auto; // 水平居中
+        max-width: 100%;
+    }
+}

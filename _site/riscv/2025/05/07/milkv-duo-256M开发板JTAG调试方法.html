@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <link rel="stylesheet" href="http://localhost:4000/assets/fonts/fonts.css"/>
+<link rel="stylesheet" href="http://localhost:4000/assets/style.css"/>
+<link rel="stylesheet" href="http://localhost:4000/assets/js/lity.min.css"/>
+
+
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<meta property="og:site_name" content="极目楚天舒" />
+<meta 
+    property="og:title"
+    content="
+        
+            milkv duo 256M开发板JTAG调试方法
+        
+    " 
+/>
+
+<meta property="og:url" content="http://localhost:4000//riscv/2025/05/07/milkv-duo-256M%E5%BC%80%E5%8F%91%E6%9D%BFJTAG%E8%B0%83%E8%AF%95%E6%96%B9%E6%B3%95.html" />
+
+    <meta property="og:type" content="article" />
+
+
+
+    <meta property="fb:app_id" content="" />
+
+
+
+<title>
+    
+        milkv duo 256M开发板JTAG调试方法
+    
+</title>
+</head>
+<body class="index">
+    
+        <div class="page-container">
+            <aside class="main-sidebar">
+                <!-- 包含 TOC -->
+                <sidebar class="sidebar">
+<ul class="toc-list"><li><a href="#调试架构">调试架构</a></li><li><a href="#开发板接线">开发板接线</a></li><li><a href="#上位机准备">上位机准备</a></li><li><a href="#使能jtag调试功能">使能jtag调试功能</a></li><li><a href="#参考资料">参考资料</a></li></ul></sidebar>
+            </aside>
+            <!-- 主内容区域 -->
+            <main class="main-content">
+                <header class="header">
+    <section class="logo">
+        <a href="http://localhost:4000/" class="logo__link">
+            
+                <h1>极目楚天舒</h1>
+            
+        </a>
+    </section>
+    <button id="menuToggle">
+        <div></div>
+        <div></div>
+        <div></div>
+    </button>
+    <nav class="menu">
+        
+<ul class="list primary">
+
+    
+        <li class="item">
+
+            <div class="item-controls">
+                <a href="http://localhost:4000/category/linux_kernel.html">
+                
+                    <img src="http://localhost:4000/assets/img/icons/tux.png"/>
+                
+                
+                    <p style="color: var(--c-themeHueRed)">Linux kernel</p>
+                
+                </a>
+
+            
+            </div>
+            
+        </li>   
+    
+        <li class="item">
+
+            <div class="item-controls">
+                <a href="http://localhost:4000/category/linux_userspace.html">
+                
+                    <img src="http://localhost:4000/assets/img/icons/userspace.png"/>
+                
+                
+                    <p style="color: var(--c-themeHueRed)">Linux userspace</p>
+                
+                </a>
+
+            
+            </div>
+            
+        </li>   
+    
+        <li class="item">
+
+            <div class="item-controls">
+                <a href="http://localhost:4000/category/hardware.html">
+                
+                    <img src="http://localhost:4000/assets/img/icons/chip.svg"/>
+                
+                
+                    <p style="color: var(--c-themeHueRed)">Hardware</p>
+                
+                </a>
+
+            
+            </div>
+            
+        </li>   
+    
+        <li class="item">
+
+            <div class="item-controls">
+                <a href="http://localhost:4000/category/meltdown_spectre.html">
+                
+                    <img src="http://localhost:4000/assets/img/icons/meltdown_spectre.png"/>
+                
+                
+                    <p style="color: var(--c-themeHueRed)">Side Channel</p>
+                
+                </a>
+
+            
+            </div>
+            
+        </li>   
+    
+        <li class="item">
+
+            <div class="item-controls">
+                <a href="http://localhost:4000/category/riscv.html">
+                
+                    <img src="http://localhost:4000/assets/img/icons/riscv.png"/>
+                
+                
+                    <p style="color: var(--c-themeHueRed)">Riscv</p>
+                
+                </a>
+
+            
+            </div>
+            
+        </li>   
+    
+</ul>
+    </nav>
+</header>
+                
+                <article class="post">
+
+    <div class="post__title">
+       milkv duo 256M开发板JTAG调试方法
+    </div>
+    <div class="post__meta"> 
+        <div class="post__meta__category">
+            
+                <p class="post__meta__category__title" style="background: var(--c-themeHueGreen)">Riscv</p>
+            
+        </div>
+        <p class="post__meta__divider">·</p>
+        <div class="post__meta__date">
+            May 07, 2025
+        </div>
+        
+    </div>
+
+    
+
+    <div class="post__content">
+        <p>本文将深入探讨如何为 milkv duo 256M 开发板开启JTAG调试之门。我将从硬件连接、软件环境配置入手，详细讲解如何利用JTAG接口实现系统级调。</p>
+
+<h2 id="调试架构">调试架构</h2>
+
+<p>淘宝cklink-lite调试器，milkv duo256m开发板，杜邦线若干，usb串口调试线：</p>
+
+<p><img src="/assets/posts/2025-05-07-milkv-duo-256M开发板JTAG调试方法/milkv_duo256m_jtag%E8%B0%83%E8%AF%95%E5%8E%9F%E7%90%86.jpg" alt="milkv duo256m jtag调试原理.jpg" /></p>
+
+<ol>
+  <li>上位机运行玄铁官方的XuanTie-DebugServer用于和cklink-lite通信，同时开放调试端口给gdb；</li>
+  <li>上位机运行gdb-multiarch连接到DebugServer，发送调试命令，接收调试数据；</li>
+  <li>cklink-lite起到代理的作用，接收来自上位机的调试命令，把调试命令转化为JTAG协议发送到开发板，解析开发板回传的调试数据，发送回上位机DebugServer；</li>
+  <li>上位机DebugServer把接收到的调试数据返回给gdb，完成一条调试命令。</li>
+</ol>
+
+<h2 id="开发板接线">开发板接线</h2>
+
+<p>cklink-lite调试的的TCK、TMS、TDO、TDI、GND分别连接到开发板对应的引脚。注意GND线要接，否则上位机无法通过cklink-lite连接上开发板。</p>
+
+<p><img src="/assets/posts/2025-05-07-milkv-duo-256M开发板JTAG调试方法/%E6%88%AA%E5%B1%8F2025-02-15_10.45.14.png" alt="截屏2025-02-15 10.45.14.png" /></p>
+
+<h2 id="上位机准备">上位机准备</h2>
+
+<p>从玄铁官网下载DebugServer，执行安装命令：</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span><span class="nb">chmod</span> +x XuanTie_DebugServer-linux-x86_64-V5.18.3-20241119.sh
+<span class="nv">$ </span><span class="nb">sudo</span> ./XuanTie_DebugServer-linux-x86_64-V5.18.3-20241119.sh <span class="nt">-i</span>
+</code></pre></div></div>
+
+<p><a href="/assets/posts/2025-05-07-milkv-duo-256M开发板JTAG调试方法/XuanTie-DebugServer-linux-x86_64-V5.18.3-20241119.sh">XuanTie-DebugServer-linux-x86_64-V5.18.3-20241119.sh</a></p>
+
+<p>需要注意的是，DebugServer安装过程中会把/usr/bin/XUANTIE_DebugServer目录添加到动态链接库搜索路径中，这会干扰其他引用的正常运行，解决方法是：</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code> 删除动态链接库缓存文件
+<span class="nv">$ </span><span class="nb">sudo rm</span> /etc/ld.so.conf.d/csky-debug.conf
+<span class="nv">$ </span><span class="nb">sudo </span>ldconfig
+
+</code></pre></div></div>
+
+<p>DebugServerConsole是/usr/bin目录下的脚本文件，在第一行添加cd命令，使得每次运行之前先进入到安装目录，所有DebugServerConsole依赖的库文件都在安装目录下。</p>
+
+<p><img src="/assets/posts/2025-05-07-milkv-duo-256M开发板JTAG调试方法/%E6%88%AA%E5%B1%8F2025-02-17_12.54.16.png" alt="截屏2025-02-17 12.54.16.png" /></p>
+
+<h2 id="使能jtag调试功能">使能jtag调试功能</h2>
+
+<p>查看SG2002芯片手册可知，内存地址0x03001064、0x03001068、0x03001070、0x03001074对应的寄存器分别控制TMS、TCK、TDI、TDO功能的开启。</p>
+
+<p>这四个地址保存的值默认为0，也就是系统一上电默认开启JTAG调试功能。</p>
+
+<p>此时可以调试从FSBL—&gt;uboot—&gt;opensbi这个阶段的程序。</p>
+
+<p><img src="/assets/posts/2025-05-07-milkv-duo-256M开发板JTAG调试方法/%E6%88%AA%E5%B1%8F2025-02-15_13.55.40.png" alt="截屏2025-02-15 13.55.40.png" /></p>
+
+<p>Linux内核启动之后，这四个地址分别都被写入了非零值，应该是内核初始化过程中对JTAG引脚的功能进行了重新设置：</p>
+
+<p><img src="/assets/posts/2025-05-07-milkv-duo-256M开发板JTAG调试方法/%E6%88%AA%E5%B1%8F2025-02-15_14.03.05.png" alt="截屏2025-02-15 14.03.05.png" /></p>
+
+<p>我们把它重新写成0:</p>
+
+<p><img src="/assets/posts/2025-05-07-milkv-duo-256M开发板JTAG调试方法/%E6%88%AA%E5%B1%8F2025-02-15_14.10.10.png" alt="截屏2025-02-15 14.10.10.png" /></p>
+
+<p>再用gdb-multiarch去连：</p>
+
+<p><img src="/assets/posts/2025-05-07-milkv-duo-256M开发板JTAG调试方法/%E6%88%AA%E5%B1%8F2025-02-15_14.12.31.png" alt="截屏2025-02-15 14.12.31.png" /></p>
+
+<h2 id="参考资料">参考资料</h2>
+
+<p>JTAG入门之使用JTAG调试路由器：</p>
+
+<p><a href="https://www.iotsec-zone.com/article/375">物联网安全从零开始-路由器jtag调试分析 - IOTsec-Zone</a></p>
+
+<p><a href="https://club.rt-thread.org/ask/article/5c9e1b656dd77b9c.html">RT-Thread-MilkV Duo 使用 CK-Link DebugRT-Thread问答社区 - RT-Thread</a></p>
+
+<p><a href="https://community.milkv.io/t/jtag-jtag-debug-guide-for-duo/1138">【jtag】Jtag debug guide for Duo</a></p>
+
+<p>修改fip.bin文件添加JTAG调试功能：</p>
+
+<p><a href="https://github.com/pigmoral/duo-buildroot-sdk/commit/c198e570fd25c94260e1024df991c9914c6d4680">Add jtag function for duo-64. · pigmoral/duo-buildroot-sdk@c198e57</a></p>
+
+    </div>
+</article>
+
+                
+                <footer class="footer">
+        <section class="footer__about">
+                <p class="footer__about__copyright">© qts588 2025</p>
+                
+                <span class="divider">·</span>
+                
+                <span class="footer__about__theme"><p>theme</p><a id="simplex-logo" href="https://github.com/andreondra/jekyll-theme-simplex" target="_blank"><img alt="Simplex theme logo" src="http://localhost:4000/assets/img/icons/simplex_logo.svg"/></a><p>by <a href="https://ondrej.golasowski.com/">golas</a></p></span>
+        </section>
+</footer>
+            </main>
+            <script src="http://localhost:4000/assets/js/jquery.slim.min.js"></script>
+<script src="http://localhost:4000/assets/js/lity.min.js"></script>
+<script src="http://localhost:4000/assets/js/tools.js"></script>
+<script src="http://localhost:4000/assets/js/pic.js"></script>
+<script src="http://localhost:4000/assets/js/toc-highlight.js"></script>
+        </div>
+    
+</body>
+</html>

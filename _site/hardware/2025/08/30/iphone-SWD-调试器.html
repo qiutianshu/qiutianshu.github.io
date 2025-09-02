@@ -1,0 +1,897 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <link rel="stylesheet" href="http://localhost:4000/assets/fonts/fonts.css"/>
+<link rel="stylesheet" href="http://localhost:4000/assets/style.css"/>
+<link rel="stylesheet" href="http://localhost:4000/assets/js/lity.min.css"/>
+
+
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<meta property="og:site_name" content="极目楚天舒" />
+<meta 
+    property="og:title"
+    content="
+        
+            iPhone SWD 调试器的开发
+        
+    " 
+/>
+
+<meta property="og:url" content="http://localhost:4000//hardware/2025/08/30/iphone-SWD-%E8%B0%83%E8%AF%95%E5%99%A8.html" />
+
+    <meta property="og:type" content="article" />
+
+
+
+    <meta property="fb:app_id" content="" />
+
+
+
+<title>
+    
+        iPhone SWD 调试器的开发
+    
+</title>
+</head>
+<body class="index">
+    
+        <div class="page-container">
+            <aside class="main-sidebar">
+                <!-- 包含 TOC -->
+                <sidebar class="sidebar">
+<ul class="toc-list"><li><a href="#lighting-接口原理">lighting 接口原理</a><ul><li><a href="#lighting-接口历史">lighting 接口历史</a></li><li><a href="#lighting-接口实物图">lighting 接口实物图</a><ul><li><a href="#lighting-母座">lighting 母座</a></li><li><a href="#lighting-公头">lighting 公头</a></li></ul></li><li><a href="#lighting-接口电路">lighting 接口电路</a></li></ul></li><li><a href="#sdq-协议原理">SDQ 协议原理</a><ul><li><a href="#例子usb-数据通信过程">例子：USB 数据通信过程</a></li><li><a href="#数据格式">数据格式</a></li><li><a href="#比特位的表示">比特位的表示</a></li><li><a href="#引脚状态切换">引脚状态切换</a></li><li><a href="#lighting-数据线解剖">lighting 数据线解剖</a></li><li><a href="#sdq-协议破解途径">SDQ 协议破解途径</a><ul><li><a href="#途径一早期芯片数据手册">途径一：早期芯片数据手册</a></li><li><a href="#途径二富士康工程线抓包">途径二：富士康工程线抓包</a></li></ul></li></ul></li><li><a href="#山寨调试器现状">“山寨”调试器现状</a></li><li><a href="#fpga实现方案">FPGA实现方案</a><ul><li><a href="#物料清单">物料清单</a></li><li><a href="#器件连接">器件连接</a></li><li><a href="#工作原理">工作原理</a><ul><li><a href="#开启-swd-调试端口">开启 SWD 调试端口</a></li><li><a href="#jlink--openocd-调试原理">jlink + OpenOCD 调试原理</a></li><li><a href="#修改-openocd-源代码">修改 OpenOCD 源代码</a></li><li><a href="#编译-openocd-源代码">编译 OpenOCD 源代码</a></li><li><a href="#openocd-配置文件">OpenOCD 配置文件</a></li></ul></li><li><a href="#使用演示">使用演示</a></li></ul></li></ul></sidebar>
+            </aside>
+            <!-- 主内容区域 -->
+            <main class="main-content">
+                <header class="header">
+    <section class="logo">
+        <a href="http://localhost:4000/" class="logo__link">
+            
+                <h1>极目楚天舒</h1>
+            
+        </a>
+    </section>
+    <button id="menuToggle">
+        <div></div>
+        <div></div>
+        <div></div>
+    </button>
+    <nav class="menu">
+        
+<ul class="list primary">
+
+    
+        <li class="item">
+
+            <div class="item-controls">
+                <a href="http://localhost:4000/category/linux_kernel.html">
+                
+                    <img src="http://localhost:4000/assets/img/icons/tux.png"/>
+                
+                
+                    <p style="color: var(--c-themeHueRed)">Linux kernel</p>
+                
+                </a>
+
+            
+            </div>
+            
+        </li>   
+    
+        <li class="item">
+
+            <div class="item-controls">
+                <a href="http://localhost:4000/category/linux_userspace.html">
+                
+                    <img src="http://localhost:4000/assets/img/icons/userspace.png"/>
+                
+                
+                    <p style="color: var(--c-themeHueRed)">Linux userspace</p>
+                
+                </a>
+
+            
+            </div>
+            
+        </li>   
+    
+        <li class="item">
+
+            <div class="item-controls">
+                <a href="http://localhost:4000/category/hardware.html">
+                
+                    <img src="http://localhost:4000/assets/img/icons/chip.svg"/>
+                
+                
+                    <p style="color: var(--c-themeHueRed)">Hardware</p>
+                
+                </a>
+
+            
+            </div>
+            
+        </li>   
+    
+        <li class="item">
+
+            <div class="item-controls">
+                <a href="http://localhost:4000/category/meltdown_spectre.html">
+                
+                    <img src="http://localhost:4000/assets/img/icons/meltdown_spectre.png"/>
+                
+                
+                    <p style="color: var(--c-themeHueRed)">Side Channel</p>
+                
+                </a>
+
+            
+            </div>
+            
+        </li>   
+    
+        <li class="item">
+
+            <div class="item-controls">
+                <a href="http://localhost:4000/category/riscv.html">
+                
+                    <img src="http://localhost:4000/assets/img/icons/riscv.png"/>
+                
+                
+                    <p style="color: var(--c-themeHueRed)">Riscv</p>
+                
+                </a>
+
+            
+            </div>
+            
+        </li>   
+    
+</ul>
+    </nav>
+</header>
+                
+                <article class="post">
+
+    <div class="post__title">
+       iPhone SWD 调试器的开发
+    </div>
+    <div class="post__meta"> 
+        <div class="post__meta__category">
+            
+                <p class="post__meta__category__title" style="background: var(--c-themeHueOrange)">Hardware</p>
+            
+        </div>
+        <p class="post__meta__divider">·</p>
+        <div class="post__meta__date">
+            August 30, 2025
+        </div>
+        
+    </div>
+
+    
+
+    <div class="post__content">
+        <p>PANDA 2025 安全大会上，我们在 iPhone 7 plus 上面成功启动 Linux 内核，我们继续探索苹果手机硬件安全，并于近日成功打开了  iPhone 7 plus 的 SWD 硬件调试端口。</p>
+
+<h1 id="lighting-接口原理">lighting 接口原理</h1>
+
+<p><a href="https://nyansatan.github.io/lightning/">Apple Lightning</a></p>
+
+<p><a href="https://www.youtube.com/watch?v=8p3Oi4DL0eI">DEF CON 30 - stacksmashing  - The Hitchhacker’s Guide to iPhone Lightning and JTAG Hacking</a></p>
+
+<h2 id="lighting-接口历史">lighting 接口历史</h2>
+
+<p>苹果的 Lightning 接口从 <strong>2012年</strong> 的 iPhone 5 开始启用，直到 <strong>2023年</strong> 的 iPhone 14 系列和 iPhone SE（第3代）为止，之后的机型就全面转向 USB-C 了。</p>
+
+<table>
+  <thead>
+    <tr>
+      <th><strong>手机系列</strong></th>
+      <th><strong>具体型号</strong></th>
+      <th><strong>发布时间</strong></th>
+      <th><strong>状态</strong></th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>iPhone SE</strong></td>
+      <td>第1代、第2代、第3代</td>
+      <td>2016-2022</td>
+      <td>已停产停售</td>
+    </tr>
+    <tr>
+      <td><strong>iPhone 5</strong></td>
+      <td>iPhone 5、iPhone 5c、iPhone 5s</td>
+      <td>2012-2013</td>
+      <td>已停产停售</td>
+    </tr>
+    <tr>
+      <td><strong>iPhone 6</strong></td>
+      <td>iPhone 6、iPhone 6 Plus</td>
+      <td>2014</td>
+      <td>已停产停售</td>
+    </tr>
+    <tr>
+      <td><strong>iPhone 7</strong></td>
+      <td>iPhone 7、iPhone 7 Plus</td>
+      <td>2016</td>
+      <td>已停产停售</td>
+    </tr>
+    <tr>
+      <td><strong>iPhone 8</strong></td>
+      <td>iPhone 8、iPhone 8 Plus</td>
+      <td>2017</td>
+      <td>已停产停售</td>
+    </tr>
+    <tr>
+      <td><strong>iPhone X</strong></td>
+      <td>iPhone X</td>
+      <td>2017</td>
+      <td>已停产停售</td>
+    </tr>
+    <tr>
+      <td><strong>iPhone XS</strong></td>
+      <td>iPhone XS、iPhone XS Max</td>
+      <td>2018</td>
+      <td>已停产停售</td>
+    </tr>
+    <tr>
+      <td><strong>iPhone XR</strong></td>
+      <td>iPhone XR</td>
+      <td>2018</td>
+      <td>已停产停售</td>
+    </tr>
+    <tr>
+      <td><strong>iPhone 11</strong></td>
+      <td>iPhone 11、iPhone 11 Pro、iPhone 11 Pro Max</td>
+      <td>2019</td>
+      <td>已停产停售</td>
+    </tr>
+    <tr>
+      <td><strong>iPhone 12</strong></td>
+      <td>iPhone 12、iPhone 12 mini、iPhone 12 Pro、iPhone 12 Pro Max</td>
+      <td>2020</td>
+      <td>已停产停售</td>
+    </tr>
+    <tr>
+      <td><strong>iPhone 13</strong></td>
+      <td>iPhone 13、iPhone 13 mini、iPhone 13 Pro、iPhone 13 Pro Max</td>
+      <td>2021</td>
+      <td>已停产停售</td>
+    </tr>
+    <tr>
+      <td><strong>iPhone 14</strong></td>
+      <td>iPhone 14、iPhone 14 Plus、iPhone 14 Pro、iPhone 14 Pro Max</td>
+      <td>2022</td>
+      <td>已停产停售</td>
+    </tr>
+  </tbody>
+</table>
+
+<h2 id="lighting-接口实物图">lighting 接口实物图</h2>
+
+<h3 id="lighting-母座">lighting 母座</h3>
+
+<p>母座一般情况下就是我们手机上面的充电口，实际使用8个引脚：</p>
+
+<p><img src="/assets/posts/2025-08-30-iphone-SWD-调试器/image.png" alt="image.png" /></p>
+
+<ul>
+  <li>ID0 和 ID1 是功能选择信号线。当公头插入的时候，公头内置的协议芯片通过这两个引脚与设备通信，告知设备选通“USB通信、串口通信、SWD通信、充电”四者之一的功能。</li>
+  <li>L0p L0n 和 L1p L1n 是两对差分线，在USB通信功能被选通的情况下，用于传输 USB 数据。</li>
+  <li>PWR 引脚用于充电，或者对外提供电源。</li>
+</ul>
+
+<p><img src="/assets/posts/2025-08-30-iphone-SWD-调试器/lightning_port_pinout.jpg" alt="lightning_port_pinout.jpg" /></p>
+
+<h3 id="lighting-公头">lighting 公头</h3>
+
+<p>公头是双面结构，每个面都有8个触点。</p>
+
+<p><img src="/assets/posts/2025-08-30-iphone-SWD-调试器/c9153d2417884c2388d32a539ca7310e.webp" alt="c9153d2417884c2388d32a539ca7310e.webp" /></p>
+
+<p>这个是双面夹层的电气结构，其中 ACC_ID 和 ACC_PWR 分别对应于母座的 ID0 和 ID1 引脚。</p>
+
+<p>可以看到正反两面除了 ACC_ID 、 ACC_PWR两个触点，其他触点都是左右镜像的，这可以保证无论公头的插入方向是什么，供电引脚和数据引脚都能与母座对应。</p>
+
+<p><img src="/assets/posts/2025-08-30-iphone-SWD-调试器/%E5%85%AC%E5%8F%A3%E7%94%B5%E6%B0%94%E7%BB%93%E6%9E%84.jpg" alt="公口电气结构.jpg" /></p>
+
+<h2 id="lighting-接口电路">lighting 接口电路</h2>
+
+<p>lighting 接口电路的核心功能是有一个多路复用器，一端与母座连接，另一端与 SoC 芯片管脚相连。</p>
+
+<p>公头插入母座的时候，公头内部的通信芯片从母座的 PWR 和 GND 引脚获取电源，通过 ID0 和 ID1 与多路复用器通信，通信协议是德州仪器未公开的 SDQ 协议。</p>
+
+<p>通信过程的内容包括功能选通、状态读取、接口配置。</p>
+
+<p>通常情况下用户接触到最多的是 USB 通信和充电这两个功能，</p>
+
+<p>SWD 调试端口功能需要利用 <a href="https://www.notion.so/checkm8-1a03f4b7819d80a099bad5da127b8372?pvs=21">checkm8</a> 漏洞降级设备之后，再向设备发送特定的 SDQ 序列才能选通，这是本文讨论的主要内容之一。</p>
+
+<p><img src="/assets/posts/2025-08-30-iphone-SWD-调试器/%E6%9C%AA%E5%91%BD%E5%90%8D%E7%BB%98%E5%9B%BE.jpg" alt="未命名绘图.jpg" /></p>
+
+<h1 id="sdq-协议原理">SDQ 协议原理</h1>
+
+<p>SDQ 协议最早是德州仪器公司为苹果设备开发的单线（1-wire）通信协议，该协议至今未开源。</p>
+
+<p>SDQ 通信只需要一根线就能完成，连接主从设备。通常情况下 iPhone 作为主设备，与之相连的数据线作为从设备。</p>
+
+<p>母座检测到公头插入的时候，会在 ID0 和 ID1 两个引脚交替发起轮询，等待应答。</p>
+
+<p>公头通过 ID0 或者 ID1 两者之一的引脚与设备通信。</p>
+
+<p><img src="/assets/posts/2025-08-30-iphone-SWD-调试器/image%201.png" alt="image.png" /></p>
+
+<h2 id="例子usb-数据通信过程">例子：USB 数据通信过程</h2>
+
+<p>下图是逻辑分析仪抓取到的 USB 通信过程，截取了最开始 SDQ 通信部分。</p>
+
+<p>“74 00 02 1f” 序列由设备的 lighting 接口电路发起，等待外部应答。</p>
+
+<p>插入 lighting 数据线之后，数据线响应 “75 10 09 08 00 00 00 a8” 序列，表示选通 USB 通信功能。</p>
+
+<p>lighting 接口电路切换电路功能到 USB 数据传输。</p>
+
+<p><img src="/assets/posts/2025-08-30-iphone-SWD-调试器/iPhone_SWD%E8%B0%83%E8%AF%95%E5%99%A8.jpg" alt="iPhone SWD调试器.jpg" /></p>
+
+<h2 id="数据格式">数据格式</h2>
+
+<p><img src="/assets/posts/2025-08-30-iphone-SWD-调试器/iPhone_SWD%E8%B0%83%E8%AF%95%E5%99%A8-%E6%95%B0%E6%8D%AE%E6%A0%BC%E5%BC%8F.jpg" alt="iPhone SWD调试器-数据格式.jpg" /></p>
+
+<p>CRC 计算参数如下：</p>
+
+<p><img src="/assets/posts/2025-08-30-iphone-SWD-调试器/D9B360FB-0E77-4008-B9C2-6DA9AF3FB0CF.png" alt="{D9B360FB-0E77-4008-B9C2-6DA9AF3FB0CF}.png" /></p>
+
+<h2 id="比特位的表示">比特位的表示</h2>
+
+<p>单字节中间，比特 0 的周期为 10 微秒，其中低电平占 7 微秒；</p>
+
+<p><img src="/assets/posts/2025-08-30-iphone-SWD-调试器/047CA35B-D51C-4A5B-93DB-6BE63B0F77C1.png" alt="{047CA35B-D51C-4A5B-93DB-6BE63B0F77C1}.png" /></p>
+
+<p>单字节第 7 位，比特 0 的周期为 27.5 微秒，其中低电平占 7 微秒；</p>
+
+<p><img src="/assets/posts/2025-08-30-iphone-SWD-调试器/F14469CC-A9C6-4086-B505-E342B1D73475.png" alt="{F14469CC-A9C6-4086-B505-E342B1D73475}.png" /></p>
+
+<p>单字节中间，比特 1 的周期为 10 微秒，其中低电平占 2 微秒；</p>
+
+<p><img src="/assets/posts/2025-08-30-iphone-SWD-调试器/FC8A4901-1F2C-41CA-AA35-8126F326F0F6.png" alt="{FC8A4901-1F2C-41CA-AA35-8126F326F0F6}.png" /></p>
+
+<p>单字节第 7 位，比特 1 的周期为 27.5 微秒，其中低电平占 2 微秒；</p>
+
+<p><img src="/assets/posts/2025-08-30-iphone-SWD-调试器/5E821473-7509-47DE-B181-4510805D5C55.png" alt="{5E821473-7509-47DE-B181-4510805D5C55}.png" /></p>
+
+<h2 id="引脚状态切换">引脚状态切换</h2>
+
+<ol>
+  <li>iphone 占用信号线，数据线高阻态；</li>
+  <li>方向切换，耗时大约 120 微秒；</li>
+  <li>数据线占用信号线，lighting 电路高阻态。</li>
+</ol>
+
+<p><img src="/assets/posts/2025-08-30-iphone-SWD-调试器/iPhone_SWD%E8%B0%83%E8%AF%95%E5%99%A8-usb%E9%80%9A%E4%BF%A1%E8%BF%87%E7%A8%8B.jpg" alt="iPhone SWD调试器-usb通信过程.jpg" /></p>
+
+<h2 id="lighting-数据线解剖">lighting 数据线解剖</h2>
+
+<p>市售的 lighting 数据线分为 2 类：一类内嵌协议芯片，另一类不带协议芯片。</p>
+
+<p>淘宝平台上若不特殊说明，搜到的都是第一类数据线。</p>
+
+<p>解剖可以看到里面包含了一颗电源芯片和一颗协议芯片。这类数据线插入手机后，会通过母座的 PWR 和 GND 引脚拉取电源，使用 ID0 或者 ID1 引脚与手机的 lighting 接口电路进行 SDQ 通信，根据用户选择的“仅充电”或者“文件传输”选项，选通 USB 功能或者充电功能。</p>
+
+<p>我们只能控制 PWR 、GND 、D+ 、D-  四个引脚。</p>
+
+<p><img src="/assets/posts/2025-08-30-iphone-SWD-调试器/lighting%E8%A7%A3%E5%89%96.jpg" alt="lighting解剖.jpg" /></p>
+
+<p>这类数据线显然不能满足我们的需求，我们需要 8 个引脚都能够被我们控制。淘宝搜索 “lighting 扩展线 ”：</p>
+
+<p><img src="/assets/posts/2025-08-30-iphone-SWD-调试器/iPhone_SWD%E8%B0%83%E8%AF%95%E5%99%A8-%E7%AC%AC_5_%E9%A1%B5.jpg" alt="iPhone SWD调试器-第 5 页.jpg" /></p>
+
+<h2 id="sdq-协议破解途径">SDQ 协议破解途径</h2>
+
+<h3 id="途径一早期芯片数据手册">途径一：早期芯片数据手册</h3>
+
+<p>德州仪器早年的产品有数据手册流传到网上，有部分功能与现在的产品重合。</p>
+
+<p><img src="/assets/posts/2025-08-30-iphone-SWD-调试器/iPhone_SWD%E8%B0%83%E8%AF%95%E5%99%A8-%E7%AC%AC_7_%E9%A1%B5.jpg" alt="iPhone SWD调试器-第 7 页.jpg" /></p>
+
+<h3 id="途径二富士康工程线抓包">途径二：富士康工程线抓包</h3>
+
+<p>富士康工厂内部的调试线和专用软件经过一些渠道流入二手市场，极客们使用逻辑分析仪嗅探发现了打开 SWD 调试端口的序列码。</p>
+
+<p><img src="/assets/posts/2025-08-30-iphone-SWD-调试器/iPhone_SWD%E8%B0%83%E8%AF%95%E5%99%A8-%E7%AC%AC_8_%E9%A1%B5.jpg" alt="iPhone SWD调试器-第 8 页.jpg" /></p>
+
+<p><img src="/assets/posts/2025-08-30-iphone-SWD-调试器/659BC51B-4FA8-4FA2-AADB-E0753D4C4B11.png" alt="{659BC51B-4FA8-4FA2-AADB-E0753D4C4B11}.png" /></p>
+
+<h1 id="山寨调试器现状">“山寨”调试器现状</h1>
+
+<p>拿到了开启 SWD 调试端口的 “金钥匙”之后，国外有极客团队开发出了专用调试器，比较著名的有：</p>
+
+<p>Bonobo Cable （固件加密、不开源）</p>
+
+<p>Kanzi Cable （不开源）</p>
+
+<p><img src="/assets/posts/2025-08-30-iphone-SWD-调试器/image%202.png" alt="image.png" /></p>
+
+<p>这类调试器普遍比较昂贵，其中 Bonobo Cable 卖到了 749 欧元，折合人民币 6275 元，而且目前是售罄状态。</p>
+
+<p><img src="/assets/posts/2025-08-30-iphone-SWD-调试器/EDE796FA-9EBD-470F-9DCE-567653DA11AD.png" alt="{EDE796FA-9EBD-470F-9DCE-567653DA11AD}.png" /></p>
+
+<p>咸鱼上的 Kanzi Cable 卖到了 1110 元人民币以上，不包好坏，不包售后，懂的来……</p>
+
+<p><img src="/assets/posts/2025-08-30-iphone-SWD-调试器/iPhone_SWD%E8%B0%83%E8%AF%95%E5%99%A8-%E7%AC%AC_9_%E9%A1%B5.jpg" alt="iPhone SWD调试器-第 9 页.jpg" /></p>
+
+<h1 id="fpga实现方案">FPGA实现方案</h1>
+
+<p>我们无需知晓 SDQ 协议每个字段的意义，只需要按照如下步骤就能打开 SWD 调试端口：</p>
+
+<ol>
+  <li>调试的目标设备是受 <a href="https://www.notion.so/checkm8-1a03f4b7819d80a099bad5da127b8372?pvs=21">checkm8</a> 漏洞影响的 iPhone 设备，这里我们用的是 iPhone 7 plus，处理器型号是 A10 fusion；</li>
+  <li>使用 <a href="https://github.com/axi0mX/ipwndfu">ipwndfu</a> 工具对手机进行降级，使能 SWD 调试功能；</li>
+  <li>iphone 发起轮询序列 “74 00 02 1F” ；</li>
+  <li>外部响应 “75 A0 00 00 00 00 00 40” 序列，这样 lighting 接口就会切换成 SWD 调试口，其中 ID0 引脚对应 SWDIO， ID1 引脚对应 SWCLK；</li>
+</ol>
+
+<p><img src="/assets/posts/2025-08-30-iphone-SWD-调试器/iPhone_SWD%E8%B0%83%E8%AF%95%E5%99%A8-%E7%AC%AC_10_%E9%A1%B5.jpg" alt="iPhone SWD调试器-第 10 页.jpg" /></p>
+
+<p>通过实际抓包测量得到 SDQ 信号的参考电压是 3.3伏</p>
+
+<h2 id="物料清单">物料清单</h2>
+
+<ul>
+  <li>
+    <p>赛灵思 xc7a100t FPGA 开发板；</p>
+
+    <p><img src="/assets/posts/2025-08-30-iphone-SWD-调试器/1bf2d0fd6722dcafda05910ac8322b45e4d3b4f2.png1192w.webp" alt="1bf2d0fd6722dcafda05910ac8322b45e4d3b4f2.png@1192w.webp" /></p>
+  </li>
+  <li>iPhone 7 plus 手机；</li>
+  <li>
+    <p>Jlink 调试器；</p>
+
+    <p><img src="/assets/posts/2025-08-30-iphone-SWD-调试器/204d5d3466926f69a3dfde4680533355.jpg" alt="204d5d3466926f69a3dfde4680533355.jpg" /></p>
+  </li>
+  <li>逻辑分析仪；</li>
+</ul>
+
+<p><img src="/assets/posts/2025-08-30-iphone-SWD-调试器/%E5%BE%AE%E4%BF%A1%E5%9B%BE%E7%89%87_2025-08-25_204019_775(1).jpg" alt="微信图片_2025-08-25_204019_775(1).jpg" /></p>
+
+<ul>
+  <li>自制 lighting 接口转接板</li>
+</ul>
+
+<p><img src="/assets/posts/2025-08-30-iphone-SWD-调试器/iPhone_SWD%E8%B0%83%E8%AF%95%E5%99%A8-%E7%AC%AC_11_%E9%A1%B5.jpg" alt="iPhone SWD调试器-第 11 页.jpg" /></p>
+
+<h2 id="器件连接">器件连接</h2>
+
+<p><img src="/assets/posts/2025-08-30-iphone-SWD-调试器/iPhone_SWD%E8%B0%83%E8%AF%95%E5%99%A8-%E7%AC%AC_12_%E9%A1%B5.jpg" alt="iPhone SWD调试器-第 12 页.jpg" /></p>
+
+<p><img src="/assets/posts/2025-08-30-iphone-SWD-调试器/e01e492c7dbe195da9e4ad6faeed674d.jpg" alt="e01e492c7dbe195da9e4ad6faeed674d.jpg" /></p>
+
+<p>上图的各部分作用如下：</p>
+
+<ul>
+  <li>FPGA 检测到 ID0 引脚发出轮询序列，通过 Y16 引脚响应 “75 A0 00 00 00 00 00 40” 序列，选通 lighting 接口电路的 SWD 调试功能；</li>
+  <li>FPGA 通过 Y13 引脚提供 20k 电阻下拉，Y16 引脚响应 “75 A0 00 00 00 00 00 40” 序列之后立即切换为 20k 电阻上拉；</li>
+  <li>jlink 调试器通过并联的方式接入电路，在 Y16 引脚切换为上拉之后，提供时钟和调试信号。</li>
+</ul>
+
+<p>要注意的是，根据 ADIv6.0 <em>**</em>规范 page B4-130 的要求，SWDIO 引脚空闲状态下需要上拉以确保引脚处于确定的电平，防止电磁干扰。在实际中，若不上拉，在逻辑分析仪中会观察到很多毛刺，直接导致jlink 调试器无法正确采样。</p>
+
+<p>根据工程实践，SWCLK 引脚在空闲时应该下拉，防止时钟毛刺。</p>
+
+<p>lighting 接口电路并未对 SWDIO 和 SWCLK 引脚进行上下拉，所以在选通 SWD 调试功能后，需要从外部对 SWDIO 和 SWCLK 进行上下拉，否则 jlink 无法正确采集电平。</p>
+
+<p><img src="/assets/posts/2025-08-30-iphone-SWD-调试器/iPhone_SWD%E8%B0%83%E8%AF%95%E5%99%A8-%E7%AC%AC_13_%E9%A1%B5.jpg" alt="iPhone SWD调试器-第 13 页.jpg" /></p>
+
+<p>经过反复实验确定 ID0 20k 下拉、ID1 20k 上拉，这样既能排除信号线毛刺，又能确保 jlink 调试器有足够的驱动能力。</p>
+
+<p>需要注意的是，SWCLK、SWDIO、GND 三根线需要绞在一起，实际测量发现这样做可以消除很大一部分毛刺，提高 jlink 调试器的采样成功率。</p>
+
+<h2 id="工作原理">工作原理</h2>
+
+<h3 id="开启-swd-调试端口">开启 SWD 调试端口</h3>
+
+<p>信号时序图如下：</p>
+
+<p><img src="/assets/posts/2025-08-30-iphone-SWD-调试器/iPhone_SWD%E8%B0%83%E8%AF%95%E5%99%A8-%E7%AC%AC_14_%E9%A1%B5.jpg" alt="iPhone SWD调试器-第 14 页.jpg" /></p>
+
+<p>FPGA 判断轮询序列的规则是，检测到 2 次 break 信号就判断中间发生了一次轮询：</p>
+
+<p><img src="/assets/posts/2025-08-30-iphone-SWD-调试器/iPhone_SWD%E8%B0%83%E8%AF%95%E5%99%A8-%E7%AC%AC_15_%E9%A1%B5.jpg" alt="iPhone SWD调试器-第 15 页.jpg" /></p>
+
+<p>break 的检测规则是，信号下降沿触发后，低电平持续 13.9 us 即判定产生了一次 break 信号。</p>
+
+<p>实际采样发现，break 信号低电平持续时间在 13.5 ~ 15 us 之间。</p>
+
+<p><img src="/assets/posts/2025-08-30-iphone-SWD-调试器/F2564C13-71E4-4638-AD13-CBAB66B799C2.png" alt="{F2564C13-71E4-4638-AD13-CBAB66B799C2}.png" /></p>
+
+<div class="language-verilog highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c1">// acc引脚采样 </span>
+<span class="k">always</span> <span class="o">@</span><span class="p">(</span><span class="kt">posedge</span> <span class="n">sys_clk</span> <span class="kt">or</span> <span class="kt">negedge</span> <span class="n">rst</span><span class="p">)</span> <span class="k">begin</span>
+    <span class="k">if</span><span class="p">(</span><span class="o">!</span><span class="n">rst</span><span class="p">)</span> <span class="k">begin</span>
+        <span class="n">break_d0</span> <span class="o">&lt;=</span> <span class="mb">1'b0</span><span class="p">;</span>
+        <span class="n">break_d1</span> <span class="o">&lt;=</span> <span class="mb">1'b0</span><span class="p">;</span>
+    <span class="k">end</span>
+    <span class="k">else</span> <span class="k">begin</span>
+        <span class="n">break_d0</span> <span class="o">&lt;=</span> <span class="n">acc_pin</span><span class="p">;</span>                <span class="c1">// 对acc_pin引脚的信号打2拍采样</span>
+        <span class="n">break_d1</span> <span class="o">&lt;=</span> <span class="n">break_d0</span><span class="p">;</span>               <span class="c1">// 采到下降沿开始计数，采到上升沿停止计数</span>
+    <span class="k">end</span>
+<span class="k">end</span>
+
+<span class="c1">// 检测到下降沿，break计数器使能</span>
+<span class="k">always</span> <span class="o">@</span><span class="p">(</span><span class="kt">posedge</span> <span class="n">sys_clk</span> <span class="kt">or</span> <span class="kt">negedge</span> <span class="n">rst</span><span class="p">)</span> <span class="k">begin</span>
+    <span class="k">if</span><span class="p">(</span><span class="o">!</span><span class="n">rst</span><span class="p">)</span>
+        <span class="n">break_cnt_en</span> <span class="o">&lt;=</span> <span class="mb">1'b0</span><span class="p">;</span>
+    <span class="k">else</span> <span class="k">if</span><span class="p">(</span><span class="n">acc_down</span> <span class="o">&amp;&amp;</span> <span class="n">delay_cnt</span> <span class="o">==</span> <span class="n">DELAY_CNT_MAX</span><span class="p">)</span> <span class="c1">// acc下降沿使能计数器</span>
+        <span class="n">break_cnt_en</span> <span class="o">&lt;=</span> <span class="mb">1'b1</span><span class="p">;</span>
+    <span class="k">else</span> <span class="k">if</span><span class="p">(</span><span class="n">acc_up</span><span class="p">)</span>                         <span class="c1">// acc上升沿关闭计数器</span>
+        <span class="n">break_cnt_en</span> <span class="o">&lt;=</span> <span class="mb">1'b0</span><span class="p">;</span>
+    <span class="k">else</span>
+        <span class="n">break_cnt_en</span> <span class="o">&lt;=</span> <span class="n">break_cnt_en</span><span class="p">;</span>       <span class="c1">// 状态位保持</span>
+<span class="k">end</span>
+
+<span class="c1">// break计数器更新</span>
+<span class="k">always</span> <span class="o">@</span><span class="p">(</span><span class="kt">posedge</span> <span class="n">sys_clk</span> <span class="kt">or</span> <span class="kt">negedge</span> <span class="n">rst</span><span class="p">)</span> <span class="k">begin</span>
+    <span class="k">if</span><span class="p">(</span><span class="o">!</span><span class="n">rst</span><span class="p">)</span> <span class="k">begin</span>
+        <span class="n">break_cnt</span> <span class="o">&lt;=</span> <span class="mb">10'b0</span><span class="p">;</span>
+    <span class="k">end</span>
+    <span class="k">else</span> <span class="k">if</span><span class="p">(</span><span class="n">break_cnt_en</span> <span class="o">&amp;&amp;</span> <span class="n">break_cnt</span> <span class="o">&lt;</span> <span class="n">BREAK_CNT_MAX</span><span class="p">)</span>  <span class="c1">// 如果检测到下降沿，开始计数</span>
+        <span class="n">break_cnt</span> <span class="o">&lt;=</span> <span class="n">break_cnt</span> <span class="o">+</span> <span class="mb">1'b1</span><span class="p">;</span>
+    <span class="k">else</span> <span class="k">if</span><span class="p">(</span><span class="n">break_cnt_en</span> <span class="o">&amp;&amp;</span> <span class="n">break_cnt</span> <span class="o">==</span> <span class="n">BREAK_CNT_MAX</span><span class="p">)</span> <span class="c1">// 如果低电平达到15us，清零计数器</span>
+        <span class="n">break_cnt</span> <span class="o">&lt;=</span> <span class="mb">10'b0</span><span class="p">;</span>
+    <span class="k">else</span>
+        <span class="n">break_cnt</span> <span class="o">&lt;=</span> <span class="mb">1'b0</span><span class="p">;</span>
+<span class="k">end</span>
+
+<span class="c1">// 发送使能置位</span>
+<span class="k">always</span> <span class="o">@</span><span class="p">(</span><span class="kt">posedge</span> <span class="n">sys_clk</span> <span class="kt">or</span> <span class="kt">negedge</span> <span class="n">rst</span><span class="p">)</span> <span class="k">begin</span>
+    <span class="k">if</span><span class="p">(</span><span class="o">!</span><span class="n">rst</span><span class="p">)</span>
+        <span class="n">break_ok</span> <span class="o">&lt;=</span> <span class="mb">1'b0</span><span class="p">;</span>
+    <span class="k">else</span> <span class="k">if</span><span class="p">(</span><span class="k">break</span> <span class="o">==</span> <span class="mi">2'd2</span><span class="p">)</span>
+        <span class="n">break_ok</span> <span class="o">&lt;=</span> <span class="mb">1'b1</span><span class="p">;</span>
+    <span class="k">else</span>
+        <span class="n">break_ok</span> <span class="o">&lt;=</span> <span class="n">break_ok</span><span class="p">;</span>
+<span class="k">end</span>
+
+<span class="k">parameter</span>   <span class="n">SYS_CLK_PERIOD</span> <span class="o">=</span> <span class="mi">20</span><span class="p">;</span>           <span class="c1">// 系统时钟周期，20ns</span>
+<span class="k">parameter</span>   <span class="n">BREAK_AVERAGE_PERIOD</span> <span class="o">=</span> <span class="mi">13500</span><span class="p">;</span>  <span class="c1">// break标志位平均时间占据13.5us</span>
+<span class="k">parameter</span>   <span class="n">BREAK_MAX_PERIOD</span> <span class="o">=</span> <span class="mi">15000</span><span class="p">;</span> <span class="c1">// break标志位最大时间，如果超过15ms那么判定不是break</span>
+<span class="k">parameter</span>   <span class="n">BREAK_CNT_AVERAGE</span> <span class="o">=</span> <span class="n">BREAK_AVERAGE_PERIOD</span> <span class="o">/</span> <span class="n">SYS_CLK_PERIOD</span><span class="p">;</span>
+<span class="k">parameter</span>   <span class="n">BREAK_CNT_MAX</span> <span class="o">=</span> <span class="n">BREAK_MAX_PERIOD</span> <span class="o">/</span> <span class="n">SYS_CLK_PERIOD</span><span class="p">;</span>
+<span class="c1">// 判断是否检测到break标志位</span>
+<span class="k">always</span> <span class="o">@</span><span class="p">(</span><span class="kt">posedge</span> <span class="n">sys_clk</span> <span class="kt">or</span> <span class="kt">negedge</span> <span class="n">rst</span><span class="p">)</span> <span class="k">begin</span>
+    <span class="k">if</span><span class="p">(</span><span class="o">!</span><span class="n">rst</span><span class="p">)</span>
+        <span class="k">break</span> <span class="o">&lt;=</span> <span class="mb">2'b0</span><span class="p">;</span>         <span class="c1">// 低电平持续时间在13.5us ~ 15us之间视为break</span>
+    <span class="k">else</span> <span class="k">if</span><span class="p">(</span><span class="n">acc_up</span> <span class="o">&amp;&amp;</span> <span class="n">break_cnt</span> <span class="o">&gt;=</span> <span class="n">BREAK_CNT_AVERAGE</span> <span class="o">&amp;&amp;</span> <span class="n">break_cnt</span> <span class="o">&lt;</span> <span class="n">BREAK_CNT_MAX</span><span class="p">)</span> 
+        <span class="k">break</span> <span class="o">&lt;=</span> <span class="k">break</span> <span class="o">+</span> <span class="mb">1'b1</span><span class="p">;</span> <span class="c1">// break信号计数器递增，在第二个break标志位触发发送swd序列的行为</span>
+    <span class="k">else</span>
+        <span class="k">break</span> <span class="o">&lt;=</span> <span class="k">break</span><span class="p">;</span>
+<span class="k">end</span>
+
+<span class="c1">// 第二次break之后，延迟19us使能发送，这段时间acc引脚会保持高电平</span>
+<span class="k">always</span> <span class="o">@</span><span class="p">(</span><span class="kt">posedge</span> <span class="n">sys_clk</span> <span class="kt">or</span> <span class="kt">negedge</span> <span class="n">rst</span><span class="p">)</span> <span class="k">begin</span>
+    <span class="k">if</span><span class="p">(</span><span class="o">!</span><span class="n">rst</span><span class="p">)</span>
+        <span class="n">pre_send_cnt</span> <span class="o">&lt;=</span> <span class="mb">10'b0</span><span class="p">;</span>
+    <span class="k">else</span> <span class="k">if</span><span class="p">(</span><span class="n">break_ok</span><span class="p">)</span>
+        <span class="k">if</span><span class="p">(</span><span class="n">pre_send_cnt</span> <span class="o">&lt;</span> <span class="n">AFTER_BREAK_BEFORE_SEND_CNT_MAX</span><span class="p">)</span>
+            <span class="n">pre_send_cnt</span> <span class="o">&lt;=</span> <span class="n">pre_send_cnt</span> <span class="o">+</span> <span class="mb">1'b1</span><span class="p">;</span>
+        <span class="k">else</span>
+            <span class="n">pre_send_cnt</span> <span class="o">&lt;=</span> <span class="n">AFTER_BREAK_BEFORE_SEND_CNT_MAX</span><span class="p">;</span>
+    <span class="k">else</span>
+        <span class="n">pre_send_cnt</span> <span class="o">&lt;=</span> <span class="mb">10'b0</span><span class="p">;</span> 
+<span class="k">end</span>
+
+</code></pre></div></div>
+
+<p>若检测到两次 break 信号，则 break_ok 标志位置位，那么 acc 引脚切换到 acc_pin_wire ，</p>
+
+<p>acc_pin_wire 是连接到发送 “75 A0 00 00 00 00 00 40” 序列模块的 wire 类型变量，</p>
+
+<p>“75 A0 00 00 00 00 00 40” 序列发送完毕后，send_done 标志位置位，acc 切换到高阻态并上拉。</p>
+
+<div class="language-verilog highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c1">// acc引脚功能切换，若发送使能置位，acc_pin和acc_wire相连接，发送序列</span>
+<span class="c1">// 否则处于高阻态，20k上拉</span>
+<span class="k">assign</span> <span class="n">acc_pin</span> <span class="o">=</span> <span class="p">(</span><span class="n">break_ok</span> <span class="o">&amp;&amp;</span> <span class="o">!</span><span class="n">send_done</span><span class="p">)</span> <span class="o">?</span> <span class="n">acc_pin_wire</span> <span class="o">:</span> <span class="mb">1'bz</span><span class="p">;</span>
+<span class="k">assign</span> <span class="n">swclk</span> <span class="o">=</span> <span class="mb">1'bz</span><span class="p">;</span>   <span class="c1">// swclk引脚保持高阻态，20k下拉</span>
+
+<span class="c1">// 引脚约束文件</span>
+<span class="c1">//----------------------------设置ACC引脚3.3v电平--------------------------------</span>
+<span class="n">set_property</span> <span class="o">-</span><span class="n">dict</span> <span class="o">{</span><span class="n">PACKAGE_PIN</span> <span class="n">Y16</span> <span class="n">IOSTANDARD</span> <span class="n">LVCMOS33</span><span class="o">}</span> <span class="p">[</span><span class="n">get_ports</span> <span class="n">acc_pin</span><span class="p">]</span>
+<span class="c1">//---------------------------------设置ACC引脚上拉，上拉电阻20K-------------------</span>
+<span class="n">set_property</span> <span class="n">PULLUP</span> <span class="n">TRUE</span> <span class="p">[</span><span class="n">get_ports</span> <span class="o">{</span><span class="n">acc_pin</span><span class="o">}</span><span class="p">]</span>          
+<span class="n">set_property</span> <span class="n">PULLUP_RESISTOR</span> <span class="mi">20</span><span class="n">K</span> <span class="p">[</span><span class="n">get_ports</span> <span class="o">{</span><span class="n">acc_pin</span><span class="o">}</span><span class="p">]</span>
+<span class="c1">//-----------------------------设置SWCLK引脚3.3v电平-----------------------------</span>
+<span class="n">set_property</span> <span class="o">-</span><span class="n">dict</span> <span class="o">{</span><span class="n">PACKAGE_PIN</span> <span class="n">Y13</span> <span class="n">IOSTANDARD</span> <span class="n">LVCMOS33</span><span class="o">}</span> <span class="p">[</span><span class="n">get_ports</span> <span class="n">swclk</span><span class="p">]</span>
+<span class="c1">//-----------------------------设置SWCLK引脚下拉，下拉电阻20K-------------------</span>
+<span class="n">set_property</span> <span class="n">PULLDOWN</span> <span class="n">TRUE</span> <span class="p">[</span><span class="n">get_ports</span> <span class="o">{</span><span class="n">swclk</span><span class="o">}</span><span class="p">]</span>          
+<span class="n">set_property</span> <span class="n">PULLDOWN_RESISTOR</span> <span class="mi">20</span><span class="n">K</span> <span class="p">[</span><span class="n">get_ports</span> <span class="o">{</span><span class="n">swclk</span><span class="o">}</span><span class="p">]</span>
+</code></pre></div></div>
+
+<p>发送 “75 A0 00 00 00 00 00 40” 序列的模块，定义了一个 8 比特的发送缓冲区 byte[7:0]，</p>
+
+<p>若检测到两次 break 信号，send_en 标志位会置位，激活序列发送模块，</p>
+
+<p>单字节发送完毕后，tx_done 标志位置位表示可以发送下一个字节，同时 tx_cnt 计数器递增 1，数据都是硬编码的，</p>
+
+<p>序列发送完毕后，send_success 标志位置位，该标志位会传递到父模块的 send_done ，导致 acc 引脚状态的切换。</p>
+
+<div class="language-verilog highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c1">// 发送序列 75 a0 00 00 00 00 00 40</span>
+<span class="k">always</span> <span class="o">@</span><span class="p">(</span><span class="kt">posedge</span> <span class="n">sys_clk</span> <span class="kt">or</span> <span class="kt">negedge</span> <span class="n">rst</span><span class="p">)</span> <span class="k">begin</span>
+    <span class="k">if</span><span class="p">(</span><span class="o">!</span><span class="n">rst</span><span class="p">)</span> <span class="k">begin</span>
+        <span class="kt">byte</span> <span class="o">&lt;=</span> <span class="mi">8'd0</span><span class="p">;</span>                         <span class="c1">// byte[7:0], 8 比特的发送缓冲</span>
+        <span class="n">tx_en</span> <span class="o">&lt;=</span> <span class="mb">1'b0</span><span class="p">;</span>                        <span class="c1">// tx_en, 当前字节发送使能标志位</span>
+        <span class="n">send_success</span> <span class="o">&lt;=</span> <span class="mb">1'b0</span><span class="p">;</span>                 <span class="c1">// send_success, 序列发送完毕标志位</span>
+    <span class="k">end</span>
+    <span class="k">else</span> <span class="k">if</span><span class="p">(</span><span class="o">!</span><span class="n">send_success</span> <span class="o">&amp;&amp;</span> <span class="n">send_en</span><span class="p">)</span> <span class="k">begin</span>
+        <span class="k">case</span><span class="p">(</span><span class="n">tx_cnt</span><span class="p">)</span>
+            <span class="mi">3'd0</span><span class="o">:</span> <span class="k">begin</span>
+                <span class="kt">byte</span> <span class="o">&lt;=</span> <span class="mh">8'h75</span><span class="p">;</span>                <span class="c1">// 发送缓冲区写入 0x75</span>
+                <span class="k">if</span><span class="p">(</span><span class="n">tx_done</span><span class="p">)</span>
+                    <span class="n">tx_en</span> <span class="o">&lt;=</span> <span class="mb">1'b0</span><span class="p">;</span>
+                <span class="k">else</span>
+                    <span class="n">tx_en</span> <span class="o">&lt;=</span> <span class="mb">1'b1</span><span class="p">;</span>
+            <span class="k">end</span>
+            <span class="mi">3'd1</span><span class="o">:</span> <span class="k">begin</span>
+                <span class="kt">byte</span> <span class="o">&lt;=</span> <span class="mh">8'ha0</span><span class="p">;</span>                <span class="c1">// 发送缓冲区写入 0xa0</span>
+                <span class="k">if</span><span class="p">(</span><span class="n">tx_done</span><span class="p">)</span>
+                    <span class="n">tx_en</span> <span class="o">&lt;=</span> <span class="mb">1'b0</span><span class="p">;</span>
+                <span class="k">else</span>
+                    <span class="n">tx_en</span> <span class="o">&lt;=</span> <span class="mb">1'b1</span><span class="p">;</span>
+            <span class="k">end</span>
+            <span class="mi">3'd2</span><span class="o">:</span> <span class="k">begin</span>
+                <span class="kt">byte</span> <span class="o">&lt;=</span> <span class="mh">8'h00</span><span class="p">;</span>                <span class="c1">// 发送缓冲区写入 0x00</span>
+                <span class="k">if</span><span class="p">(</span><span class="n">tx_done</span><span class="p">)</span>
+                    <span class="n">tx_en</span> <span class="o">&lt;=</span> <span class="mb">1'b0</span><span class="p">;</span>
+                <span class="k">else</span>
+                    <span class="n">tx_en</span> <span class="o">&lt;=</span> <span class="mb">1'b1</span><span class="p">;</span>
+            <span class="k">end</span>
+            <span class="mi">3'd3</span><span class="o">:</span> <span class="k">begin</span>
+                <span class="kt">byte</span> <span class="o">&lt;=</span> <span class="mh">8'h00</span><span class="p">;</span>                <span class="c1">// 发送缓冲区写入 0x00</span>
+                <span class="k">if</span><span class="p">(</span><span class="n">tx_done</span><span class="p">)</span>
+                    <span class="n">tx_en</span> <span class="o">&lt;=</span> <span class="mb">1'b0</span><span class="p">;</span>
+                <span class="k">else</span>
+                    <span class="n">tx_en</span> <span class="o">&lt;=</span> <span class="mb">1'b1</span><span class="p">;</span>
+            <span class="k">end</span>
+            <span class="mi">3'd4</span><span class="o">:</span> <span class="k">begin</span>
+                <span class="kt">byte</span> <span class="o">&lt;=</span> <span class="mh">8'h00</span><span class="p">;</span>                <span class="c1">// 发送缓冲区写入 0x00</span>
+                <span class="k">if</span><span class="p">(</span><span class="n">tx_done</span><span class="p">)</span>
+                    <span class="n">tx_en</span> <span class="o">&lt;=</span> <span class="mb">1'b0</span><span class="p">;</span>
+                <span class="k">else</span>
+                    <span class="n">tx_en</span> <span class="o">&lt;=</span> <span class="mb">1'b1</span><span class="p">;</span>
+            <span class="k">end</span>
+            <span class="mi">3'd5</span><span class="o">:</span> <span class="k">begin</span>
+                <span class="kt">byte</span> <span class="o">&lt;=</span> <span class="mh">8'h00</span><span class="p">;</span>                <span class="c1">// 发送缓冲区写入 0x00</span>
+                <span class="k">if</span><span class="p">(</span><span class="n">tx_done</span><span class="p">)</span>
+                    <span class="n">tx_en</span> <span class="o">&lt;=</span> <span class="mb">1'b0</span><span class="p">;</span>
+                <span class="k">else</span>
+                    <span class="n">tx_en</span> <span class="o">&lt;=</span> <span class="mb">1'b1</span><span class="p">;</span>
+            <span class="k">end</span>
+            <span class="mi">3'd6</span><span class="o">:</span> <span class="k">begin</span>
+                <span class="kt">byte</span> <span class="o">&lt;=</span> <span class="mh">8'h00</span><span class="p">;</span>                <span class="c1">// 发送缓冲区写入 0x00</span>
+                <span class="k">if</span><span class="p">(</span><span class="n">tx_done</span><span class="p">)</span>
+                    <span class="n">tx_en</span> <span class="o">&lt;=</span> <span class="mb">1'b0</span><span class="p">;</span>
+                <span class="k">else</span>
+                    <span class="n">tx_en</span> <span class="o">&lt;=</span> <span class="mb">1'b1</span><span class="p">;</span>
+            <span class="k">end</span>
+            <span class="mi">3'd7</span><span class="o">:</span> <span class="k">begin</span>                       <span class="c1">// 发送缓冲区写入 crc-8 校验码 0x40</span>
+                <span class="kt">byte</span> <span class="o">&lt;=</span> <span class="mh">8'h40</span><span class="p">;</span>
+                <span class="k">if</span><span class="p">(</span><span class="n">tx_done</span><span class="p">)</span> <span class="k">begin</span>
+                    <span class="n">tx_en</span> <span class="o">&lt;=</span> <span class="mb">1'b0</span><span class="p">;</span>
+                    <span class="n">send_success</span> <span class="o">&lt;=</span> <span class="mb">1'b1</span><span class="p">;</span> <span class="c1">// 序列 75 a0 00 00 00 00 00 40 发送完成，发送成功标志位置1</span>
+                <span class="k">end</span>
+                <span class="k">else</span>
+                    <span class="n">tx_en</span> <span class="o">&lt;=</span> <span class="mb">1'b1</span><span class="p">;</span>
+            <span class="k">end</span>
+            <span class="nl">default:</span> <span class="k">begin</span>
+                <span class="kt">byte</span> <span class="o">&lt;=</span> <span class="mi">8'd0</span><span class="p">;</span>
+                <span class="n">tx_en</span> <span class="o">&lt;=</span> <span class="mb">1'b0</span><span class="p">;</span>
+                <span class="n">send_success</span> <span class="o">&lt;=</span> <span class="mb">1'b0</span><span class="p">;</span>
+            <span class="k">end</span>
+        <span class="k">endcase</span>
+    <span class="k">end</span>
+    <span class="k">else</span>
+        <span class="n">tx_en</span> <span class="o">&lt;=</span> <span class="mb">1'b0</span><span class="p">;</span>                  <span class="c1">// 发送成功标志位置1后，发送使能拉低</span>
+<span class="k">end</span>
+</code></pre></div></div>
+
+<h3 id="jlink--openocd-调试原理">jlink + OpenOCD 调试原理</h3>
+
+<p>jlink 调试器连接目标设备和上位机，在上位机命令行启动 openocd 之后，openocd 连接到 jlink 调试器，同时在本地 3333 端口开启监听。</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span><span class="nb">sudo</span> ./openocd <span class="nt">-f</span> t8010.cfg <span class="nt">-s</span> ../tcl/ <span class="nt">-d3</span>
+</code></pre></div></div>
+
+<p>使用 gdb 连接到 3333 端口，上位机与目标设备建立调试链路。</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span>gdb-multiarch <span class="nt">-ex</span> <span class="s2">"target remote localhost:3333"</span>
+</code></pre></div></div>
+
+<p><img src="/assets/posts/2025-08-30-iphone-SWD-调试器/iPhone_SWD%E8%B0%83%E8%AF%95%E5%99%A8-%E7%AC%AC_16_%E9%A1%B5.jpg" alt="iPhone SWD调试器-第 16 页.jpg" /></p>
+
+<p>OpenOCD 的作用是，接收来自 gdb 的调试语句，翻译成符合《ARM Debug Interface Architecture Specification》规范的请求，通过 USB 发送给 jlink 调试器。</p>
+
+<p>例如一条 gdb 调试语句 “ info reg ” 可以被翻译成多条对硬件调试寄存器访问的低级语义的语句，这在 ADI 中被称为 DPACC 和 APACC。</p>
+
+<p>jlink 调试器使用固件方案实现了 ADI 中定义的 SWD 协议。</p>
+
+<p>jlink 调试器接到 OpenOCD 请求后，转化为 SWCLK 和 SWDIO 引脚上的电平变化发送到目标设备。</p>
+
+<p>间隔 Trn 个时钟周期之后，jlink 调试器采样 SWDIO 引脚的信号，解析为 ACK，根据 ACK 判断请求的执行结果。</p>
+
+<p>若目标设备成功执行了请求，则 jlink 间隔 Trn 个时钟周期后向目标设备发送数据，或者从目标设备读取数据。</p>
+
+<p>jlink 把读取到的数据和 ACK 返回给 OpenOCD，OpenOCD 把数据整合后，通过本地 3333 端口返回给 gdb 显示给用户。</p>
+
+<p><img src="/assets/posts/2025-08-30-iphone-SWD-调试器/EF3A852C-B563-48F7-BBBE-36BD0E8BF22A.png" alt="{EF3A852C-B563-48F7-BBBE-36BD0E8BF22A}.png" /></p>
+
+<h3 id="修改-openocd-源代码">修改 OpenOCD 源代码</h3>
+
+<p>如果不对 OpenOCD 修改而直接使用，会出现如下报错：</p>
+
+<p><img src="/assets/posts/2025-08-30-iphone-SWD-调试器/iPhone_SWD%E8%B0%83%E8%AF%95%E5%99%A8-%E7%AC%AC_20_%E9%A1%B5.jpg" alt="iPhone SWD调试器-第 20 页.jpg" /></p>
+
+<p>第一条对 AP 访问指令还没有完成，导致第二条对 DP 访问的指令出现了 WAIT，但是 jlink 调试器还是继续提交第三条 AP 访问，导致从第三条 AP 访问开始出现错误。</p>
+
+<p><img src="/assets/posts/2025-08-30-iphone-SWD-调试器/iPhone_SWD%E8%B0%83%E8%AF%95%E5%99%A8-%E7%AC%AC_19_%E9%A1%B5.jpg" alt="iPhone SWD调试器-第 19 页.jpg" /></p>
+
+<p>ACK 字段是目标设备对请求的执行结果：</p>
+
+<ul>
+  <li>OK：执行成功，对于写操作可以在 Trn 个时钟周期后传输 WDATA 部分，对于读操作可以在 Trn 个时钟周期后读取 WDATA；</li>
+  <li>WAIT：前一条请求还在执行中，本轮操作还需等待；</li>
+  <li>FAULT：发生错误。</li>
+</ul>
+
+<p><img src="/assets/posts/2025-08-30-iphone-SWD-调试器/65FE6B35-A16D-4363-A117-F40710051C18.png" alt="{65FE6B35-A16D-4363-A117-F40710051C18}.png" /></p>
+
+<p>由于 jlink 固件尚未开源，我们无从知晓 jlink 调试器是如何处理这些 ACK 响应的。</p>
+
+<p>但是根据逻辑分析仪抓包和 OpenOCD 源码、调试日志的分析可知，</p>
+
+<p>jlink 调试器本身并不知道如何应对 OK 、 WAIT 、 FAULT 这些响应，它只是如实采集并转发 ACK 和 WDATA 给 OpenOCD，由  OpenOCD 来定夺如何处理每一条结果。</p>
+
+<p>当返回 WAIT 的时候，按照正常的逻辑应该等待若干时钟周期之后再重新向目标设备发送一次请求，确保前一次请求已经执行完毕，但是 OpenOCD 处理 WAIT 的逻辑和处理 FAULT 是一样的，都是直接丢弃结果并返回错误代码。</p>
+
+<p>jlink_swd_run_queue 函数向 jlink 调试器提交请求，接收来自 jlink 调试器的 ACK 和 WDATA。</p>
+
+<p>✅当 ACK ==  OK 时， OpenOCD 把 WDATA 传递给 gdb 显示给用户；</p>
+
+<p>❌当返回 ACK == WAIT 或 FAULT 时， 打印调试器信息并把 ACK 值返回给 jlink_swd_queue_cmd 。</p>
+
+<p><img src="/assets/posts/2025-08-30-iphone-SWD-调试器/iPhone_SWD%E8%B0%83%E8%AF%95%E5%99%A8-%E7%AC%AC_17_%E9%A1%B5.jpg" alt="iPhone SWD调试器-第 17 页.jpg" /></p>
+
+<p>gdb 调试语句翻译过来的 DPACC 和 APACC 命令，由 jlink_swd_queue_cmd 函数加入请求队列，若队列已满，则调用 jlink_swd_run_queue 函数提交给 jlink 调试器执行。</p>
+
+<p>若 jlink 返回的结果中 ACK != OK ，则 jlink_swd_queue_cmd 函数返回，不再继续处理后续的 DPACC 和 APACC 命令。</p>
+
+<p><img src="/assets/posts/2025-08-30-iphone-SWD-调试器/iPhone_SWD%E8%B0%83%E8%AF%95%E5%99%A8-%E7%AC%AC_18_%E9%A1%B5.jpg" alt="iPhone SWD调试器-第 18 页.jpg" /></p>
+
+<p>OpenOCD 默认的处理逻辑是，对 ACK == WAIT 的结果视同为 ACK == FAULT ，直接丢弃。这就要求用户正确编写配置文件，尤其是通信频率要合适，电缆的长度不能过长，以防止 jlink 调试器采样过程出现错误。</p>
+
+<p><img src="/assets/posts/2025-08-30-iphone-SWD-调试器/iPhone_SWD%E8%B0%83%E8%AF%95%E5%99%A8-%E7%AC%AC_22_%E9%A1%B5.jpg" alt="iPhone SWD调试器-第 22 页.jpg" /></p>
+
+<p>但是降低通信频率会导致 SWD 协议信号意外的与 SDQ 中的复位序列重合，导致 lighting 电路复位，无法进入 SWD 调试。</p>
+
+<p>我们的做法是加大 APACC 调试指令后的等待时间，确保目标设备有足够的时间执行 APACC 指令。</p>
+
+<p>OpenOCD 默认等待时间是10个时钟周期，经过我们的多次实验发现，等待 128 个时钟周期能够确保上一条 APACC 指令执行完毕。</p>
+
+<p><img src="/assets/posts/2025-08-30-iphone-SWD-调试器/%E5%B1%8F%E5%B9%95%E6%88%AA%E5%9B%BE_2025-08-28_103216.png" alt="屏幕截图 2025-08-28 103216.png" /></p>
+
+<p>观察对比发现，等待 128 个时钟周期能够很好的确保上一条 APACC 指令执行完毕。</p>
+
+<p><img src="/assets/posts/2025-08-30-iphone-SWD-调试器/iPhone_SWD%E8%B0%83%E8%AF%95%E5%99%A8-%E7%AC%AC_21_%E9%A1%B5.jpg" alt="iPhone SWD调试器-第 21 页.jpg" /></p>
+
+<h3 id="编译-openocd-源代码">编译 OpenOCD 源代码</h3>
+
+<p>步骤一：安装必要的依赖</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span><span class="nb">sudo </span>apt <span class="nb">install </span>make libtool pkg-config autoconf automake texinfo
+</code></pre></div></div>
+
+<p>步骤二：编译 openocd</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span>git clone https://github.com/stacksmashing/openocd.git
+<span class="nv">$ </span>./bootstrap   <span class="c"># 通过git clone下载需要这个步骤</span>
+<span class="nv">$ </span>./configure <span class="nt">--enable-jlink</span><span class="o">=</span><span class="nb">yes</span>  <span class="c"># 使能 jlink 调试器</span>
+<span class="nv">$ </span>make <span class="nt">-j</span>
+</code></pre></div></div>
+
+<p>编译完成后，在 src 目录下即可看到 openocd 可执行文件</p>
+
+<p><img src="/assets/posts/2025-08-30-iphone-SWD-调试器/E7A65551-FD7A-48DB-86BF-D874DB3DF175.png" alt="{E7A65551-FD7A-48DB-86BF-D874DB3DF175}.png" /></p>
+
+<h3 id="openocd-配置文件">OpenOCD 配置文件</h3>
+
+<p>该配置文件修改自 Bonobo Cable 的配置文件：</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>interface jlink              <span class="c"># 使用 jlink 调试器</span>
+transport <span class="k">select </span>swd         <span class="c"># swd 调试协议</span>
+adapter_khz 3000             <span class="c"># 通信频率 3000khz</span>
+
+reset_config srst_only
+
+<span class="nb">source</span> <span class="o">[</span>find target/swj-dp.tcl]
+
+<span class="k">if</span> <span class="o">{</span> <span class="o">[</span>info exists CHIPNAME] <span class="o">}</span> <span class="o">{</span>
+   <span class="nb">set </span>_CHIPNAME <span class="nv">$CHIPNAME</span>
+<span class="o">}</span> <span class="k">else</span> <span class="o">{</span>
+   <span class="nb">set </span>_CHIPNAME iphone
+<span class="o">}</span>
+
+<span class="k">if</span> <span class="o">{</span> <span class="o">[</span>info exists ENDIAN] <span class="o">}</span> <span class="o">{</span>
+   <span class="nb">set </span>_ENDIAN <span class="nv">$ENDIAN</span>
+<span class="o">}</span> <span class="k">else</span> <span class="o">{</span>
+   <span class="nb">set </span>_ENDIAN little
+<span class="o">}</span>
+
+<span class="k">if</span> <span class="o">{</span> <span class="o">[</span>info exists CPUTAPID] <span class="o">}</span> <span class="o">{</span>
+   <span class="nb">set </span>_CPUTAPID <span class="nv">$CPUTAPID</span>
+<span class="o">}</span> <span class="k">else</span> <span class="o">{</span>
+   <span class="k">if</span> <span class="o">{</span> <span class="o">[</span>using_jtag] <span class="o">}</span> <span class="o">{</span>
+      <span class="nb">set </span>_CPUTAPID 0x4ba02477
+   <span class="o">}</span> <span class="o">{</span>
+      <span class="c"># SWD IDCODE</span>
+      <span class="nb">set </span>_CPUTAPID 0x4ba02477
+   <span class="o">}</span>
+<span class="o">}</span>
+swj_newdap <span class="nv">$_CHIPNAME</span> cpu <span class="nt">-irlen</span> 6 <span class="nt">-ircapture</span> 0x1 <span class="nt">-irmask</span> 0xf <span class="nt">-expected-id</span> <span class="nv">$_CPUTAPID</span>
+dap create <span class="nv">$_CHIPNAME</span>.dap <span class="nt">-chain-position</span> <span class="nv">$_CHIPNAME</span>.cpu
+
+<span class="c"># MEM-AP</span>
+target create <span class="nv">$_CHIPNAME</span>.dbg mem_ap <span class="nt">-endian</span> <span class="nv">$_ENDIAN</span> <span class="nt">-dap</span> <span class="nv">$_CHIPNAME</span>.dap <span class="nt">-ap-num</span> 1
+target create <span class="nv">$_CHIPNAME</span>.mem mem_ap <span class="nt">-endian</span> <span class="nv">$_ENDIAN</span> <span class="nt">-dap</span> <span class="nv">$_CHIPNAME</span>.dap <span class="nt">-ap-num</span> 4
+
+<span class="c"># CPU0</span>
+cti create <span class="nv">$_CHIPNAME</span>.cpu0.cti <span class="nt">-dap</span> <span class="nv">$_CHIPNAME</span>.dap <span class="nt">-ap-num</span> 1 <span class="nt">-ctibase</span> 0xc2020000
+target create <span class="nv">$_CHIPNAME</span>.cpu0 aarch64 <span class="nt">-endian</span> <span class="nv">$_ENDIAN</span> <span class="nt">-dap</span> <span class="nv">$_CHIPNAME</span>.dap <span class="nt">-ap-num</span> 1 <span class="nt">-dbgbase</span> 0xc2010000 <span class="nt">-cti</span> <span class="nv">$_CHIPNAME</span>.cpu0.cti <span class="nt">-coreid</span> 0 <span class="nt">-apple-utt</span> 4 0x202040000 64
+
+<span class="c"># CPU1</span>
+cti create <span class="nv">$_CHIPNAME</span>.cpu1.cti <span class="nt">-dap</span> <span class="nv">$_CHIPNAME</span>.dap <span class="nt">-ap-num</span> 1 <span class="nt">-ctibase</span> 0xc2120000
+target create <span class="nv">$_CHIPNAME</span>.cpu1 aarch64 <span class="nt">-endian</span> <span class="nv">$_ENDIAN</span> <span class="nt">-dap</span> <span class="nv">$_CHIPNAME</span>.dap <span class="nt">-ap-num</span> 1 <span class="nt">-dbgbase</span> 0xc2110000 <span class="nt">-cti</span> <span class="nv">$_CHIPNAME</span>.cpu1.cti <span class="nt">-coreid</span> 1 <span class="nt">-apple-utt</span> 4 0x202140000 64
+
+<span class="c"># SMP</span>
+target smp <span class="nv">$_CHIPNAME</span>.cpu0 <span class="nv">$_CHIPNAME</span>.cpu1
+
+<span class="c"># SEP</span>
+target create <span class="nv">$_CHIPNAME</span>.sep cortex_a <span class="nt">-endian</span> <span class="nv">$_ENDIAN</span> <span class="nt">-dap</span> <span class="nv">$_CHIPNAME</span>.dap <span class="nt">-ap-num</span> 1 <span class="nt">-dbgbase</span> 0xcda20000
+
+init
+</code></pre></div></div>
+
+<h2 id="使用演示">使用演示</h2>
+
+<p><a href="https://www.bilibili.com/video/BV1D2e1z7Eb1?vd_source=cb167874159c7e114d4cd5fd0c4a9ce3">iPhone 7 plus 开启 SWD调试端口的 FPGA 实现方案_哔哩哔哩_bilibili</a></p>
+
+<p>验证第一段代码：</p>
+
+<p><img src="/assets/posts/2025-08-30-iphone-SWD-调试器/iPhone_SWD%E8%B0%83%E8%AF%95%E5%99%A8-%E7%AC%AC_23_%E9%A1%B5.jpg" alt="iPhone SWD调试器-第 23 页.jpg" /></p>
+
+<p>验证字符串：</p>
+
+<p><img src="/assets/posts/2025-08-30-iphone-SWD-调试器/iPhone_SWD%E8%B0%83%E8%AF%95%E5%99%A8-%E7%AC%AC_24_%E9%A1%B5.jpg" alt="iPhone SWD调试器-第 24 页.jpg" /></p>
+
+    </div>
+</article>
+
+                
+                <footer class="footer">
+        <section class="footer__about">
+                <p class="footer__about__copyright">© qts588 2025</p>
+                
+                <span class="divider">·</span>
+                
+                <span class="footer__about__theme"><p>theme</p><a id="simplex-logo" href="https://github.com/andreondra/jekyll-theme-simplex" target="_blank"><img alt="Simplex theme logo" src="http://localhost:4000/assets/img/icons/simplex_logo.svg"/></a><p>by <a href="https://ondrej.golasowski.com/">golas</a></p></span>
+        </section>
+</footer>
+            </main>
+            <script src="http://localhost:4000/assets/js/jquery.slim.min.js"></script>
+<script src="http://localhost:4000/assets/js/lity.min.js"></script>
+<script src="http://localhost:4000/assets/js/tools.js"></script>
+<script src="http://localhost:4000/assets/js/pic.js"></script>
+<script src="http://localhost:4000/assets/js/toc-highlight.js"></script>
+        </div>
+    
+</body>
+</html>

@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <link rel="stylesheet" href="http://localhost:4000/assets/fonts/fonts.css"/>
+<link rel="stylesheet" href="http://localhost:4000/assets/style.css"/>
+<link rel="stylesheet" href="http://localhost:4000/assets/js/lity.min.css"/>
+
+
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<meta property="og:site_name" content="极目楚天舒" />
+<meta 
+    property="og:title"
+    content="
+        
+            几个中断寄存器的关系
+        
+    " 
+/>
+
+<meta property="og:url" content="http://localhost:4000//riscv/2025/05/11/%E5%87%A0%E4%B8%AA%E4%B8%AD%E6%96%AD%E5%AF%84%E5%AD%98%E5%99%A8%E7%9A%84%E5%85%B3%E7%B3%BB.html" />
+
+    <meta property="og:type" content="article" />
+
+
+
+    <meta property="fb:app_id" content="" />
+
+
+
+<title>
+    
+        几个中断寄存器的关系
+    
+</title>
+</head>
+<body class="index">
+    
+        <div class="page-container">
+            <aside class="main-sidebar">
+                <!-- 包含 TOC -->
+                <sidebar class="sidebar">
+<ul class="toc-list"><li><a href="#risc-v中断处理过程">RISC-V中断处理过程</a></li><li><a href="#mie寄存器-与-mstatusmie位">mie寄存器 与 mstatus.MIE位</a><ul><li><a href="#1-核心功能">1. 核心功能</a></li><li><a href="#2-中断触发的必要条件">2. 中断触发的必要条件</a></li><li><a href="#3-关键字段详解">3. 关键字段详解</a></li><li><a href="#1mstatusmie全局控制">(1) mstatus.MIE（全局控制）</a></li><li><a href="#2mie寄存器局部控制">(2) mie寄存器（局部控制）</a></li><li><a href="#4-交互流程示例">4. 交互流程示例</a></li><li><a href="#场景m模式下响应定时器中断mtip">场景：M模式下响应定时器中断（MTIP）</a></li><li><a href="#5-典型问题与注意事项">5. 典型问题与注意事项</a></li><li><a href="#1-为什么中断未触发">(1) 为什么中断未触发？</a></li><li><a href="#2-安全性与优先级">(2) 安全性与优先级</a></li><li><a href="#3-与s模式的关系">(3) 与S模式的关系</a></li><li><a href="#6-对比其他架构">6. 对比其他架构</a></li><li><a href="#7-总结">7. 总结</a></li></ul></li></ul></li></ul></sidebar>
+            </aside>
+            <!-- 主内容区域 -->
+            <main class="main-content">
+                <header class="header">
+    <section class="logo">
+        <a href="http://localhost:4000/" class="logo__link">
+            
+                <h1>极目楚天舒</h1>
+            
+        </a>
+    </section>
+    <button id="menuToggle">
+        <div></div>
+        <div></div>
+        <div></div>
+    </button>
+    <nav class="menu">
+        
+<ul class="list primary">
+
+    
+        <li class="item">
+
+            <div class="item-controls">
+                <a href="http://localhost:4000/category/linux_kernel.html">
+                
+                    <img src="http://localhost:4000/assets/img/icons/tux.png"/>
+                
+                
+                    <p style="color: var(--c-themeHueRed)">Linux kernel</p>
+                
+                </a>
+
+            
+            </div>
+            
+        </li>   
+    
+        <li class="item">
+
+            <div class="item-controls">
+                <a href="http://localhost:4000/category/linux_userspace.html">
+                
+                    <img src="http://localhost:4000/assets/img/icons/userspace.png"/>
+                
+                
+                    <p style="color: var(--c-themeHueRed)">Linux userspace</p>
+                
+                </a>
+
+            
+            </div>
+            
+        </li>   
+    
+        <li class="item">
+
+            <div class="item-controls">
+                <a href="http://localhost:4000/category/hardware.html">
+                
+                    <img src="http://localhost:4000/assets/img/icons/chip.svg"/>
+                
+                
+                    <p style="color: var(--c-themeHueRed)">Hardware</p>
+                
+                </a>
+
+            
+            </div>
+            
+        </li>   
+    
+        <li class="item">
+
+            <div class="item-controls">
+                <a href="http://localhost:4000/category/meltdown_spectre.html">
+                
+                    <img src="http://localhost:4000/assets/img/icons/meltdown_spectre.png"/>
+                
+                
+                    <p style="color: var(--c-themeHueRed)">Side Channel</p>
+                
+                </a>
+
+            
+            </div>
+            
+        </li>   
+    
+        <li class="item">
+
+            <div class="item-controls">
+                <a href="http://localhost:4000/category/riscv.html">
+                
+                    <img src="http://localhost:4000/assets/img/icons/riscv.png"/>
+                
+                
+                    <p style="color: var(--c-themeHueRed)">Riscv</p>
+                
+                </a>
+
+            
+            </div>
+            
+        </li>   
+    
+</ul>
+    </nav>
+</header>
+                
+                <article class="post">
+
+    <div class="post__title">
+       几个中断寄存器的关系
+    </div>
+    <div class="post__meta"> 
+        <div class="post__meta__category">
+            
+                <p class="post__meta__category__title" style="background: var(--c-themeHueGreen)">Riscv</p>
+            
+        </div>
+        <p class="post__meta__divider">·</p>
+        <div class="post__meta__date">
+            May 11, 2025
+        </div>
+        
+    </div>
+
+    
+
+    <div class="post__content">
+        <h1 id="risc-v中断处理过程">RISC-V中断处理过程</h1>
+
+<p><a href="https://blog.csdn.net/zyhse/article/details/141054966">RISC-V特权架构 - 时钟中断处理_riscv mtime-CSDN博客</a></p>
+
+<p><a href="https://blog.csdn.net/m0_53157173/article/details/131364904">MIT 6.S081 教材第五章内容 – 中断与设备驱动–下_mit 6.s081有教材吗-CSDN博客</a></p>
+
+<h1 id="mie寄存器-与-mstatusmie位">mie寄存器 与 mstatus.MIE位</h1>
+
+<h3 id="1-核心功能"><strong>1. 核心功能</strong></h3>
+
+<table>
+  <thead>
+    <tr>
+      <th><strong>寄存器/位</strong></th>
+      <th><strong>作用</strong></th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong><code class="language-plaintext highlighter-rouge">mstatus.MIE</code></strong></td>
+      <td><strong>全局中断开关</strong>：所有中断（包括M模式中断）的总使能。</td>
+    </tr>
+    <tr>
+      <td><strong><code class="language-plaintext highlighter-rouge">mie</code></strong></td>
+      <td><strong>局部中断开关</strong>：按中断类型（如定时器、外部、软件中断）分别控制是否使能。</td>
+    </tr>
+  </tbody>
+</table>
+
+<h3 id="2-中断触发的必要条件"><strong>2. 中断触发的必要条件</strong></h3>
+
+<p>M模式下的中断（如定时器中断<strong><code class="language-plaintext highlighter-rouge">MTIP</code></strong>、外部中断<strong><code class="language-plaintext highlighter-rouge">MEIP</code></strong>）<strong>必须同时满足以下条件</strong>才会被响应：</p>
+
+<ol>
+  <li><strong>全局中断使能</strong>：<strong><code class="language-plaintext highlighter-rouge">mstatus.MIE = 1</code></strong>（总开关打开）。</li>
+  <li><strong>局部中断使能</strong>：<strong><code class="language-plaintext highlighter-rouge">mie</code></strong>寄存器中对应中断类型的使能位为<strong><code class="language-plaintext highlighter-rouge">1</code></strong>（如<strong><code class="language-plaintext highlighter-rouge">mie.MTIE = 1</code></strong>允许定时器中断）。</li>
+  <li><strong>中断未屏蔽</strong>：更高优先级的中断未阻塞当前中断（如无嵌套中断场景）。</li>
+</ol>
+
+<h3 id="3-关键字段详解"><strong>3. 关键字段详解</strong></h3>
+
+<h3 id="1mstatusmie全局控制"><strong>(1) <code class="language-plaintext highlighter-rouge">mstatus.MIE</code>（全局控制）</strong></h3>
+
+<ul>
+  <li><strong>位置</strong>：<strong><code class="language-plaintext highlighter-rouge">mstatus</code></strong>寄存器的第3位。</li>
+  <li><strong>行为</strong>：
+    <ul>
+      <li><strong><code class="language-plaintext highlighter-rouge">MIE=1</code></strong>：允许CPU响应所有中断（仍需<strong><code class="language-plaintext highlighter-rouge">mie</code></strong>对应位使能）。</li>
+      <li><strong><code class="language-plaintext highlighter-rouge">MIE=0</code></strong>：禁止所有中断（即使<strong><code class="language-plaintext highlighter-rouge">mie</code></strong>中已使能）。</li>
+    </ul>
+  </li>
+  <li><strong>场景</strong>：
+    <ul>
+      <li>在异常处理或关键代码段中，通过清除<strong><code class="language-plaintext highlighter-rouge">MIE</code></strong>屏蔽中断。</li>
+    </ul>
+  </li>
+</ul>
+
+<h3 id="2mie寄存器局部控制"><strong>(2) <code class="language-plaintext highlighter-rouge">mie</code>寄存器（局部控制）</strong></h3>
+
+<ul>
+  <li><strong>关键位</strong>（以标准RISC-V为例）：</li>
+</ul>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>bit | 名称    | 作用
+----|---------|-----------------------------
+11  | MEIE    | 外部中断使能（如PLIC中断）
+7   | MTIE    | 定时器中断使能（如CLINT）
+3   | MSIE    | 软件中断使能
+</code></pre></div></div>
+
+<ul>
+  <li><strong>行为</strong>：
+    <ul>
+      <li>每个中断类型有独立的使能位，需单独设置。</li>
+    </ul>
+  </li>
+</ul>
+
+<h3 id="4-交互流程示例"><strong>4. 交互流程示例</strong></h3>
+
+<h3 id="场景m模式下响应定时器中断mtip"><strong>场景：M模式下响应定时器中断（<code class="language-plaintext highlighter-rouge">MTIP</code>）</strong></h3>
+
+<ol>
+  <li><strong>初始化设置</strong>：</li>
+</ol>
+
+<div class="language-nasm highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nf">csrsi</span> <span class="nv">mstatus</span><span class="p">,</span> <span class="mh">0x8</span>     <span class="err">#</span> <span class="err">设置</span><span class="nv">mstatus.MIE</span><span class="err">=</span><span class="mi">1</span><span class="err">（全局使能）</span>
+<span class="nf">csrsi</span> <span class="nv">mie</span><span class="p">,</span> <span class="mh">0x80</span>        <span class="err">#</span> <span class="err">设置</span><span class="nv">mie.MTIE</span><span class="err">=</span><span class="mi">1</span><span class="err">（定时器中断使能）</span>
+</code></pre></div></div>
+
+<ol>
+  <li><strong>中断触发条件</strong>：
+    <ul>
+      <li>CLINT生成定时器中断（<strong><code class="language-plaintext highlighter-rouge">MTIP=1</code></strong>）。</li>
+    </ul>
+  </li>
+  <li><strong>CPU响应中断</strong>：
+    <ul>
+      <li>检查<strong><code class="language-plaintext highlighter-rouge">mstatus.MIE &amp;&amp; mie.MTIE</code></strong>，若均为<strong><code class="language-plaintext highlighter-rouge">1</code></strong>，则跳转到<strong><code class="language-plaintext highlighter-rouge">mtvec</code></strong>指向的中断处理程序。</li>
+    </ul>
+  </li>
+  <li><strong>中断处理中</strong>：
+    <ul>
+      <li>硬件自动清除<strong><code class="language-plaintext highlighter-rouge">mstatus.MIE</code></strong>（进入中断后默认关闭全局中断，防止嵌套）。</li>
+      <li>处理完成后通过<strong><code class="language-plaintext highlighter-rouge">mret</code></strong>恢复<strong><code class="language-plaintext highlighter-rouge">mstatus.MIE</code></strong>（返回前可能手动重新使能）。</li>
+    </ul>
+  </li>
+</ol>
+
+<h3 id="5-典型问题与注意事项"><strong>5. 典型问题与注意事项</strong></h3>
+
+<h3 id="1-为什么中断未触发"><strong>(1) 为什么中断未触发？</strong></h3>
+
+<ul>
+  <li>检查顺序：
+    <ol>
+      <li><strong><code class="language-plaintext highlighter-rouge">mstatus.MIE</code></strong>是否为<strong><code class="language-plaintext highlighter-rouge">1</code></strong>？</li>
+      <li><strong><code class="language-plaintext highlighter-rouge">mie</code></strong>中对应位（如<strong><code class="language-plaintext highlighter-rouge">MTIE</code></strong>）是否使能？</li>
+      <li>中断是否已挂起（如<strong><code class="language-plaintext highlighter-rouge">mip.MTIP=1</code></strong>）？</li>
+    </ol>
+  </li>
+</ul>
+
+<h3 id="2-安全性与优先级"><strong>(2) 安全性与优先级</strong></h3>
+
+<ul>
+  <li><strong>关键操作期间</strong>：通常先关闭<strong><code class="language-plaintext highlighter-rouge">mstatus.MIE</code></strong>，再操作敏感寄存器，避免中断干扰。</li>
+  <li><strong>嵌套中断</strong>：RISC-V默认不支持M模式中断嵌套（进入中断后<strong><code class="language-plaintext highlighter-rouge">MIE</code></strong>自动清零），需软件管理。</li>
+</ul>
+
+<h3 id="3-与s模式的关系"><strong>(3) 与S模式的关系</strong></h3>
+
+<ul>
+  <li>若中断委托给S模式（通过<strong><code class="language-plaintext highlighter-rouge">mideleg</code></strong>），则S模式的<strong><code class="language-plaintext highlighter-rouge">sstatus.SIE</code></strong>和<strong><code class="language-plaintext highlighter-rouge">sie</code></strong>寄存器将接管控制权，M模式的<strong><code class="language-plaintext highlighter-rouge">MIE</code></strong>和<strong><code class="language-plaintext highlighter-rouge">mie</code></strong>不再影响已委托的中断。</li>
+</ul>
+
+<h3 id="6-对比其他架构"><strong>6. 对比其他架构</strong></h3>
+
+<table>
+  <thead>
+    <tr>
+      <th><strong>架构</strong></th>
+      <th><strong>全局中断控制</strong></th>
+      <th><strong>局部中断控制</strong></th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>RISC-V</td>
+      <td><strong><code class="language-plaintext highlighter-rouge">mstatus.MIE</code></strong></td>
+      <td><strong><code class="language-plaintext highlighter-rouge">mie.&lt;x&gt;IE</code></strong></td>
+    </tr>
+    <tr>
+      <td>ARM</td>
+      <td><strong><code class="language-plaintext highlighter-rouge">DAIF.{I,F}</code></strong> (PSR寄存器)</td>
+      <td><strong><code class="language-plaintext highlighter-rouge">GICD_ISENABLER</code></strong> (中断控制器)</td>
+    </tr>
+    <tr>
+      <td>x86</td>
+      <td><strong><code class="language-plaintext highlighter-rouge">EFLAGS.IF</code></strong></td>
+      <td><strong><code class="language-plaintext highlighter-rouge">APIC/LVT</code></strong> 寄存器</td>
+    </tr>
+  </tbody>
+</table>
+
+<h3 id="7-总结"><strong>7. 总结</strong></h3>
+
+<ul>
+  <li><strong><code class="language-plaintext highlighter-rouge">mstatus.MIE</code>是总开关</strong>，<strong><code class="language-plaintext highlighter-rouge">mie</code></strong>是分路开关，二者<strong>“与”逻辑</strong>决定中断是否生效。</li>
+  <li>实际开发中需协同配置这两个寄存器，并注意硬件自动清除<strong><code class="language-plaintext highlighter-rouge">MIE</code></strong>的行为。</li>
+  <li>在操作系统或安全敏感场景中，需谨慎管理中断使能状态以避免竞态条件。</li>
+</ul>
+
+    </div>
+</article>
+
+                
+                <footer class="footer">
+        <section class="footer__about">
+                <p class="footer__about__copyright">© qts588 2025</p>
+                
+                <span class="divider">·</span>
+                
+                <span class="footer__about__theme"><p>theme</p><a id="simplex-logo" href="https://github.com/andreondra/jekyll-theme-simplex" target="_blank"><img alt="Simplex theme logo" src="http://localhost:4000/assets/img/icons/simplex_logo.svg"/></a><p>by <a href="https://ondrej.golasowski.com/">golas</a></p></span>
+        </section>
+</footer>
+            </main>
+            <script src="http://localhost:4000/assets/js/jquery.slim.min.js"></script>
+<script src="http://localhost:4000/assets/js/lity.min.js"></script>
+<script src="http://localhost:4000/assets/js/tools.js"></script>
+<script src="http://localhost:4000/assets/js/pic.js"></script>
+<script src="http://localhost:4000/assets/js/toc-highlight.js"></script>
+        </div>
+    
+</body>
+</html>

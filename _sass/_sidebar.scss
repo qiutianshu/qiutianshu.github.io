@@ -1,0 +1,59 @@
+
+// =============================
+// sidebar.scss
+// =============================
+// Used for page sidebar.
+
+.sidebar {
+    width: 350px; /* 设置侧边栏宽度 */
+    position: sticky; /* 设置粘性定位，使 TOC 滚动时保持可见 */
+    top: 0; /* 粘性定位距顶部的距离 */
+    height: 100vh; /* 最大高度为视口高度 */
+    padding-right: 40px;
+    flex-shrink: 0; /* 防止侧边栏被压缩 */
+
+    /* 为 TOC 列表添加样式 */
+    .toc-list {
+        list-style: none; /* 移除默认列表样式 */
+        padding-left: 0;
+    }
+
+    .toc-list li {
+        margin-bottom: 0.5em;
+    }
+
+    .toc-list a {
+        text-decoration: none;
+        color: var(--c-postText);
+        font-size: 0.9em;
+    }
+
+    .toc-list a:hover {
+        color: #007acc;
+    }
+
+    .toc-list li::marker {
+        color: var(--c-pageText);
+    }
+
+    /* TOC 高亮样式 */
+    .toc-list a.active {
+        color: #007acc !important;
+        font-weight: 600;
+        background-color: rgba(0, 122, 204, 0.1);
+    }
+
+    /* 平滑滚动 */
+    html {
+        scroll-behavior: smooth;
+    }
+
+    /* 标题的偏移补偿（如果有固定导航栏） */
+    :target::before {
+        content: "";
+        display: block;
+        height: 70px; /* 根据你的导航栏高度调整 */
+        margin: -70px 0 0; /* 负值偏移 */
+    }
+
+}
