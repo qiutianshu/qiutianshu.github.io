@@ -1551,6 +1551,7 @@ table:not([class]) th, table:not([class]) td {
   display: block;
   margin: 0 auto;
   max-width: 100%;
+  height: auto;
   transition: transform 0.3s ease, box-shadow 0.3s ease;
   cursor: zoom-in;
   border-radius: 5px;

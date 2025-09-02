@@ -190,6 +190,7 @@ $postMaxWidth: 1000px;
             display: block;             // 关键：让图片成为块级元素才能使用margin居中
             margin: 0 auto;             // 水平居中
             max-width: 100%;
+            height: auto;
             transition: transform 0.3s ease, box-shadow 0.3s ease;
             cursor: zoom-in;            // 鼠标指针显示放大镜
             border-radius: 5px;

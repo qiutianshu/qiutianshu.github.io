@@ -139,7 +139,7 @@ void persistent_ram_save_old(struct persistent_ram_zone *prz)
 		if (!size)
 				return;
 				
-++  if（size > prz->old_log_size && prz->old_log_size != 0 && prz->old_log != NULL）{
+++  if(size > prz->old_log_size && prz->old_log_size != 0 && prz->old_log != NULL){
 ++		  persistent_ram_ecc_old(prz);              //更新ecc info
 ++			kfree(prz->old_log);                      //释放掉旧的old_log
 ++		  prz->old_log = kmalloc(size, GFP_KERNEL); //分配新的old_log
