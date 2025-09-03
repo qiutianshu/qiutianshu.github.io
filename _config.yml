@@ -22,7 +22,7 @@ title: 极目楚天舒
 email: your-email@example.com
 description: >- # this means to ignore newlines until "baseurl:"
   专注于系统底层安全的研究员，主要研究 Linux 内核漏洞挖掘与利用、iPhone 硬件安全、Intel 处理器安全，
-  致力于探索和揭示复杂系统背后的安全风险。
+  致力于探索复杂系统背后的安全风险
   
 baseurl: "" # the subpath of your site, e.g. /blog
 url: "" # the base hostname & protocol for your site, e.g. http://example.com

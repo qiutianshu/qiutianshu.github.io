@@ -855,7 +855,7 @@ table:not([class]) th, table:not([class]) td {
 }
 .header .logo__link {
   text-decoration: none;
-  color: var(--c-headerText);
+  color: var(--c-pageBackground);
   transition: ease 0.5s;
 }
 .header .logo__link:hover {
@@ -863,6 +863,7 @@ table:not([class]) th, table:not([class]) td {
 }
 .header .logo__link h1 {
   margin: 0;
+  background-color: var(--c-headerText);
 }
 .header .logo__link__img {
   filter: var(--c-headerImageFilter);
@@ -1108,6 +1109,14 @@ table:not([class]) th, table:not([class]) td {
 }
 .header .button-submenu.open .arrow {
   transform: translateY(0.125rem) rotate(-135deg);
+}
+.header desc {
+  display: flex;
+  justify-content: center;
+  text-align: center;
+  margin-top: 2rem;
+  width: 33%;
+  color: var(--c-postText);
 }
 
 .sidebar {

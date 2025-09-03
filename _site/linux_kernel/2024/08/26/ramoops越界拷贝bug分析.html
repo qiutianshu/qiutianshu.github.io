@@ -54,6 +54,7 @@
             
         </a>
     </section>
+    <desc>专注于系统底层安全的研究员，主要研究 Linux 内核漏洞挖掘与利用、iPhone 硬件安全、Intel 处理器安全， 致力于探索复杂系统背后的安全风险</desc>
     <button id="menuToggle">
         <div></div>
         <div></div>
@@ -321,7 +322,7 @@
 		<span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="n">size</span><span class="p">)</span>
 				<span class="k">return</span><span class="p">;</span>
 				
-<span class="o">++</span>  <span class="k">if</span><span class="err">（</span><span class="n">size</span> <span class="o">&gt;</span> <span class="n">prz</span><span class="o">-&gt;</span><span class="n">old_log_size</span> <span class="o">&amp;&amp;</span> <span class="n">prz</span><span class="o">-&gt;</span><span class="n">old_log_size</span> <span class="o">!=</span> <span class="mi">0</span> <span class="o">&amp;&amp;</span> <span class="n">prz</span><span class="o">-&gt;</span><span class="n">old_log</span> <span class="o">!=</span> <span class="nb">NULL</span><span class="err">）</span><span class="p">{</span>
+<span class="o">++</span>  <span class="k">if</span><span class="p">(</span><span class="n">size</span> <span class="o">&gt;</span> <span class="n">prz</span><span class="o">-&gt;</span><span class="n">old_log_size</span> <span class="o">&amp;&amp;</span> <span class="n">prz</span><span class="o">-&gt;</span><span class="n">old_log_size</span> <span class="o">!=</span> <span class="mi">0</span> <span class="o">&amp;&amp;</span> <span class="n">prz</span><span class="o">-&gt;</span><span class="n">old_log</span> <span class="o">!=</span> <span class="nb">NULL</span><span class="p">){</span>
 <span class="o">++</span>		  <span class="n">persistent_ram_ecc_old</span><span class="p">(</span><span class="n">prz</span><span class="p">);</span>              <span class="c1">//更新ecc info</span>
 <span class="o">++</span>			<span class="n">kfree</span><span class="p">(</span><span class="n">prz</span><span class="o">-&gt;</span><span class="n">old_log</span><span class="p">);</span>                      <span class="c1">//释放掉旧的old_log</span>
 <span class="o">++</span>		  <span class="n">prz</span><span class="o">-&gt;</span><span class="n">old_log</span> <span class="o">=</span> <span class="n">kmalloc</span><span class="p">(</span><span class="n">size</span><span class="p">,</span> <span class="n">GFP_KERNEL</span><span class="p">);</span> <span class="c1">//分配新的old_log</span>

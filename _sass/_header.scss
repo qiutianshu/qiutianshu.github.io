@@ -16,7 +16,7 @@
         &__link{
 
             text-decoration: none;
-            color: var(--c-headerText);
+            color: var(--c-pageBackground);
             transition: $t-smooth;
 
             &:hover{
@@ -24,6 +24,7 @@
             }
             h1{
                 margin: 0;
+                background-color: var(--c-headerText);
             }
             &__img{
                 filter: var(--c-headerImageFilter);
@@ -304,5 +305,14 @@
                 transform: translateY(.125rem) rotate(-135deg);
             }
         }
+    } 
+
+    desc{
+        display: flex;
+        justify-content: center;
+        text-align: center;
+        margin-top: 2rem;
+        width: 33%;
+        color: var(--c-postText);
     }
 }
