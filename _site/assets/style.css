@@ -865,6 +865,12 @@ table:not([class]) th, table:not([class]) td {
 .header .logo__link h1 {
   margin: 0;
   background-color: var(--c-headerText);
+  /* 在移动端（屏幕宽度小于等于 768px）应用的样式 */
+}
+@media (max-width: 768px) {
+  .header .logo__link h1 {
+    font-size: 1.2rem;
+  }
 }
 .header .logo__link__img {
   filter: var(--c-headerImageFilter);
@@ -1116,13 +1122,15 @@ table:not([class]) th, table:not([class]) td {
   justify-content: center;
   text-align: center;
   margin: 1rem;
-  width: 90%;
+  width: 430px;
   color: var(--c-postText);
+  font-size: 0.7rem;
 }
 @media (min-width: 768px) {
   .header desc {
     margin-top: 2rem;
-    width: 33%;
+    width: 690px;
+    font-size: 0.9rem;
   }
 }
 
@@ -1344,6 +1352,8 @@ table:not([class]) th, table:not([class]) td {
 .feed .snippet__data__text {
   color: var(--c-snippetHeading);
   margin: 1rem 0 0 0;
+  padding: 0 15px;
+  border-left: 4px solid gray;
 }
 .feed .snippet__data__author {
   margin: 1.5rem 0 0 0;
@@ -1733,7 +1743,7 @@ table:not([class]) th, table:not([class]) td {
   .main-content {
     order: 1; /* 在移动端让内容显示在前面 */
     margin-left: 0;
-    width: 95%;
+    width: 90%;
   }
 }
 /* 确保header和footer在全宽显示 */

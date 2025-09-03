@@ -15,6 +15,7 @@
     </style>
 <a class="snippet__link" href="{{ post.url }}">
     <section class="snippet__data">
+        <h2 class="snippet__data__header">{{post.title }}</h2>
         <section class="snippet__data__metadata">
             <section class="snippet__data__metadata__category">
                 {% for category in post.category %}
@@ -23,9 +24,8 @@
                     <p class="snippet__data__metadata__category__title">No category</p>
                 {% endfor %}
             </section>
-            <p class="snippet__data__metadata__date">{{ post.date | date: '%B %d, %Y' }}</p>
+            <p class="snippet__data__metadata__date">{{ post.date | date: '%Y-%m-%d' }}</p>
         </section>
-        <h2 class="snippet__data__header">{{post.title }}</h2>
         <p class="snippet__data__text">{{ post.excerpt | strip_html }}</p>
         {% if post.author != nil %}
             <div class="snippet__data__author"> 

@@ -25,6 +25,10 @@
             h1{
                 margin: 0;
                 background-color: var(--c-headerText);
+                /* 在移动端（屏幕宽度小于等于 768px）应用的样式 */
+                @media (max-width: 768px) {
+                    font-size: 1.2rem;
+                }
             }
             &__img{
                 filter: var(--c-headerImageFilter);
@@ -312,14 +316,18 @@
         justify-content: center;
         text-align: center;
         margin: 1rem;
-        width: 90%;
+        //width: 90%;
+        width: 430px;
         color: var(--c-postText);
+        font-size: 0.7rem;
     }
     /* 在电脑端（屏幕宽度大于等于 768px）应用的样式 */
     @media (min-width: 768px) {
         desc {
             margin-top: 2rem;
-            width: 33%;
+            //width: 33%;
+            width: 690px;
+            font-size: 0.9rem;
         }
     }
 }
