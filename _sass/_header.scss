@@ -311,8 +311,15 @@
         display: flex;
         justify-content: center;
         text-align: center;
-        margin-top: 2rem;
-        width: 33%;
+        margin: 1rem;
+        width: 90%;
         color: var(--c-postText);
+    }
+    /* 在电脑端（屏幕宽度大于等于 768px）应用的样式 */
+    @media (min-width: 768px) {
+        desc {
+            margin-top: 2rem;
+            width: 33%;
+        }
     }
 }

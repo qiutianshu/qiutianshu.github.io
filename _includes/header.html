@@ -9,7 +9,9 @@
             {% endif %}
         </a>
     </section>
-    <desc>{{ site.description }}</desc>
+    {% if page.sidebar == false %}
+        <desc>{{ site.description }}</desc>
+    {% endif %}
     <button id="menuToggle">
         <div></div>
         <div></div>

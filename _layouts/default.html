@@ -21,8 +21,9 @@
                 {{content}}
                 
                 {% include footer.html %}
+
+                {% include scripts.html %}
             </main>
-            {% include scripts.html %}
         </div>
     {% else %}
         {% include header.html %}
@@ -30,6 +31,8 @@
         {{content}}
                 
         {% include footer.html %}
+
+        {% include scripts.html %}
     {% endif %}
 </body>
 </html>
