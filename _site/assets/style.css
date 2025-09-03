@@ -1445,6 +1445,7 @@ table:not([class]) th, table:not([class]) td {
 .post__title {
   font-size: 2rem;
   color: var(--c-postTitle);
+  text-align: center;
 }
 .post__title__text {
   text-align: center;
@@ -1666,6 +1667,7 @@ table:not([class]) th, table:not([class]) td {
   display: flex;
   min-height: 100vh;
   flex-direction: row; /* 确保横向排列 */
+  align-items: center;
 }
 
 /* 主侧边栏样式 */
@@ -1730,8 +1732,8 @@ table:not([class]) th, table:not([class]) td {
   }
   .main-content {
     order: 1; /* 在移动端让内容显示在前面 */
-    margin-left: 2.7rem;
-    width: 85%;
+    margin-left: 0;
+    width: 95%;
   }
 }
 /* 确保header和footer在全宽显示 */

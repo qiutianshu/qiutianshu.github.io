@@ -3,6 +3,7 @@
     display: flex;
     min-height: 100vh;
     flex-direction: row; /* 确保横向排列 */
+    align-items: center;
 }
 
 /* 主侧边栏样式 */
@@ -70,8 +71,8 @@
     
     .main-content {
         order: 1; /* 在移动端让内容显示在前面 */
-        margin-left: 2.7rem; // 与侧边栏宽度相同
-        width: 85%;
+        margin-left: 0;
+        width: 95%;
     }
 }
 
