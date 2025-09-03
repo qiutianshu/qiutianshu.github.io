@@ -774,9 +774,9 @@ table:not([class]) th, table:not([class]) td {
 }
 
 /* 当视口宽度小于一定值时（例如900px），切换到90%宽度 */
-@media (max-width: 900px) {
+@media (max-width: 768px) {
   .highlight {
-    width: 90vw;
+    width: 100%;
   }
 }
 .sx-center {
@@ -1432,8 +1432,8 @@ table:not([class]) th, table:not([class]) td {
 .post {
   padding-top: 30px;
   justify-self: center;
-  margin: 0 2rem;
-  max-width: 1000px;
+  margin: 0;
+  max-width: 768px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1533,7 +1533,7 @@ table:not([class]) th, table:not([class]) td {
 .post__content table {
   margin: 2rem auto;
   border: none;
-  width: auto;
+  width: 100%;
   table-layout: auto;
   overflow-x: auto;
   display: table;
@@ -1542,7 +1542,6 @@ table:not([class]) th, table:not([class]) td {
   .post__content table {
     display: table;
     overflow-x: auto;
-    white-space: nowrap;
   }
 }
 .post__content th, .post__content td {
@@ -1562,6 +1561,12 @@ table:not([class]) th, table:not([class]) td {
   font-family: "Fira Code", "SF Mono", Monaco, "Source Code Pro", "Ubuntu Mono", "Consolas", "Liberation Mono", Menlo, Courier, monospace;
   font-size: 0.9em; /* 可以调整代码字体大小 */
   line-height: 1.4; /* 设置行高以提高可读性 */
+}
+@media (max-width: 768px) {
+  .post__content code {
+    overflow-x: auto;
+    width: 100%;
+  }
 }
 .post__content img {
   display: block;
@@ -1626,9 +1631,9 @@ table:not([class]) th, table:not([class]) td {
   height: 1em;
 }
 
-@media screen and (max-width: 1000px) {
+@media screen and (max-width: 768px) {
   .post {
-    max-width: calc(100% - 2rem);
+    width: 100%;
   }
   .post__content {
     max-width: 100%;
@@ -1715,17 +1720,18 @@ table:not([class]) th, table:not([class]) td {
 /* 响应式设计：在小屏幕上堆叠显示 */
 @media (max-width: 768px) {
   .page-container {
+    width: 100%;
     flex-direction: column;
   }
   .main-sidebar {
-    width: 100%;
-    min-width: 100%;
-    max-height: none;
+    width: 0%;
     position: static;
-    order: 2; /* 在移动端让侧边栏显示在内容之后 */
+    display: none;
   }
   .main-content {
     order: 1; /* 在移动端让内容显示在前面 */
+    margin-left: 2.7rem;
+    width: 85%;
   }
 }
 /* 确保header和footer在全宽显示 */

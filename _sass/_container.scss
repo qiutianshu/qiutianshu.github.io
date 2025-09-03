@@ -58,19 +58,20 @@
 /* 响应式设计：在小屏幕上堆叠显示 */
 @media (max-width: 768px) {
     .page-container {
+        width:100%;
         flex-direction: column;
     }
     
     .main-sidebar {
-        width: 100%;
-        min-width: 100%;
-        max-height: none;
+        width: 0%;
         position: static;
-        order: 2; /* 在移动端让侧边栏显示在内容之后 */
+        display: none;
     }
     
     .main-content {
         order: 1; /* 在移动端让内容显示在前面 */
+        margin-left: 2.7rem; // 与侧边栏宽度相同
+        width: 85%;
     }
 }
 

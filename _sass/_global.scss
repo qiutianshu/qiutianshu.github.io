@@ -94,9 +94,9 @@ table:not([class]){
 }
 
 /* 当视口宽度小于一定值时（例如900px），切换到90%宽度 */
-@media (max-width: 900px) {
+@media (max-width: 768px) {
     .highlight {
-        width: 90vw;
+        width: 100%;
     }
 }
 
