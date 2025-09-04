@@ -865,6 +865,7 @@ table:not([class]) th, table:not([class]) td {
 .header .logo__link h1 {
   margin: 0;
   background-color: var(--c-headerText);
+  padding: 0 0.5rem 0 0.5rem;
   /* 在移动端（屏幕宽度小于等于 768px）应用的样式 */
 }
 @media (max-width: 768px) {
