@@ -84,7 +84,7 @@ table:not([class]){
 /*    &:hover{
         box-shadow: inset 0px 0px 14px -4px var(--c-codeShadowHover);
     }*/
-    width: 64rem; /* 默认宽度为64rem */
+    width: 100%; 
     overflow-x: auto;
 
     pre{
