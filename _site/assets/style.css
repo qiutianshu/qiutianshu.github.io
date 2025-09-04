@@ -1229,6 +1229,7 @@ table:not([class]) th, table:not([class]) td {
 
 .feed {
   padding: 2rem;
+  max-width: 1000px;
   width: 100%;
   justify-self: center;
   display: flex;
