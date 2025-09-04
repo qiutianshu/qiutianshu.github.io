@@ -36,8 +36,8 @@
   --c-menuShadow: rgba(0,0,0,0.5);
   --c-snippetBackgroundExternal: rgba(239, 239, 239, 0.425);
   --c-snippetBackgroundInternal: var(--c-pageBackground);
-  --c-snippetHeading: var(--c-themePrimaryDark);
-  --c-snippetDate: var(--c-themeSecondaryDark);
+  --c-snippetHeading: var(--c-themeTerniaryDark);
+  --c-snippetDate: var(--c-themeTerniaryDark);
   --c-snippetAuthor: var(--c-themePrimaryDark);
   --c-snippetShadowHover: rgba(0,0,0,0.5);
   --c-snippetShadow: rgba(0, 0, 0, 0);
@@ -395,8 +395,8 @@
     --c-articleHeading: var(--c-themePrimaryLight);
     --c-articleParagraph: var(--c-themeSecondaryLight);
     --c-articleBackground: var(--c-themePrimaryDark);
-    --c-snippetHeading: var(--c-themePrimaryLight);
-    --c-snippetDate: var(--c-themeSecondaryLight);
+    --c-snippetHeading: var(--c-themeTerniaryLight);
+    --c-snippetDate: var(--c-themeTerniaryLight);
     --c-snippetAuthor: var(--c-themePrimaryLight);
     --c-snippetShadowHover: rgba(255, 255, 255, 0.5);
     --c-snippetShadow: rgba(0, 0, 0, 0);
@@ -1122,7 +1122,7 @@ table:not([class]) th, table:not([class]) td {
   justify-content: center;
   text-align: center;
   margin: 1rem;
-  width: 430px;
+  width: 390px;
   color: var(--c-postText);
   font-size: 0.7rem;
 }
@@ -1229,8 +1229,6 @@ table:not([class]) th, table:not([class]) td {
 
 .feed {
   padding: 2rem;
-  margin: 2rem;
-  max-width: 1000px;
   width: 100%;
   justify-self: center;
   display: flex;
@@ -1272,7 +1270,6 @@ table:not([class]) th, table:not([class]) td {
   color: initial;
   width: 100%;
   height: 100%;
-  margin: 1rem 0;
   padding: 1rem 2rem;
   box-shadow: inset 0px 0px 14px -4px var(--c-snippetShadow);
   transition: ease 0.5s;
@@ -1326,17 +1323,18 @@ table:not([class]) th, table:not([class]) td {
   }
 }
 .feed .snippet__data__metadata__date {
-  margin: 0 0 0 1rem;
+  margin-left: 1rem;
   color: var(--c-snippetDate);
 }
 @media (max-width: 768px) {
   .feed .snippet__data__metadata__date {
-    margin: 1rem 0 0 0;
+    margin-left: 1rem;
   }
 }
 @media (max-width: 768px) {
   .feed .snippet__data__metadata {
-    flex-direction: column;
+    flex-direction: row;
+    padding: 0.1rem;
   }
 }
 .feed .snippet__data__header {
@@ -1347,6 +1345,7 @@ table:not([class]) th, table:not([class]) td {
   .feed .snippet__data__header {
     margin: 1rem 0 0 0;
     text-align: center;
+    font-size: 1.2rem;
   }
 }
 .feed .snippet__data__text {
@@ -1354,6 +1353,11 @@ table:not([class]) th, table:not([class]) td {
   margin: 1rem 0 0 0;
   padding: 0 15px;
   border-left: 4px solid gray;
+}
+@media (max-width: 768px) {
+  .feed .snippet__data__text {
+    font-size: 0.85rem;
+  }
 }
 .feed .snippet__data__author {
   margin: 1.5rem 0 0 0;

@@ -6,8 +6,8 @@
 .feed{
 
     padding: 2rem;
-    margin: 2rem;
-    max-width: 1000px;
+//    margin: 2rem;
+//    max-width: 1000px;
     width: 100%;
     justify-self: center;
 
@@ -47,7 +47,7 @@
             color: initial;
             width: 100%;
             height: 100%;
-            margin: 1rem 0;
+        //    margin: 1rem 0;
             padding: 1rem 2rem;
             box-shadow: inset 0px 0px 14px -4px var(--c-snippetShadow);
             transition: $t-smooth;
@@ -99,16 +99,17 @@
                 }
 
                 &__date{
-                    margin: 0 0 0 1rem;
+                    margin-left: 1rem;
                     color: var(--c-snippetDate);
 
                     @include for-size('tablet'){
-                        margin: 1rem 0 0 0;
+                        margin-left: 1rem;
                     }
                 }
 
                 @include for-size('tablet'){
-                    flex-direction: column;
+                    flex-direction: row;
+                    padding: 0.1rem;
                 }
             }
             
@@ -119,15 +120,18 @@
                 @include for-size('tablet'){
                     margin: 1rem 0 0 0;
                     text-align: center;
+                    font-size: 1.2rem;
                 }
             }
 
             &__text{
-
                 color: var(--c-snippetHeading);
                 margin: 1rem 0 0 0;
                 padding: 0 15px;
                 border-left: 4px solid gray;
+                @include for-size('tablet'){
+                    font-size: 0.85rem;
+                }
             }
 
             &__author{
