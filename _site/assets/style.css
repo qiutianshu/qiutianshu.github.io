@@ -1321,6 +1321,7 @@ table:not([class]) th, table:not([class]) td {
     text-align: center;
     width: 100%;
     margin: 0;
+    font-size: 0.75rem;
   }
 }
 .feed .snippet__data__metadata__date {
@@ -1330,6 +1331,7 @@ table:not([class]) th, table:not([class]) td {
 @media (max-width: 768px) {
   .feed .snippet__data__metadata__date {
     margin-left: 1rem;
+    font-size: 0.75rem;
   }
 }
 @media (max-width: 768px) {
