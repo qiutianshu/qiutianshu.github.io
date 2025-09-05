@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <link rel="stylesheet" href="http://localhost:4000/assets/fonts/fonts.css"/>
+<link rel="stylesheet" href="http://localhost:4000/assets/style.css"/>
+<link rel="stylesheet" href="http://localhost:4000/assets/js/lity.min.css"/>
+
+
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<meta property="og:site_name" content="极目楚天舒" />
+<meta 
+    property="og:title"
+    content="
+        
+            网络套接字对象条件竞争漏洞挖掘
+        
+    " 
+/>
+
+<meta property="og:url" content="http://localhost:4000//linux_kernel/2024/12/21/%E7%BD%91%E7%BB%9C%E5%A5%97%E6%8E%A5%E5%AD%97%E5%AF%B9%E8%B1%A1%E6%9D%A1%E4%BB%B6%E7%AB%9E%E4%BA%89%E6%BC%8F%E6%B4%9E%E6%8C%96%E6%8E%98.html" />
+
+    <meta property="og:type" content="article" />
+
+
+
+    <meta property="fb:app_id" content="" />
+
+
+
+<title>
+    
+        网络套接字对象条件竞争漏洞挖掘
+    
+</title>
+</head>
+<body class="index">
+    
+        <div class="page-container">
+            <aside class="main-sidebar">
+                <!-- 包含 TOC -->
+                <sidebar class="sidebar">
+<ul class="toc-list"><li><a href="#一问题背景">一、问题背景</a></li><li><a href="#二技术路线">二、技术路线</a></li><li><a href="#三分析对象">三、分析对象</a></li><li><a href="#四漏洞原语">四、漏洞原语</a><ul><li><a href="#1-样本分析">1. 样本分析</a></li><li><a href="#2-原语提炼">2. 原语提炼</a></li></ul></li><li><a href="#五具体方法">五、具体方法</a></li></ul></sidebar>
+            </aside>
+            <!-- 主内容区域 -->
+            <main class="main-content">
+                <header class="header">
+    <section class="logo">
+        <a href="http://localhost:4000/" class="logo__link">
+            
+                <h1>极目楚天舒</h1>
+            
+        </a>
+    </section>
+    
+    <button id="menuToggle">
+        <div></div>
+        <div></div>
+        <div></div>
+    </button>
+    <nav class="menu">
+        
+<ul class="list primary">
+
+    
+        <li class="item">
+
+            <div class="item-controls">
+                <a href="http://localhost:4000/category/linux_kernel.html">
+                
+                    <img src="http://localhost:4000/assets/img/icons/tux.png"/>
+                
+                
+                    <p style="color: var(--c-themeHueRed)">Linux kernel</p>
+                
+                </a>
+
+            
+            </div>
+            
+        </li>   
+    
+        <li class="item">
+
+            <div class="item-controls">
+                <a href="http://localhost:4000/category/linux_userspace.html">
+                
+                    <img src="http://localhost:4000/assets/img/icons/userspace.png"/>
+                
+                
+                    <p style="color: var(--c-themeHueRed)">Linux userspace</p>
+                
+                </a>
+
+            
+            </div>
+            
+        </li>   
+    
+        <li class="item">
+
+            <div class="item-controls">
+                <a href="http://localhost:4000/category/hardware.html">
+                
+                    <img src="http://localhost:4000/assets/img/icons/chip.svg"/>
+                
+                
+                    <p style="color: var(--c-themeHueRed)">Hardware</p>
+                
+                </a>
+
+            
+            </div>
+            
+        </li>   
+    
+        <li class="item">
+
+            <div class="item-controls">
+                <a href="http://localhost:4000/category/meltdown_spectre.html">
+                
+                    <img src="http://localhost:4000/assets/img/icons/meltdown_spectre.png"/>
+                
+                
+                    <p style="color: var(--c-themeHueRed)">Side Channel</p>
+                
+                </a>
+
+            
+            </div>
+            
+        </li>   
+    
+        <li class="item">
+
+            <div class="item-controls">
+                <a href="http://localhost:4000/category/riscv.html">
+                
+                    <img src="http://localhost:4000/assets/img/icons/riscv.png"/>
+                
+                
+                    <p style="color: var(--c-themeHueRed)">Riscv</p>
+                
+                </a>
+
+            
+            </div>
+            
+        </li>   
+    
+</ul>
+    </nav>
+</header>
+                
+                <article class="post">
+
+    <div class="post__title">
+       网络套接字对象条件竞争漏洞挖掘
+    </div>
+    <div class="post__meta"> 
+        <div class="post__meta__category">
+            
+                <p class="post__meta__category__title" style="background: var(--c-themeHueBlue)">Linux内核漏洞</p>
+            
+        </div>
+        <p class="post__meta__divider">·</p>
+        <div class="post__meta__date">
+            2024-12-21
+        </div>
+        
+    </div>
+
+    
+    <div class="post__content">
+        <h2 id="一问题背景">一、问题背景</h2>
+
+<h2 id="二技术路线">二、技术路线</h2>
+
+<p>采用CodeQL静态分析和Syzkaller模糊测试相结合的方法。</p>
+
+<p><a href="https://github.blog/developer-skills/github/codeql-zero-to-hero-part-1-the-fundamentals-of-static-analysis-for-vulnerability-research/#appendix-1-abstract-syntax-tree-for-the-example-python-program">CodeQL zero to hero part 1: The fundamentals of static analysis for vulnerability research</a></p>
+
+<p><a href="https://github.blog/developer-skills/github/codeql-zero-to-hero-part-2-getting-started-with-codeql/">CodeQL zero to hero part 2: Getting started with CodeQL</a></p>
+
+<p><a href="https://github.blog/security/vulnerability-research/codeql-zero-to-hero-part-3-security-research-with-codeql/">CodeQL zero to hero part 3: Security research with CodeQL</a></p>
+
+<p><a href="https://codeql.github.com/docs/codeql-language-guides/advanced-dataflow-scenarios-cpp/">Advanced dataflow scenarios for C/C++ — CodeQL</a></p>
+
+<p>这两篇文章写了isBarrier怎么用。</p>
+
+<p><a href="https://f5.pm/go-105949.html">CodeQl 从0到0.1</a></p>
+
+<p><a href="https://github.blog/changelog/2023-08-14-new-dataflow-api-for-writing-custom-codeql-queries/">New dataflow API for writing custom CodeQL queries · GitHub Changelog</a></p>
+
+<h2 id="三分析对象">三、分析对象</h2>
+
+<p>Linux内核源码net目录下的所有网络协议的</p>
+
+<p>socket、close、bind、connect、ioctl、compat_ioctl、sendmsg、recvmsg、mmap、setsockopt、getsockopt系统调用。</p>
+
+<p>因为这些系统调用都以struct socket *sock作为参数，sock是套接字对象，它在同一个进程的多个线程之间是共享的，多线程环境下可以有多个内核路径读写它。</p>
+
+<h2 id="四漏洞原语">四、漏洞原语</h2>
+
+<p>在读写sock的过程中有非常复杂的状态机变化，这一过程通常需要锁来保护，否则某一条内核路径上可能会出现状态机的非预期变化，在该路径的后续过程中引发实质性的内核漏洞，例如UAF、越界读写、double free等。</p>
+
+<h3 id="1-样本分析">1. 样本分析</h3>
+
+<p><strong>样本1：</strong>cve-2021-26708 vsock条件竞争漏洞，版本Linux 5.10.12，位于net/vmw_vsock/af_vsock.c文件 <a href="https://elixir.bootlin.com/linux/v5.10.12/C/ident/vsock_stream_setsockopt"><strong>vsock_stream_setsockopt</strong></a>函数</p>
+
+<p><img src="/assets/posts/2024-12-21-网络套接字对象条件竞争漏洞挖掘/1.png" alt="截屏2024-10-12 08.59.49.png" /></p>
+
+<p>vsock是多线程之间的共享对象，在加锁之前vsk→transport被赋值给局部变量transport。</p>
+
+<p>但是vsk→transport在加锁之前有可能改变。例如原对象被释放vsk→transport指向性对象。</p>
+
+<p>结果就是后续对transport变量的访问造成了UAF。</p>
+
+<p><strong>样本2：</strong>cve-2016-8655 packet sock条件竞争漏洞，版本Linux 4.8，漏洞位于net/packet/af_packet.c文件packet_setsockopt函数</p>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">struct</span> <span class="n">sock</span> <span class="o">*</span><span class="n">sk</span> <span class="o">=</span> <span class="n">sock</span><span class="o">-&gt;</span><span class="n">sk</span><span class="p">;</span>
+<span class="k">struct</span> <span class="n">packet_sock</span> <span class="o">*</span><span class="n">po</span> <span class="o">=</span> <span class="n">pkt_sk</span><span class="p">(</span><span class="n">sk</span><span class="p">);</span>
+	<span class="p">...</span>
+<span class="k">switch</span> <span class="p">(</span><span class="n">optname</span><span class="p">)</span> <span class="p">{</span>
+	<span class="p">...</span>
+	<span class="k">case</span> <span class="n">PACKET_VERSION</span><span class="p">:</span>
+	<span class="p">{</span>
+		<span class="kt">int</span> <span class="n">val</span><span class="p">;</span>
+		<span class="k">if</span> <span class="p">(</span><span class="n">copy_from_user</span><span class="p">(</span><span class="o">&amp;</span><span class="n">val</span><span class="p">,</span> <span class="n">optval</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">val</span><span class="p">)))</span>
+			<span class="k">return</span> <span class="o">-</span><span class="n">EFAULT</span><span class="p">;</span>
+		<span class="k">switch</span> <span class="p">(</span><span class="n">val</span><span class="p">)</span> <span class="p">{</span>
+			<span class="k">case</span> <span class="n">TPACKET_V1</span><span class="p">:</span>
+			<span class="k">case</span> <span class="n">TPACKET_V2</span><span class="p">:</span>
+			<span class="k">case</span> <span class="n">TPACKET_V3</span><span class="p">:</span>
+				<span class="n">po</span><span class="o">-&gt;</span><span class="n">tp_version</span> <span class="o">=</span> <span class="n">val</span><span class="p">;</span>
+				<span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
+			<span class="p">...</span>
+		<span class="p">}</span>
+		<span class="p">...</span>
+	<span class="p">}</span>
+	<span class="p">...</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p>po是多线程之间的共享对象，修改po→version之前未加锁，</p>
+
+<p>导致为TPACKET_V3版本套接字分配环形缓冲区的过程中，版本号可以被篡改为TPACKET_V1，</p>
+
+<p>close操作中按照TPACKET_V1的逻辑释放环形缓冲区，遗漏了关联的定时器没有销毁，</p>
+
+<p>定时器超时后造成了UAF。</p>
+
+<p><strong>样本3：</strong>cve-2021-32606 can总线isotp协议条件竞争漏洞，版本Linux 5.12.0，漏洞位于net/can/isotp.c文件iostp_setsockopt函数</p>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">static</span> <span class="kt">int</span> <span class="nf">isotp_bind</span><span class="p">(</span><span class="k">struct</span> <span class="n">socket</span> <span class="o">*</span><span class="n">sock</span><span class="p">,</span> <span class="k">struct</span> <span class="n">sockaddr</span> <span class="o">*</span><span class="n">uaddr</span><span class="p">,</span> <span class="kt">int</span> <span class="n">len</span><span class="p">)</span>
+<span class="p">{</span>
+	<span class="p">...</span>
+	<span class="cm">/* do not register frame reception for functional addressing */</span>
+	<span class="k">if</span> <span class="p">(</span><span class="n">so</span><span class="o">-&gt;</span><span class="n">opt</span><span class="p">.</span><span class="n">flags</span> <span class="o">&amp;</span> <span class="n">CAN_ISOTP_SF_BROADCAST</span><span class="p">)</span>           <span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+		<span class="n">do_rx_reg</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+	<span class="p">...</span>
+	<span class="k">if</span> <span class="p">(</span><span class="n">do_rx_reg</span><span class="p">)</span>
+		<span class="n">can_rx_register</span><span class="p">(</span><span class="n">net</span><span class="p">,</span> <span class="n">dev</span><span class="p">,</span> <span class="n">addr</span><span class="o">-&gt;</span><span class="n">can_addr</span><span class="p">.</span><span class="n">tp</span><span class="p">.</span><span class="n">rx_id</span><span class="p">,</span>
+				<span class="n">SINGLE_MASK</span><span class="p">(</span><span class="n">addr</span><span class="o">-&gt;</span><span class="n">can_addr</span><span class="p">.</span><span class="n">tp</span><span class="p">.</span><span class="n">rx_id</span><span class="p">),</span>
+				<span class="n">isotp_rcv</span><span class="p">,</span> <span class="n">sk</span><span class="p">,</span> <span class="s">"isotp"</span><span class="p">,</span> <span class="n">sk</span><span class="p">);</span>
+	<span class="p">...</span>
+	<span class="n">so</span><span class="o">-&gt;</span><span class="n">bound</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span>
+	<span class="p">...</span>
+	
+<span class="k">static</span> <span class="kt">int</span> <span class="n">isotp_setsockopt</span><span class="p">(</span><span class="k">struct</span> <span class="n">socket</span> <span class="o">*</span><span class="n">sock</span><span class="p">,</span> <span class="kt">int</span> <span class="n">level</span><span class="p">,</span> <span class="kt">int</span> <span class="n">optname</span><span class="p">,</span>
+			    <span class="n">sockptr_t</span> <span class="n">optval</span><span class="p">,</span> <span class="kt">unsigned</span> <span class="kt">int</span> <span class="n">optlen</span><span class="p">)</span>
+<span class="p">{</span>
+	<span class="k">struct</span> <span class="n">sock</span> <span class="o">*</span><span class="n">sk</span> <span class="o">=</span> <span class="n">sock</span><span class="o">-&gt;</span><span class="n">sk</span><span class="p">;</span>
+	<span class="k">struct</span> <span class="n">isotp_sock</span> <span class="o">*</span><span class="n">so</span> <span class="o">=</span> <span class="n">isotp_sk</span><span class="p">(</span><span class="n">sk</span><span class="p">);</span>
+	<span class="kt">int</span> <span class="n">ret</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+
+	<span class="k">if</span> <span class="p">(</span><span class="n">level</span> <span class="o">!=</span> <span class="n">SOL_CAN_ISOTP</span><span class="p">)</span>
+		<span class="k">return</span> <span class="o">-</span><span class="n">EINVAL</span><span class="p">;</span>
+
+	<span class="k">if</span> <span class="p">(</span><span class="n">so</span><span class="o">-&gt;</span><span class="n">bound</span><span class="p">)</span>							                         <span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+		<span class="k">return</span> <span class="o">-</span><span class="n">EISCONN</span><span class="p">;</span>
+
+	<span class="k">switch</span> <span class="p">(</span><span class="n">optname</span><span class="p">)</span> <span class="p">{</span>
+	<span class="k">case</span> <span class="n">CAN_ISOTP_OPTS</span><span class="p">:</span>
+		<span class="k">if</span> <span class="p">(</span><span class="n">optlen</span> <span class="o">!=</span> <span class="k">sizeof</span><span class="p">(</span><span class="k">struct</span> <span class="n">can_isotp_options</span><span class="p">))</span>
+			<span class="k">return</span> <span class="o">-</span><span class="n">EINVAL</span><span class="p">;</span>
+
+		<span class="k">if</span> <span class="p">(</span><span class="n">copy_from_sockptr</span><span class="p">(</span><span class="o">&amp;</span><span class="n">so</span><span class="o">-&gt;</span><span class="n">opt</span><span class="p">,</span> <span class="n">optval</span><span class="p">,</span> <span class="n">optlen</span><span class="p">))</span>	 <span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+			<span class="k">return</span> <span class="o">-</span><span class="n">EFAULT</span><span class="p">;</span>
+		<span class="k">break</span><span class="p">;</span>
+	<span class="p">...</span>
+	
+	
+<span class="k">static</span> <span class="kt">int</span> <span class="n">isotp_release</span><span class="p">(</span><span class="k">struct</span> <span class="n">socket</span> <span class="o">*</span><span class="n">sock</span><span class="p">)</span>
+<span class="p">{</span>
+	<span class="p">...</span>
+
+	<span class="cm">/* remove current filters &amp; unregister */</span>
+	<span class="k">if</span> <span class="p">(</span><span class="n">so</span><span class="o">-&gt;</span><span class="n">bound</span> <span class="o">&amp;&amp;</span> <span class="p">(</span><span class="o">!</span><span class="p">(</span><span class="n">so</span><span class="o">-&gt;</span><span class="n">opt</span><span class="p">.</span><span class="n">flags</span> <span class="o">&amp;</span> <span class="n">CAN_ISOTP_SF_BROADCAST</span><span class="p">)))</span> <span class="p">{</span>		<span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+		<span class="k">if</span> <span class="p">(</span><span class="n">so</span><span class="o">-&gt;</span><span class="n">ifindex</span><span class="p">)</span> <span class="p">{</span>
+			<span class="k">struct</span> <span class="n">net_device</span> <span class="o">*</span><span class="n">dev</span><span class="p">;</span>
+
+			<span class="n">dev</span> <span class="o">=</span> <span class="n">dev_get_by_index</span><span class="p">(</span><span class="n">net</span><span class="p">,</span> <span class="n">so</span><span class="o">-&gt;</span><span class="n">ifindex</span><span class="p">);</span>
+			<span class="k">if</span> <span class="p">(</span><span class="n">dev</span><span class="p">)</span> <span class="p">{</span>
+				<span class="n">can_rx_unregister</span><span class="p">(</span><span class="n">net</span><span class="p">,</span> <span class="n">dev</span><span class="p">,</span> <span class="n">so</span><span class="o">-&gt;</span><span class="n">rxid</span><span class="p">,</span>		<span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+						  <span class="n">SINGLE_MASK</span><span class="p">(</span><span class="n">so</span><span class="o">-&gt;</span><span class="n">rxid</span><span class="p">),</span>
+						  <span class="n">isotp_rcv</span><span class="p">,</span> <span class="n">sk</span><span class="p">);</span>
+				<span class="n">dev_put</span><span class="p">(</span><span class="n">dev</span><span class="p">);</span>
+			<span class="p">}</span>
+		<span class="p">}</span>
+	<span class="p">}</span>
+	<span class="p">...</span>
+</code></pre></div></div>
+
+<p>so是多线程之间的共享对象，setsockopt在修改so→opt [2]之前未上锁，</p>
+
+<p>bind在读取so→opt [1]之前未上锁，导致注册回调函数对象过程中so→opt被篡改，</p>
+
+<p>close根据被篡改过的so→opt没有注销回调函数对象[2]导致UAF。</p>
+
+<p><strong>样本4：</strong>cve-2021-3609 can总线bcm协议条件竞争漏洞，版本Linux 5.4，漏洞位于net/can/bcm.c文件bcm_release函数</p>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code>
+<span class="k">static</span> <span class="kt">int</span> <span class="nf">bcm_rx_setup</span><span class="p">(</span><span class="k">struct</span> <span class="n">bcm_msg_head</span> <span class="o">*</span><span class="n">msg_head</span><span class="p">,</span> <span class="k">struct</span> <span class="n">msghdr</span> <span class="o">*</span><span class="n">msg</span><span class="p">,</span>
+                        <span class="kt">int</span> <span class="n">ifindex</span><span class="p">,</span> <span class="k">struct</span> <span class="n">sock</span> <span class="o">*</span><span class="n">sk</span><span class="p">)</span>
+<span class="p">{</span>
+	<span class="p">...</span>
+
+        <span class="cm">/* check the given can_id */</span>
+        <span class="n">op</span> <span class="o">=</span> <span class="n">bcm_find_op</span><span class="p">(</span><span class="o">&amp;</span><span class="n">bo</span><span class="o">-&gt;</span><span class="n">rx_ops</span><span class="p">,</span> <span class="n">msg_head</span><span class="p">,</span> <span class="n">ifindex</span><span class="p">);</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">op</span><span class="p">)</span> <span class="p">{</span>
+                <span class="cm">/* update existing BCM operation */</span>
+
+		<span class="cm">/* update struct members of op */</span>
+
+                <span class="cm">/* Only an update -&gt; do not call can_rx_register() */</span>
+                <span class="n">do_rx_register</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+
+        <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+                <span class="cm">/* insert new BCM operation for the given can_id */</span>
+                <span class="n">op</span> <span class="o">=</span> <span class="n">kzalloc</span><span class="p">(</span><span class="n">OPSIZ</span><span class="p">,</span> <span class="n">GFP_KERNEL</span><span class="p">);</span>
+
+		<span class="cm">/* initialization of op */</span>
+
+		<span class="n">do_rx_register</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span>						 <span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+
+	<span class="p">}</span>
+
+	<span class="p">...</span>
+
+        <span class="cm">/* now we can register for can_ids, if we added a new bcm_op */</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">do_rx_register</span><span class="p">)</span> <span class="p">{</span>
+                <span class="k">if</span> <span class="p">(</span><span class="n">ifindex</span><span class="p">)</span> <span class="p">{</span>
+                        <span class="k">struct</span> <span class="n">net_device</span> <span class="o">*</span><span class="n">dev</span><span class="p">;</span>
+
+                        <span class="n">dev</span> <span class="o">=</span> <span class="n">dev_get_by_index</span><span class="p">(</span><span class="n">sock_net</span><span class="p">(</span><span class="n">sk</span><span class="p">),</span> <span class="n">ifindex</span><span class="p">);</span>
+                        <span class="k">if</span> <span class="p">(</span><span class="n">dev</span><span class="p">)</span> <span class="p">{</span>
+                                <span class="n">err</span> <span class="o">=</span> <span class="n">can_rx_register</span><span class="p">(</span><span class="n">sock_net</span><span class="p">(</span><span class="n">sk</span><span class="p">),</span> <span class="n">dev</span><span class="p">,</span>	<span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+                                                      <span class="n">op</span><span class="o">-&gt;</span><span class="n">can_id</span><span class="p">,</span>
+                                                      <span class="n">REGMASK</span><span class="p">(</span><span class="n">op</span><span class="o">-&gt;</span><span class="n">can_id</span><span class="p">),</span>
+                                                      <span class="n">bcm_rx_handler</span><span class="p">,</span> <span class="n">op</span><span class="p">,</span>
+                                                      <span class="s">"bcm"</span><span class="p">,</span> <span class="n">sk</span><span class="p">);</span>
+
+                                <span class="n">op</span><span class="o">-&gt;</span><span class="n">rx_reg_dev</span> <span class="o">=</span> <span class="n">dev</span><span class="p">;</span>
+                                <span class="n">dev_put</span><span class="p">(</span><span class="n">dev</span><span class="p">);</span>
+                        <span class="p">}</span>
+	<span class="p">...</span>
+<span class="p">}</span>
+
+<span class="k">static</span> <span class="kt">void</span> <span class="n">bcm_rx_handler</span><span class="p">(</span><span class="k">struct</span> <span class="n">sk_buff</span> <span class="o">*</span><span class="n">skb</span><span class="p">,</span> <span class="kt">void</span> <span class="o">*</span><span class="n">data</span><span class="p">)</span>
+<span class="p">{</span>
+	<span class="k">struct</span> <span class="n">bcm_op</span> <span class="o">*</span><span class="n">op</span> <span class="o">=</span> <span class="p">(</span><span class="k">struct</span> <span class="n">bcm_op</span> <span class="o">*</span><span class="p">)</span><span class="n">data</span><span class="p">;</span>
+	<span class="k">const</span> <span class="k">struct</span> <span class="n">canfd_frame</span> <span class="o">*</span><span class="n">rxframe</span> <span class="o">=</span> <span class="p">(</span><span class="k">struct</span> <span class="n">canfd_frame</span> <span class="o">*</span><span class="p">)</span><span class="n">skb</span><span class="o">-&gt;</span><span class="n">data</span><span class="p">;</span>
+	<span class="kt">unsigned</span> <span class="kt">int</span> <span class="n">i</span><span class="p">;</span>
+
+	<span class="k">if</span> <span class="p">(</span><span class="n">op</span><span class="o">-&gt;</span><span class="n">can_id</span> <span class="o">!=</span> <span class="n">rxframe</span><span class="o">-&gt;</span><span class="n">can_id</span><span class="p">)</span>
+		<span class="k">return</span><span class="p">;</span>
+
+	<span class="cm">/* make sure to handle the correct frame type (CAN / CAN FD) */</span>
+	<span class="k">if</span> <span class="p">(</span><span class="n">skb</span><span class="o">-&gt;</span><span class="n">len</span> <span class="o">!=</span> <span class="n">op</span><span class="o">-&gt;</span><span class="n">cfsiz</span><span class="p">)</span>
+		<span class="k">return</span><span class="p">;</span>
+
+	<span class="cm">/* disable timeout */</span>
+	<span class="n">hrtimer_cancel</span><span class="p">(</span><span class="o">&amp;</span><span class="n">op</span><span class="o">-&gt;</span><span class="n">timer</span><span class="p">);</span>
+	
+	<span class="p">...</span>
+<span class="p">}</span>
+
+<span class="k">static</span> <span class="kt">int</span> <span class="n">bcm_release</span><span class="p">(</span><span class="k">struct</span> <span class="n">socket</span> <span class="o">*</span><span class="n">sock</span><span class="p">)</span>
+<span class="p">{</span>
+	<span class="p">...</span>
+
+        <span class="cm">/* remove bcm_ops, timer, rx_unregister(), etc. */</span>
+
+        <span class="n">unregister_netdevice_notifier</span><span class="p">(</span><span class="o">&amp;</span><span class="n">bo</span><span class="o">-&gt;</span><span class="n">notifier</span><span class="p">);</span>
+
+        <span class="n">lock_sock</span><span class="p">(</span><span class="n">sk</span><span class="p">);</span>								        <span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+
+        <span class="n">list_for_each_entry_safe</span><span class="p">(</span><span class="n">op</span><span class="p">,</span> <span class="n">next</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">bo</span><span class="o">-&gt;</span><span class="n">tx_ops</span><span class="p">,</span> <span class="n">list</span><span class="p">)</span>
+                <span class="n">bcm_remove_op</span><span class="p">(</span><span class="n">op</span><span class="p">);</span>
+
+        <span class="n">list_for_each_entry_safe</span><span class="p">(</span><span class="n">op</span><span class="p">,</span> <span class="n">next</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">bo</span><span class="o">-&gt;</span><span class="n">rx_ops</span><span class="p">,</span> <span class="n">list</span><span class="p">)</span> <span class="p">{</span>
+         
+	<span class="p">...</span>
+
+                <span class="n">bcm_remove_op</span><span class="p">(</span><span class="n">op</span><span class="p">);</span>						<span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+        <span class="p">}</span>
+
+	<span class="p">...</span>
+
+        <span class="n">sock_orphan</span><span class="p">(</span><span class="n">sk</span><span class="p">);</span>
+        <span class="n">sock</span><span class="o">-&gt;</span><span class="n">sk</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
+
+        <span class="n">release_sock</span><span class="p">(</span><span class="n">sk</span><span class="p">);</span>
+        <span class="n">sock_put</span><span class="p">(</span><span class="n">sk</span><span class="p">);</span>							           <span class="p">[</span><span class="mi">3</span><span class="p">]</span>
+
+	<span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p>op是多线程共享对象，bcm_release全程加锁保护op的释放操作，在接收回调函数bcm_rx_handler中，全程没有对op加锁保护，如果bcm_rx_handler正在执行，同时释放bcm套接字，就会导致bcm_release释放掉了正在使用中的op，造成UAF，而op又是在bcm_rx_setup中注册到全局链表的。bcm_rx_handler调用前加了rcu锁，close加的却是sock的锁，对同一个资源op进行操作，加的却不是同一把锁，导致锁保护失效。</p>
+
+<h3 id="2-原语提炼">2. 原语提炼</h3>
+
+<p>前三个例子可以总结为对全局对象sock读/写之前没有加锁。sock作为参数传递给socket、close、bind、connect、ioctl、compat_ioctl、sendmsg、recvmsg、mmap、setsockopt、getsockopt系统调用。lock_sock(sk)是加锁操作，release_sock(sk)是释放锁操作。以传递给上述函数的sock对象为source，对sock的读/写操作为sink，若source和sink之间不存在lock_sock函数，那么判定为缺失锁保护。</p>
+
+<h2 id="五具体方法">五、具体方法</h2>
+
+<p>先测试能否找到例1、例2、例3的漏洞</p>
+
+<p>进展：顺着这个思路，我翻遍了 net 目录下的内容，终于在蓝牙 sco 协议中发现了一个因使用锁不当造成的条件竞争漏洞。<a href="https://qiutianshu.github.io/linux_kernel/2025/01/18/%E8%93%9D%E7%89%99sco%E9%A9%B1%E5%8A%A8%E6%9D%A1%E4%BB%B6%E7%AB%9E%E4%BA%89%E6%BC%8F%E6%B4%9E%E6%8C%96%E6%8E%98.html"><strong>蓝牙sco条件竞争漏洞挖掘与分析</strong></a></p>
+
+    </div>
+</article>
+
+                
+                <footer class="footer">
+        <section class="footer__about">
+                <p class="footer__about__copyright">© qts588 2025</p>
+                
+                <span class="divider">·</span>
+                
+                <span class="footer__about__theme"><p>theme</p><a id="simplex-logo" href="https://github.com/andreondra/jekyll-theme-simplex" target="_blank"><img alt="Simplex theme logo" src="http://localhost:4000/assets/img/icons/simplex_logo.svg"/></a><p>by <a href="https://ondrej.golasowski.com/">golas</a></p></span>
+        </section>
+</footer>
+
+                <script src="http://localhost:4000/assets/js/jquery.slim.min.js"></script>
+<script src="http://localhost:4000/assets/js/lity.min.js"></script>
+<script src="http://localhost:4000/assets/js/tools.js"></script>
+<script src="http://localhost:4000/assets/js/pic.js"></script>
+<script src="http://localhost:4000/assets/js/toc-highlight.js"></script>
+            </main>
+        </div>
+    
+</body>
+</html>

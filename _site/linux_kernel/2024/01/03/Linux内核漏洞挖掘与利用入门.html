@@ -1,0 +1,1161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <link rel="stylesheet" href="http://localhost:4000/assets/fonts/fonts.css"/>
+<link rel="stylesheet" href="http://localhost:4000/assets/style.css"/>
+<link rel="stylesheet" href="http://localhost:4000/assets/js/lity.min.css"/>
+
+
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<meta property="og:site_name" content="极目楚天舒" />
+<meta 
+    property="og:title"
+    content="
+        
+            Linux 内核漏洞挖掘与利用入门
+        
+    " 
+/>
+
+<meta property="og:url" content="http://localhost:4000//linux_kernel/2024/01/03/Linux%E5%86%85%E6%A0%B8%E6%BC%8F%E6%B4%9E%E6%8C%96%E6%8E%98%E4%B8%8E%E5%88%A9%E7%94%A8%E5%85%A5%E9%97%A8.html" />
+
+    <meta property="og:type" content="article" />
+
+
+
+    <meta property="fb:app_id" content="" />
+
+
+
+<title>
+    
+        Linux 内核漏洞挖掘与利用入门
+    
+</title>
+</head>
+<body class="index">
+    
+        <div class="page-container">
+            <aside class="main-sidebar">
+                <!-- 包含 TOC -->
+                <sidebar class="sidebar">
+<ul class="toc-list"><li><a href="#内核基础知识">内核基础知识</a><ul><li><a href="#内核态的由来">内核态的由来</a></li><li><a href="#用户态程序和内核的交互方式">用户态程序和内核的交互方式</a></li><li><a href="#五大核心子系统及其功能">五大核心子系统及其功能</a></li><li><a href="#内核的运行时扩展结构和内核api">内核的运行时扩展结构和内核API</a></li></ul></li><li><a href="#内核调试环境的搭建">内核调试环境的搭建</a><ul><li><a href="#内核源码的获取清华源阿里源源码在线网站">内核源码的获取（清华源、阿里源、源码在线网站）</a></li><li><a href="#常用工具的选择">常用工具的选择</a></li><li><a href="#源代码编译环境搭建">源代码编译环境搭建</a></li><li><a href="#内核调试环境搭建">内核调试环境搭建</a></li></ul></li><li><a href="#内核源码编译">内核源码编译</a><ul><li><a href="#源代码结构">源代码结构</a></li><li><a href="#编译命令">编译命令</a></li></ul></li><li><a href="#内核模块编写与调试">内核模块编写与调试</a><ul><li><a href="#内核模块代码模版">内核模块代码模版</a></li><li><a href="#makefile文件模板">makefile文件模板</a></li><li><a href="#内核模块的加载和卸载">内核模块的加载和卸载</a></li><li><a href="#内核模块调试">内核模块调试</a></li></ul></li><li><a href="#linux内核的攻击面研究范围">Linux内核的攻击面——研究范围</a></li><li><a href="#linux内核漏洞攻击效果">Linux内核漏洞攻击效果</a></li><li><a href="#linux内核漏洞挖掘技术">Linux内核漏洞挖掘技术</a><ul><li><a href="#linux内核的特点">Linux内核的特点</a></li><li><a href="#代码审计是基本功">代码审计是基本功</a></li><li><a href="#自动化辅助挖掘发现的漏洞占比多">自动化辅助挖掘（发现的漏洞占比多）</a></li></ul></li><li><a href="#内核漏洞挖掘工具">内核漏洞挖掘工具</a><ul><li><a href="#静态分析工具codeql">静态分析工具CodeQL</a></li><li><a href="#模糊测试工具syzkaller">模糊测试工具syzkaller</a></li></ul></li><li><a href="#常见的防御手段">常见的防御手段</a><ul><li><a href="#kaslr">kaslr</a></li><li><a href="#freelist-randomfreelist-harderning">freelist random、freelist harderning</a></li><li><a href="#smepsmap">SMEP、SMAP</a></li><li><a href="#结构体布局随机化">结构体布局随机化</a></li></ul></li><li><a href="#工具与方法论">工具与方法论</a></li></ul></sidebar>
+            </aside>
+            <!-- 主内容区域 -->
+            <main class="main-content">
+                <header class="header">
+    <section class="logo">
+        <a href="http://localhost:4000/" class="logo__link">
+            
+                <h1>极目楚天舒</h1>
+            
+        </a>
+    </section>
+    
+    <button id="menuToggle">
+        <div></div>
+        <div></div>
+        <div></div>
+    </button>
+    <nav class="menu">
+        
+<ul class="list primary">
+
+    
+        <li class="item">
+
+            <div class="item-controls">
+                <a href="http://localhost:4000/category/linux_kernel.html">
+                
+                    <img src="http://localhost:4000/assets/img/icons/tux.png"/>
+                
+                
+                    <p style="color: var(--c-themeHueRed)">Linux kernel</p>
+                
+                </a>
+
+            
+            </div>
+            
+        </li>   
+    
+        <li class="item">
+
+            <div class="item-controls">
+                <a href="http://localhost:4000/category/linux_userspace.html">
+                
+                    <img src="http://localhost:4000/assets/img/icons/userspace.png"/>
+                
+                
+                    <p style="color: var(--c-themeHueRed)">Linux userspace</p>
+                
+                </a>
+
+            
+            </div>
+            
+        </li>   
+    
+        <li class="item">
+
+            <div class="item-controls">
+                <a href="http://localhost:4000/category/hardware.html">
+                
+                    <img src="http://localhost:4000/assets/img/icons/chip.svg"/>
+                
+                
+                    <p style="color: var(--c-themeHueRed)">Hardware</p>
+                
+                </a>
+
+            
+            </div>
+            
+        </li>   
+    
+        <li class="item">
+
+            <div class="item-controls">
+                <a href="http://localhost:4000/category/meltdown_spectre.html">
+                
+                    <img src="http://localhost:4000/assets/img/icons/meltdown_spectre.png"/>
+                
+                
+                    <p style="color: var(--c-themeHueRed)">Side Channel</p>
+                
+                </a>
+
+            
+            </div>
+            
+        </li>   
+    
+        <li class="item">
+
+            <div class="item-controls">
+                <a href="http://localhost:4000/category/riscv.html">
+                
+                    <img src="http://localhost:4000/assets/img/icons/riscv.png"/>
+                
+                
+                    <p style="color: var(--c-themeHueRed)">Riscv</p>
+                
+                </a>
+
+            
+            </div>
+            
+        </li>   
+    
+</ul>
+    </nav>
+</header>
+                
+                <article class="post">
+
+    <div class="post__title">
+       Linux 内核漏洞挖掘与利用入门
+    </div>
+    <div class="post__meta"> 
+        <div class="post__meta__category">
+            
+                <p class="post__meta__category__title" style="background: var(--c-themeHueBlue)">Linux内核漏洞</p>
+            
+        </div>
+        <p class="post__meta__divider">·</p>
+        <div class="post__meta__date">
+            2024-01-03
+        </div>
+        
+    </div>
+
+    
+    <div class="post__content">
+        <p>这篇文章总结了 Linux 内核安全所需的入门知识，虽然不一定很全但是够用。涵盖了从环境搭建，到流行的漏洞挖掘工具使用，再到方法论总结三部分内容。这篇文章是我为2024年1月份回国防科大作交流时，所使用的交流发言稿。</p>
+
+<h2 id="内核基础知识">内核基础知识</h2>
+
+<h3 id="内核态的由来">内核态的由来</h3>
+
+<p>早期的计算机硬件和操作系统不支持用户态和内核态的划分，用户手动输入的代码可以操作整部计算机的资源，包括其他用户正在运行的程序，很显然里面存在巨大的安全隐患。DOS是这个时代具有代表性的操作系统。</p>
+
+<p><img src="/assets/posts/2024-12-23-Linux内核漏洞挖掘与利用入门/Untitled.png" alt="Untitled" /></p>
+
+<p>DOS是一个单任务、单用户的操作系统，它运行在实模式（Real Mode）下，直接访问硬件资源，没有进行内核态和用户态的明确划分，所有的程序都在同一特权级别下运行，并且可以直接访问系统资源。</p>
+
+<p><img src="/assets/posts/2024-12-23-Linux内核漏洞挖掘与利用入门/Untitled%201.png" alt="Untitled" /></p>
+
+<p>将系统划分为内核态和用户态源自于Unix操作系统，Unix系统的设计者认为将系统划分为内核态和用户态有利于提高系统的安全性和稳定性。这一功能需要CPU的支持，CPU只有陷入到内核态中才能操作硬件，以及CPU要具备内存权限的划分功能，将一些特定区域的内存标记为在内核态下可操作。</p>
+
+<p>用户态是指用户程序执行的环境，而内核态是操作系统内核执行的环境。内核态具有更高的权限和访问系统资源的能力，而用户态只能通过系统调用等接口请求内核态提供的服务。</p>
+
+<p><img src="/assets/posts/2024-12-23-Linux内核漏洞挖掘与利用入门/Untitled%202.png" alt="Untitled" /></p>
+
+<p>作为最知名的类Unix系统，Linux操作系统也继成了用户态和内核态的划分，在此基础上Linux系统发展出了更高级的权限管理、命名空间等安全机制。</p>
+
+<p><img src="/assets/posts/2024-12-23-Linux内核漏洞挖掘与利用入门/Untitled%203.png" alt="Untitled" /></p>
+
+<h3 id="用户态程序和内核的交互方式">用户态程序和内核的交互方式</h3>
+
+<p>应用程序通过系统调用与内核进行交互。</p>
+
+<p>具体有两种方法：方法一是应用程序调用库函数，库函数封装了系统调用，再由库函数调用系统调用。方法二是应用程序使用汇编语言直接调用系统调用。</p>
+
+<p><img src="/assets/posts/2024-12-23-Linux内核漏洞挖掘与利用入门/Untitled%204.png" alt="Untitled" /></p>
+
+<p><img src="/assets/posts/2024-12-23-Linux内核漏洞挖掘与利用入门/1.png" alt="截屏2024-03-21 20.56.41.png" /></p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>                                                                             方法1
+</code></pre></div></div>
+
+<p><img src="/assets/posts/2024-12-23-Linux内核漏洞挖掘与利用入门/2.png" alt="截屏2024-03-21 20.58.48.png" /></p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>                                                                             方法2
+</code></pre></div></div>
+
+<h3 id="五大核心子系统及其功能">五大核心子系统及其功能</h3>
+
+<p>内存管理子系统：内存管理是内核中最重要的部分，负责分配系统的内存资源，向内核的其他部分提供分配和释放内存的接口，满足系统使用内存的需求。</p>
+
+<p>进程调度子系统：进程调度子系统负责管理和调度系统中的进程，以实现多任务处理和资源分配。它的主要任务是根据一定的调度算法，决定哪些进程可以在CPU上执行，以及执行的顺序和时间片分配。</p>
+
+<p>网络子系统：网络子系统负责管理和控制计算机系统的网络通信功能。它的主要任务是提供网络协议栈、网络设备驱动程序以及用户空间接口，以实现计算机系统与外部网络的通信和数据传输。</p>
+
+<p>虚拟文件子系统：在Linux世界里”万物皆文件“，由虚拟文件子系统提供统一的文件系统接口，使得用户和应用程序能够以统一的方式来访问各种不同类型的文件系统，包括本地文件系统、网络文件系统以及特殊文件系统等。虚拟文件系统将底层的文件系统抽象为通用的文件操作接口，从而隐藏了不同文件系统的差异，提供了一种统一的文件访问机制。</p>
+
+<p>进程间通信子系统：负责实现不同进程之间的数据传输和信息交换。它允许多个进程在同一系统上协同工作，并且共享数据、消息和其他资源，从而实现了进程之间的协作和通信。常见的进程间通信机制包括管道（Pipe）、信号（Signal）、消息队列（Message Queue）、共享内存（Shared Memory）、信号量（Semaphore）、套接字（Socket）等。</p>
+
+<p>I/O子系统：负责管理计算机系统与外部设备之间的数据传输和通信。它的主要任务是控制和协调输入设备和输出设备的访问，以实现数据的输入和输出操作，并且提供了一种统一的接口，使得应用程序能够方便地与各种不同类型的设备进行通信和交互。它包括了各种设备驱动程序和中断处理程序。</p>
+
+<p><img src="/assets/posts/2024-12-23-Linux内核漏洞挖掘与利用入门/3.jpg" alt="截屏2024-03-21 21.24.44.jpg" /></p>
+
+<h3 id="内核的运行时扩展结构和内核api">内核的运行时扩展结构和内核API</h3>
+
+<p>在Linux内核中，运行时扩展结构是指一种动态加载到内核中的模块，可以在内核运行时添加新的功能或修改现有功能。这种扩展结构被称为Loadable Kernel Module（LKM），或者简称为内核模块。</p>
+
+<p>内核模块是一种可以在内核运行时加载和卸载的可执行代码，它可以扩展内核的功能，添加新的设备驱动程序、文件系统、网络协议栈等功能，或者修改现有的内核行为。内核模块通常以共享对象（.ko文件）的形式存在，可以通过特定的工具加载到内核中，并且可以在不重新启动系统的情况下动态加载和卸载。</p>
+
+<p>linux系统中ko文件通常存放在 <strong><code class="language-plaintext highlighter-rouge">/lib/modules/$(uname -r)/kernel/</code></strong>。在这个目录下，按照模块所属的功能或者类型进行分类，通常有drivers（驱动程序）、fs（文件系统）、net（网络协议）、sound（声卡驱动）等子目录，每个子目录中包含相应类型的内核模块文件。</p>
+
+<p>提供了五大核心子系统的Linux内核文件位置位于/boot/vmlinuz-<code class="language-plaintext highlighter-rouge">uname -r</code></p>
+
+<p>研究Linux内核安全包括了vmlinuz内核 + ko内核模块</p>
+
+<p><img src="/assets/posts/2024-12-23-Linux内核漏洞挖掘与利用入门/4.jpg" alt="未命名绘图.jpg" /></p>
+
+<p>内核模块通过调用内核子系统提供的内核API使用内核的基础设施，完成相应的功能。</p>
+
+<p>常用有内存管理API，例如负责内存分配和释放的kmalloc、kfree、vmallov、vfree，中断处理API，例如enable_irq、disable_irq</p>
+
+<h2 id="内核调试环境的搭建">内核调试环境的搭建</h2>
+
+<h3 id="内核源码的获取清华源阿里源源码在线网站">内核源码的获取（清华源、阿里源、源码在线网站）</h3>
+
+<p>清华源：<a href="https://mirrors.tuna.tsinghua.edu.cn/kernel/">https://mirrors.tuna.tsinghua.edu.cn/kernel/</a></p>
+
+<p>阿里源：<a href="https://mirrors.aliyun.com/linux-kernel/?spm=a2c6h.13651104.d-4003.7.36cb7014yeJLsz">https://mirrors.aliyun.com/linux-kernel/</a></p>
+
+<p>源码在线：<a href="https://elixir.bootlin.com/linux/latest/source">https://elixir.bootlin.com/linux/latest/source</a></p>
+
+<p><img src="/assets/posts/2024-12-23-Linux内核漏洞挖掘与利用入门/5.jpg" alt="未命名绘图-第 2 页.jpg" /></p>
+
+<h3 id="常用工具的选择">常用工具的选择</h3>
+
+<p>源码分析工具：sourceinsight、vim</p>
+
+<p>反汇编分析工具：IDA7.5、objdump</p>
+
+<h3 id="源代码编译环境搭建">源代码编译环境搭建</h3>
+
+<p>主机系统：ubuntu 20.04 Desktop</p>
+
+<p><img src="/assets/posts/2024-12-23-Linux内核漏洞挖掘与利用入门/6.png" alt="截屏2024-03-22 11.30.24.png" /></p>
+
+<p>依赖安装：</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c">#安装编译工具</span>
+<span class="nv">$ </span><span class="nb">sudo </span>apt <span class="nb">install </span>build-essential ncurses-dev xz-utils libssl-dev bc libelf-dev flex bison openssl
+<span class="c">#安装qemu虚拟机</span>
+<span class="nv">$ </span><span class="nb">sudo </span>apt <span class="nb">install </span>qemu-system
+</code></pre></div></div>
+
+<h3 id="内核调试环境搭建">内核调试环境搭建</h3>
+
+<ul>
+  <li>方案一最接近真实环境：vmware + gdb双机调试环境搭建</li>
+</ul>
+
+<p>上位机系统为macOS 或者 windows操作系统</p>
+
+<p>被调试环境环境为vmware中运行的发行版Linux系统，例如ubuntu</p>
+
+<p><img src="/assets/posts/2024-12-23-Linux内核漏洞挖掘与利用入门/7.jpg" alt="未命名绘图-第 3 页.jpg" /></p>
+
+<p>打开vmx虚拟机配置文件，设置debugStub.listen.guest64=”1”，若没有这句话则自行添加</p>
+
+<p><img src="/assets/posts/2024-12-23-Linux内核漏洞挖掘与利用入门/8.png" alt="截屏2024-03-22 11.51.10.png" /></p>
+
+<p>完成设置后打开ubuntu虚拟机，在上位机打开gdb，输入gdb命令连接ubuntu虚拟机</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>trget remote localhost:8864
+</code></pre></div></div>
+
+<p>可以看到ubuntu虚拟机断下，此时可以在gdb命令行调试ubuntu内核</p>
+
+<p><img src="/assets/posts/2024-12-23-Linux内核漏洞挖掘与利用入门/9.jpg" alt="截屏2024-03-22 13.06.51.jpg" /></p>
+
+<ul>
+  <li>方案二只验证漏洞原理：qemu + gdb调试环境</li>
+</ul>
+
+<p>方案二相比方案一的系统开销更小，原因在于只加载必要的Linux运行时组件用于验证漏洞原理，此时相当于一个最小Linux系统。</p>
+
+<p>制作根文件系统：</p>
+
+<p>根文件系统包含了内核运行所必须的用户态程序，例如sh命令行工具。在发行版操作系统中，在开机过程中内核先加载位于/boot目录下的initrd-<code class="language-plaintext highlighter-rouge">uname -r</code>根文件系统，系统起来后再加载驱动程序和其他用户配置，将完整的桌面和服务呈现出来。</p>
+
+<ol>
+  <li>下载busybox-1.35.0源码</li>
+  <li>解压后进入源码目录执行make menuconfig，进入settings选项，钩上勾上Build static binary (no shared libs)。这一步的作用是所有文件静态链接，防止出现找不到库的情况</li>
+</ol>
+
+<p><img src="/assets/posts/2024-12-23-Linux内核漏洞挖掘与利用入门/10.png" alt="截屏2024-03-22 15.37.07.png" /></p>
+
+<ol>
+  <li>保存退出，执行make install编译busybox。此时源码目录下多出了_install目录，在_install目录下构建Linux内核运行所必须的如下目录和文件：</li>
+</ol>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c"># /proc文件系统</span>
+<span class="nv">$ </span><span class="nb">mkdir </span>proc
+<span class="c"># /sys文件系统</span>
+<span class="nv">$ </span><span class="nb">mkdir </span>sys
+<span class="c"># /dev设备节点文件系统</span>
+<span class="nv">$ </span><span class="nb">mkdir </span>dev
+<span class="c"># 系统启动配置脚本</span>
+<span class="nv">$ </span><span class="nb">touch </span>init
+<span class="nv">$ </span><span class="nb">chmod</span> +x init
+</code></pre></div></div>
+
+<ol>
+  <li>在init文件中写入如下内容</li>
+</ol>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c">#!/bin/sh</span>
+
+<span class="nb">mkdir</span> /tmp /dev
+mount <span class="nt">-t</span> proc none /proc
+mount <span class="nt">-t</span> sysfs none /sys
+mount <span class="nt">-t</span> tmpfs none /tmp
+mount <span class="nt">-t</span> devtmpfs none /dev
+/bin/mdev <span class="nt">-s</span>
+setsid /bin/cttyhack setuidgid 1000 /bin/sh <span class="c">#normal user</span>
+</code></pre></div></div>
+
+<p>再将_install目录下的内容打包成根文件系统，在_install目录下得到rootfs.img文件：</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span>find <span class="nb">.</span> | cpio <span class="nt">-o</span> <span class="nt">--format</span><span class="o">=</span>newc <span class="o">&gt;</span> ./rootfs.img
+
+打包成gz压缩包
+<span class="nv">$ </span>find <span class="nb">.</span> | cpio <span class="nt">-H</span> newc <span class="nt">-ov</span> | <span class="nb">gzip</span> <span class="nt">-9</span> <span class="o">&gt;</span> ../initramfs.cpio.gz
+</code></pre></div></div>
+
+<p>qemu启动脚本：</p>
+
+<p>将rootfs.img和编译好的Linux内核文件放在同一目录下，编写并执行如下qemu启动脚本：</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c">#! /bin/sh</span>
+
+qemu-system-x86_64 <span class="se">\</span>
+<span class="nt">-m</span> 128M <span class="se">\</span>
+<span class="nt">-cpu</span> kvm64,+smep,+smap <span class="se">\</span>
+<span class="nt">-kernel</span> ./bzImage <span class="se">\</span>
+<span class="nt">-initrd</span>  ./rootfs.img <span class="se">\</span>
+<span class="nt">-append</span> <span class="s2">"console=ttyS0 quiet kalsr"</span> <span class="se">\</span>
+<span class="nt">-smp</span> <span class="nv">cores</span><span class="o">=</span>2,threads<span class="o">=</span>1 <span class="se">\</span>
+<span class="nt">-nographic</span> <span class="se">\</span>
+<span class="nt">-s</span>
+</code></pre></div></div>
+
+<p>另起一个gdb终端，输入targte remote <a href="http://localhost:1234">localhost:1234</a> 连接到qemu，即可对内核进行调试。</p>
+
+<p><img src="/assets/posts/2024-12-23-Linux内核漏洞挖掘与利用入门/11.png" alt="截屏2024-03-22 16.30.57.png" /></p>
+
+<h2 id="内核源码编译">内核源码编译</h2>
+
+<h3 id="源代码结构">源代码结构</h3>
+
+<p>Linux内核源码按照所实现的功能存放：</p>
+
+<p><img src="/assets/posts/2024-12-23-Linux内核漏洞挖掘与利用入门/12.png" alt="截屏2024-03-22 17.29.46.png" /></p>
+
+<p>arch目录存放和体系结构相关的代码，例如电源管理、虚拟化、内存管理单元、启动时硬件的初始化等。其他目录虽然也有部分功能重合，但从调用关系的角度看，最终一定是调用到arch目录下实现最底层操作。</p>
+
+<p>Documentation目录是一个组织结构良好的Linux内核文档，是初学者重要的参考资料。</p>
+
+<p>drivers目录存放设备的驱动代码，是研究内核安全的重要研究内容。设备驱动程序很容易为内核引入新的攻击面，而且由于代码贡献者的水平不一，代码质量参差不齐，容易引发安全漏洞。</p>
+
+<p>mm目录存放了内存子系统相关的代码，slab分配器源码保存在该目录下。开发Linux内核漏洞利用需要对slab分配器的原理和工作特性有较为深入的理解。</p>
+
+<p>net目录存放了Linux网络功能的实现，也存放了许多网络协议栈的代码。网络协议栈也是内核安全的重要内容，此处发现的漏洞多为远程代码执行或者远程拒绝服务，危害较大值得关注。</p>
+
+<h3 id="编译命令">编译命令</h3>
+
+<p>进入到Linux内核源码目录下</p>
+
+<ol>
+  <li>首先配置内核编译选项，选择哪些功能模块编译进入内核、哪些编译成ko文件、哪些不编译</li>
+</ol>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span>make menuconfig
+</code></pre></div></div>
+
+<p>需要编译进内核的选项前面按‘y’键，需要编译成内核模块按‘m’键，不需要编译按‘n’键，保存退出。</p>
+
+<p><img src="/assets/posts/2024-12-23-Linux内核漏洞挖掘与利用入门/13.png" alt="截屏2024-03-22 23.39.09.png" /></p>
+
+<ol>
+  <li>编译内核。$(nproc)会自动计算出当前cpu可用的线程数量，提高编译过程中cpu的利用率，加快编译速度。</li>
+</ol>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span>make <span class="nt">-j</span><span class="si">$(</span><span class="nb">nproc</span><span class="si">)</span>
+</code></pre></div></div>
+
+<p>编译完成后可以在当前目录下找到vmlinux文件，该文件是Linux内核的elf格式可执行文件。该文件可以给研究者提供gdb调试信息和rop gadget。由于vmlinux文件中可加载段之间的相对地址偏移和内存中的相对偏移是相通的，攻击者可以利用这一特点结合信息泄露，绕过地址随机化保护。</p>
+
+<p><img src="/assets/posts/2024-12-23-Linux内核漏洞挖掘与利用入门/14.png" alt="截屏2024-03-22 23.45.05.png" /></p>
+
+<p>如果主机是x86架构，编译完成后arch/x86/boot目录下得到bzImage文件，该文件是系统启动所需的文件，作为参数传递给qemu，它是vmlinux去符号后压缩形成的。</p>
+
+<p><img src="/assets/posts/2024-12-23-Linux内核漏洞挖掘与利用入门/15.png" alt="截屏2024-03-23 00.01.03.png" /></p>
+
+<p>其他的就是散布在各个目录下的内核模块文件，后缀名为.ko。在运行时可以用insmod命令动态插入ko文件，这个过程就是驱动的加载。此时如果在命令行执行</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span>make modules_install
+</code></pre></div></div>
+
+<p>那么会将所有编译出来的ko文件复制到当前系统的驱动目录下，这个过程就是驱动的安装。</p>
+
+<h2 id="内核模块编写与调试">内核模块编写与调试</h2>
+
+<p>内核模块的编写主要由两部分组成，实现功能的代码和控制编译过程的makefile文件。</p>
+
+<h3 id="内核模块代码模版">内核模块代码模版</h3>
+
+<p>主要由模块加载时的init回调函数和模块卸载时的exit函数组成。</p>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="cp">#include</span> <span class="cpf">&lt;linux/init.h&gt;</span><span class="cp">
+#include</span> <span class="cpf">&lt;linux/module.h&gt;</span><span class="cp">
+#include</span> <span class="cpf">&lt;linux/kernel.h&gt;</span><span class="cp">
+</span>
+<span class="n">MODULE_LICENSE</span><span class="p">(</span><span class="s">"GPL"</span><span class="p">);</span>
+<span class="n">MODULE_AUTHOR</span><span class="p">(</span><span class="s">"abin"</span><span class="p">);</span>
+<span class="n">MODULE_DESCRIPTION</span><span class="p">(</span><span class="s">"A simple example Linux module."</span><span class="p">);</span>
+<span class="n">MODULE_VERSION</span><span class="p">(</span><span class="s">"0.01"</span><span class="p">);</span>
+
+<span class="k">static</span> <span class="kt">int</span> <span class="n">__init</span> <span class="nf">lkm_example_init</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span> <span class="p">{</span>
+	<span class="n">printk</span><span class="p">(</span><span class="n">KERN_INFO</span> <span class="s">"Hello, World!</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
+	<span class="cm">/* TODO */</span>
+	<span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
+<span class="p">}</span>
+<span class="k">static</span> <span class="kt">void</span> <span class="n">__exit</span> <span class="nf">lkm_example_exit</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span> <span class="p">{</span>
+	<span class="n">printk</span><span class="p">(</span><span class="n">KERN_INFO</span> <span class="s">"Goodbye, World!</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
+	<span class="cm">/* TODO */</span>
+<span class="p">}</span>
+
+<span class="n">module_init</span><span class="p">(</span><span class="n">lkm_example_init</span><span class="p">);</span>
+<span class="n">module_exit</span><span class="p">(</span><span class="n">lkm_example_exit</span><span class="p">);</span>
+</code></pre></div></div>
+
+<p>在命令行调用insmod xxx.ko命令加载模块时，内核会调用init函数进行模块的初始化。开发者将模块需要实现的一些功能通过init函数注册到Linux内核的对应功能框架上面，由功能框架向用户态提供统一的调用接口，应用程序通过调用接口间接使用内核模块提供的功能。</p>
+
+<p><img src="/assets/posts/2024-12-23-Linux内核漏洞挖掘与利用入门/16.jpg" alt="linux内核安全入门.jpg" /></p>
+
+<p>在命令行调用rmmod xxx命令卸载模块时，内核会调用exit函数完成模块的清理工作，包括将模块从功能框架卸载、释放全局资源等工作。</p>
+
+<h3 id="makefile文件模板">makefile文件模板</h3>
+
+<p>makefile文件的作用是，在编译时帮助找到Linux内核源代码目录，并以Linux源代码为依赖，在当前目录下编译出ko文件。</p>
+
+<p>在内核模块代码目录下添加一个名为“Makefile”的文件，内容如下：</p>
+
+<div class="language-makefile highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">obj-m</span> <span class="o">+=</span> lkm_example.o
+<span class="nl">all</span><span class="o">:</span>
+	make <span class="nt">-C</span> /path/to/linux/source/code <span class="nv">M</span><span class="o">=</span><span class="p">$(</span>PWD<span class="p">)</span> modules
+<span class="nl">clean</span><span class="o">:</span>
+	make <span class="nt">-C</span> /path/to/linux/source/code <span class="nv">M</span><span class="o">=</span><span class="p">$(</span>PWD<span class="p">)</span> clean
+</code></pre></div></div>
+
+<p>obj-m表示要编译出ko文件，而非直接编译到vmlinux文件中。lkm_example需要和源代码文件名保持一致。</p>
+
+<p>-C命令表示Linux源代码的根目录位置，M参数表示需要编译ko文件的源代码位置</p>
+
+<p>all选项表示编译出ko文件，clean选项表示删除编译出来的ko文件</p>
+
+<p>在当前目录下执行make命令即可编译出ko文件。</p>
+
+<h3 id="内核模块的加载和卸载">内核模块的加载和卸载</h3>
+
+<p>执行insmod和rmmod命令分别进行插入和卸载模块的操作，dmesg命令查看内核日志可以看到printk输出。</p>
+
+<p><img src="/assets/posts/2024-12-23-Linux内核漏洞挖掘与利用入门/17.png" alt="截屏2024-03-23 09.59.22.png" /></p>
+
+<h3 id="内核模块调试">内核模块调试</h3>
+
+<p>方法1：gdb调试</p>
+
+<p>方法2：代码中插入printk打印函数，在命令行使用dmesg查看打印结果</p>
+
+<h2 id="linux内核的攻击面研究范围">Linux内核的攻击面——研究范围</h2>
+
+<p><strong>系统调用接口</strong>：系统调用是用户空间程序与内核交互的主要方式。如果系统调用的实现存在漏洞，攻击者可能会利用这些漏洞执行恶意代码或提升权限。例如ptrace系统调用的信息泄露漏洞CVE-2013-2929、splice系统调用的任意文件写漏洞CVE-2022-0847。</p>
+
+<p><strong>设备驱动程序：</strong>Linux支持广泛的硬件设备，这些设备通过驱动程序与内核交互。驱动程序中的漏洞可能被用来绕过安全机制、执行代码或访问敏感信息。此类漏洞例如video4linux视频设备驱动条件竞争漏洞CVE-2019-18683、tty字符设备驱动条件竞争漏洞CVE-2017-2636。</p>
+
+<p><strong>内核模块：</strong>内核模块允许在运行时向内核添加新的功能。如果攻击者能够加载恶意模块，他们可能获得内核级别的控制权。例如在容器环境中由于容器本身配置不正确，攻击者有权限在容器中加载自定义内核模块，导致容器逃逸获取host的root shell。</p>
+
+<p><strong>内存管理：</strong>内核负责管理系统内存，包括用户空间程序和内核自身的内存。内存管理的缺陷可能导致信息泄露、权限提升或拒绝服务攻击。最著名的有CVE-2016-5195“脏牛”漏洞。</p>
+
+<p><strong>文件系统：</strong>内核通过文件系统提供对存储设备的访问。文件系统的漏洞可能被利用来绕过访问控制、修改系统文件或执行恶意代码。例如文件系统整数溢出漏洞CVE-2022-0185。</p>
+
+<p><strong>网络协议栈：</strong>Linux内核包含了实现各种网络协议的代码，用于数据的发送和接收。网络栈中的漏洞可能被用于远程代码执行、服务拒绝或数据泄露。例如TIPC协议堆溢出漏洞CVE-2021-43267、AF_PACKET 环形缓冲区溢出漏洞CVE-2017-7308。</p>
+
+<h2 id="linux内核漏洞攻击效果">Linux内核漏洞攻击效果</h2>
+
+<p>远程代码执行 → 获得远程root shell</p>
+
+<p>本地权限提升 → 获取本地root shell</p>
+
+<p>任意文件修改 → 添加或修改root权限账户 → 获取本地root shell</p>
+
+<p>信息泄露 → 泄露内核地址或者用户数据、密码、系统密钥，为进一步攻击提供便利</p>
+
+<p>拒绝服务 → 系统不可用或者稳定性降低</p>
+
+<p><img src="/assets/posts/2024-12-23-Linux内核漏洞挖掘与利用入门/18.jpg" alt="linux内核安全入门-第 2 页.jpg" /></p>
+
+<p>需要花费大量精力去挖掘漏洞，其次需要研究绕过安全机制的方法和获取系统最高权限的途径。最终目的是为攻击者建立对目标的持久化访问。</p>
+
+<h2 id="linux内核漏洞挖掘技术">Linux内核漏洞挖掘技术</h2>
+
+<h3 id="linux内核的特点">Linux内核的特点</h3>
+
+<ol>
+  <li>代码量极大，功能复杂。linux-6.8.0-rc1包含了10万多个文件</li>
+</ol>
+
+<p><img src="/assets/posts/2024-12-23-Linux内核漏洞挖掘与利用入门/19.png" alt="截屏2024-03-23 12.20.56.png" /></p>
+
+<ol>
+  <li>模块化程度高，通盘审计不现实，通常要针对特定的模块或者子系统进行审计</li>
+</ol>
+
+<h3 id="代码审计是基本功">代码审计是基本功</h3>
+
+<ol>
+  <li>需要了解操作系统基本原理，包括进程管理、内存管理、文件系统、设备驱动和网络通信等方面，这有助于理解内核代码的功能和设计理念。</li>
+  <li>漏洞模型有部分与用户态漏洞相似，例如堆溢出、栈溢出、整数溢出、释放后重引用、信息泄露等。另一部分是内核运行环境所特有的漏洞，例如Double fetch，该漏洞是一种特定的竞态条件漏洞，当内核需要从用户空间程序读取数据时，内核可能首先检查数据以确定它是安全的，但在实际使用数据之前，攻击者修改了用户空间的数据。如果内核没有再次验证数据的合法性，就可能导致安全漏洞。再例如Dirty Cow漏洞，该漏洞在处理内存的“写时复制”的过程中产生了条件竞争，导致攻击者可以写入只读映射区域。</li>
+  <li>根据设计文档审计代码，但内核不一定会完全按照文档的规范来实现全部的功能。</li>
+  <li>在没有设计文档的情况下，可以结合开源的用户态程序，理解输入参数的意义和内核部分的设计原理。</li>
+  <li>投入和产出不一定成正比。</li>
+</ol>
+
+<h3 id="自动化辅助挖掘发现的漏洞占比多">自动化辅助挖掘（发现的漏洞占比多）</h3>
+
+<ul>
+  <li>静态代码分析
+    <ol>
+      <li>可以帮助识别常见的编码错误，如缓冲区溢出、空指针引用、未初始化的变量使用等。</li>
+      <li>可以根据已知漏洞类型编写定制的查询语句批量化发现类似的漏洞。</li>
+      <li>存在一定的误报率，需要人工审查。</li>
+      <li>无法覆盖到一些运行时产生的路径，例如内核经常会在运行时加载所需的模块并且执行模块中的回调函数。在研究人员未理解上下文的情况下，静态分析可能无法覆盖到这些调用路径。</li>
+    </ol>
+  </li>
+  <li>模糊测试</li>
+</ul>
+
+<p>模糊测试（Fuzzing）是一种自动化的软件测试技术，通过自动生成大量的随机数据作为输入，来测试软件的稳定性和安全性。</p>
+
+<ol>
+  <li>仿真运行内核，对内核接口进行大量随机测试，可以快速发现可能导致崩溃、死锁或不当行为的漏洞。</li>
+  <li>不依赖于特定的漏洞模型，因此实际应用中可以发现条件竞争、释放后重引用这类使用静态分析或人工代码审计难以发现的漏洞。</li>
+  <li>挖洞效果很大程度上依赖于代码覆盖率，提升代码覆盖率有利于提高发现漏洞的概率，需要“人在回路中”不断调整测试用例的生成模板以提高代码覆盖率。</li>
+  <li>存在一定的误报率，需要人工审查确定可用性。</li>
+</ol>
+
+<h2 id="内核漏洞挖掘工具">内核漏洞挖掘工具</h2>
+
+<h3 id="静态分析工具codeql">静态分析工具CodeQL</h3>
+
+<p>CodeQL是由GitHub开发的代码分析引擎，用于自动化安全检查。</p>
+
+<ol>
+  <li><strong>CodeQL原理</strong></li>
+</ol>
+
+<p>CodeQL 将目标代码转换成一个查询数据库。这一过程解析代码中的各种元素，把类、函数、变量等，并将它们及其相互之间的关系以数据库的形式存储。这样做的目的是将代码结构化成一种形式，使其可以通过CodeQL 查询语言进行有效查询。</p>
+
+<p>数据库构建的过程：</p>
+
+<p>由编译型语言构成的目标代码，例如C语言，CodeQL会将整个项目编译一遍，在编译过程中提取目标代码信息，包括抽象语法树的句法数据、关于名称绑定和类型信息的语义数据和源代码文件。每种编译类型的语言都有对应的提取器，目前支持C/C++、C#、Go、Swift、Java和Kotlin。</p>
+
+<p><img src="/assets/posts/2024-12-23-Linux内核漏洞挖掘与利用入门/20.jpg" alt="linux内核安全入门-第 3 页.jpg" /></p>
+
+<p>对于脚本类型的语言，CodeQL直接运行源代码，从中提取依赖并构建数据库，目前支持JavaScript、Python和Ruby。</p>
+
+<p>数据库查询语句：</p>
+
+<p>CodeQL仿照SQL实现了一套面向对象的查询语言，基本结构如下：</p>
+
+<div class="language-sql highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="cm">/**
+ *
+ * Query metadata
+ *
+ */</span>
+
+<span class="n">import</span> <span class="cm">/* ... CodeQL libraries or modules ... */</span>
+
+<span class="cm">/* ... Optional, define CodeQL classes and predicates ... */</span>
+
+<span class="k">from</span> <span class="cm">/* ... variable declarations ... */</span>
+<span class="k">where</span> <span class="cm">/* ... logical formula ... */</span>
+<span class="k">select</span> <span class="cm">/* ... expressions ... */</span>
+</code></pre></div></div>
+
+<p>from语句定义查询范围，where语句定义筛选条件，select语言显示筛选出来的元素。</p>
+
+<p>CodeQL查询原理：</p>
+
+<p>CodeQL查询的本质是集合运算。</p>
+
+<p>以匹配test函数中index &gt; 2这个判断条件为例</p>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kt">int</span> <span class="nf">get_user_input</span><span class="p">();</span>
+<span class="kt">void</span> <span class="nf">edit</span><span class="p">();</span>
+<span class="kt">void</span> <span class="nf">add</span><span class="p">();</span>
+<span class="kt">void</span> <span class="nf">del</span><span class="p">();</span>
+<span class="kt">void</span> <span class="nf">test</span><span class="p">(){</span>
+
+    <span class="kt">int</span> <span class="n">index</span> <span class="o">=</span> <span class="n">get_user_input</span><span class="p">();</span>  
+     
+    <span class="k">if</span><span class="p">(</span><span class="n">index</span> <span class="o">&gt;</span> <span class="mi">2</span><span class="p">)</span>         <span class="c1">// | test.cpp:9:8:9:16 | ... &gt; ... |</span>
+        <span class="k">return</span><span class="p">;</span>
+    <span class="k">if</span><span class="p">(</span><span class="n">index</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="n">add</span><span class="p">();</span>
+    <span class="k">if</span><span class="p">(</span><span class="n">index</span> <span class="o">==</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="n">edit</span><span class="p">();</span>
+    <span class="k">if</span><span class="p">(</span><span class="n">index</span> <span class="o">==</span> <span class="mi">2</span><span class="p">)</span>
+        <span class="n">del</span><span class="p">();</span>
+<span class="p">}</span>   
+</code></pre></div></div>
+
+<p>对应的CodeQL查询如下</p>
+
+<div class="language-sql highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">import</span> <span class="n">cpp</span>
+
+<span class="k">from</span> <span class="n">IfStmt</span> <span class="n">ifStmt</span><span class="p">,</span> <span class="n">Expr</span> <span class="n">cond</span>
+<span class="k">where</span>
+    <span class="n">ifStmt</span><span class="p">.</span><span class="n">getCondition</span><span class="p">()</span> <span class="o">=</span> <span class="n">cond</span> <span class="k">and</span>
+    <span class="n">cond</span> <span class="n">instanceof</span> <span class="n">GTExpr</span>
+<span class="k">select</span> <span class="n">cond</span>
+</code></pre></div></div>
+
+<p>from语句定义了查询范围是if判断语句和表达式，分别用变量ifStmt和cond表示；</p>
+
+<p>where语句定义了如下的集合运算过程，if条件判断部分和&gt;关系表达式都是cond的子集，这两个子集做交集运算最后得到了“index &gt; 2”这个表达式</p>
+
+<p><img src="/assets/posts/2024-12-23-Linux内核漏洞挖掘与利用入门/21.jpg" alt="linux内核安全入门-第 5 页.jpg" /></p>
+
+<p>select把集合运算的最终结果显示出来，如下结果表示要找的表达式在代码的第9行，第8列开始</p>
+
+<div class="language-sql highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="o">|</span> <span class="n">test</span><span class="p">.</span><span class="n">cpp</span><span class="p">:</span><span class="mi">9</span><span class="p">:</span><span class="mi">8</span><span class="p">:</span><span class="mi">9</span><span class="p">:</span><span class="mi">16</span> <span class="o">|</span> <span class="p">...</span> <span class="o">&gt;</span> <span class="p">...</span> <span class="o">|</span>
+</code></pre></div></div>
+
+<ol>
+  <li><strong>CodeQL文件架构</strong></li>
+</ol>
+
+<p>CodeQL项目主要由2部分组成：</p>
+
+<ul>
+  <li>CodeQL bundle：包含了codeql命令、针对每种编程语言的提取器、每种语言集成了一些常用的查询规则。下载地址为<a href="https://github.com/github/codeql-action/releases">https://github.com/github/codeql-action/releases</a></li>
+  <li>CodeQL 查询库：包含更加完善的查询规则，用户可以在现有规则的基础上修改和添加自定义的查询规则。下载地址为<a href="https://github.com/github/codeql">https://github.com/github/codeql</a></li>
+</ul>
+
+<p>CodeQL bundle和查询库一般都放在同级目录下，将codeql可执行文件路径添加到环境变量PATH中这样就可以在bash命令行直接运行codeql命令了。</p>
+
+<p><img src="/assets/posts/2024-12-23-Linux内核漏洞挖掘与利用入门/22.png" alt="截屏2024-04-12 10.30.51.png" /></p>
+
+<p>搭建工作区：</p>
+
+<p>CodeQL一般运行在vscode开发环境中，配合codeql插件一起使用。</p>
+
+<p>将codeql-repo作为工作目录，用vscode打开。</p>
+
+<p><img src="/assets/posts/2024-12-23-Linux内核漏洞挖掘与利用入门/23.png" alt="截屏2024-04-12 10.57.14.png" /></p>
+
+<p>以C语言查询库为例</p>
+
+<p><img src="/assets/posts/2024-12-23-Linux内核漏洞挖掘与利用入门/24.png" alt="截屏2024-04-12 11.02.26.png" /></p>
+
+<p>在src目录下按照安全问题的分类建立各级子目录，以Likely Bugs目录为例</p>
+
+<p><img src="/assets/posts/2024-12-23-Linux内核漏洞挖掘与利用入门/25.png" alt="截屏2024-04-12 11.22.54.png" /></p>
+
+<p>后缀名为.ql的文件就是CodeQL查询文件</p>
+
+<p><img src="/assets/posts/2024-12-23-Linux内核漏洞挖掘与利用入门/26.png" alt="截屏2024-04-12 11.31.50.png" /></p>
+
+<ol>
+  <li><strong>CodeQL分析Linux内核源码的步骤</strong></li>
+</ol>
+
+<p>点击vscode左侧插件选项卡，搜索并安装codeql插件。</p>
+
+<p><img src="/assets/posts/2024-12-23-Linux内核漏洞挖掘与利用入门/27.png" alt="截屏2024-04-12 23.40.43.png" /></p>
+
+<ul>
+  <li>步骤一：构建数据库</li>
+</ul>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="err">$</span> <span class="n">codeql</span> <span class="n">database</span> <span class="n">create</span> <span class="n">cpp</span><span class="o">-</span><span class="n">database</span> <span class="o">--</span><span class="n">language</span><span class="o">=</span><span class="n">c</span><span class="o">-</span><span class="n">cpp</span> <span class="o">--</span><span class="n">command</span><span class="o">=</span><span class="err">'</span><span class="n">make</span> <span class="o">-</span><span class="n">j64</span><span class="err">'</span> <span class="o">--</span><span class="n">source</span><span class="o">-</span><span class="n">root</span><span class="o">=/</span><span class="n">path</span><span class="o">/</span><span class="n">to</span><span class="o">/</span><span class="n">linux</span><span class="o">/</span><span class="n">source</span>
+</code></pre></div></div>
+
+<p>cpp-database：替换为生成的数据库的名称</p>
+
+<p>–language=c-cpp：表示使用C语言提取器提取编译信息</p>
+
+<p>–command=’make -j64’：编译内核命令</p>
+
+<p>/path/to/linux/source：替换为Linux源码目录</p>
+
+<p>上述命令根据Linux内核源码的路径找到Linux源码，在源码目录下执行编译命令，使用C语言提取器提取代码信息，保存到数据库中。</p>
+
+<ul>
+  <li>步骤二：编写查询语句</li>
+</ul>
+
+<p>在src目录下选择一个安全问题分类目录，在现有的CodeQL脚本上修改，或者新建目录新建一个CodeQL脚本。</p>
+
+<p>脚本的编写详见CodeQL语法：<a href="https://codeql.github.com/docs/codeql-language-guides/">https://codeql.github.com/docs/codeql-language-guides/</a></p>
+
+<ul>
+  <li>步骤三：编写测试用例</li>
+</ul>
+
+<p>编写测试用例的目的是检查CodeQL查询语句是否能输出预期的结果。在达到预期的情况下，再对数据库进行查询。</p>
+
+<p>cpp/ql/test/query-tests目录用于保存测试用例，在query-tests目录下新建一个目录用于保存.qlref文件和.cpp文件。</p>
+
+<p><img src="/assets/posts/2024-12-23-Linux内核漏洞挖掘与利用入门/28.png" alt="截屏2024-04-12 14.38.09.png" /></p>
+
+<p>.qlref的作用是为vscode插件提供被测CodeQL脚本的位置，文件名部分与CodeQL脚本的文件名保持一致，内容是CodeQL脚本在src目录下的相对路径。</p>
+
+<p>.cpp文件是测试用例，用于检测CodeQL脚本能否提取出目标代码和排除假阳性结果。</p>
+
+<p><img src="/assets/posts/2024-12-23-Linux内核漏洞挖掘与利用入门/29.png" alt="截屏2024-04-12 14.40.21.png" /></p>
+
+<p>.qlref和.cpp文件准备好之后，点击vscode左侧的“代码测试”选项卡，找到.qlref文件并点击右侧的开始测试按钮。测试完毕后会在同级目录下生成结果文件，检查是否返回了所有目标点的位置。若测试通过就可以直接到数据库匹配了。</p>
+
+<p><img src="/assets/posts/2024-12-23-Linux内核漏洞挖掘与利用入门/30.png" alt="截屏2024-04-12 21.19.15.png" /></p>
+
+<ul>
+  <li>步骤四：运行CodeQL脚本</li>
+</ul>
+
+<p>首先加载步骤一生成的数据库。点击vscode左侧的CodeQL插件选项卡，展开DATABASE选项卡，点击加载数据库，选择步骤一生成的数据库。</p>
+
+<p><img src="/assets/posts/2024-12-23-Linux内核漏洞挖掘与利用入门/31.png" alt="截屏2024-04-12 23.28.53.png" /></p>
+
+<p>展开QUERIES选项卡，找到CodeQL脚本，点击运行箭头开始搜索数据库。</p>
+
+<p><img src="/assets/posts/2024-12-23-Linux内核漏洞挖掘与利用入门/32.png" alt="截屏2024-04-12 23.48.30.png" /></p>
+
+<ul>
+  <li>步骤五：分析查询结果</li>
+</ul>
+
+<p>人工审查排除假阳性结果。</p>
+
+<ol>
+  <li>CodeQL实战挖掘内核漏洞的例子：CVE-2021-43267 tipc驱动堆溢出漏洞</li>
+</ol>
+
+<p>2021年11月4日，SentinelLabs的研究人员使用CodeQL搜索Linux内核代码中的kmalloc函数调用，CodeQL语句如下：</p>
+
+<p><img src="/assets/posts/2024-12-23-Linux内核漏洞挖掘与利用入门/Untitled%205.png" alt="Untitled" /></p>
+
+<p>上述语句的作用是搜索所有kmalloc调用，如果传递给kmalloc的实参类型的大小为2字节，也就是short或者unsigned short，那么就返回搜索结果。
+搜索结果中如下代码片段引起了研究人员的注意：</p>
+
+<p><img src="/assets/posts/2024-12-23-Linux内核漏洞挖掘与利用入门/Untitled%206.png" alt="Untitled" /></p>
+
+<p>在(1)处根据hdr中提取的size信息分配了一个堆块。
+在(2)(3)处根据data中的size信息，将数据复制到堆块中。
+这里存在两个潜在的问题：
+在(3)的位置复制数据没有对长度进行检验。
+(1)和(2)处的size来源不同，数据包头部的size字段可能与载荷部分的size字段不一致。</p>
+
+<p>经证实此处存在堆溢出漏洞。</p>
+
+<ol>
+  <li>CodeQL的用途
+    <ul>
+      <li>漏洞变体分析</li>
+    </ul>
+  </li>
+</ol>
+
+<p>过程：从已有的漏洞中提取出漏洞原语 → 编写用于匹配漏洞原语的CodeQL查询语句 → 到数据库中搜索可疑位置 → 根据搜索结果修改查询条件以排除假阳性结果 → 人工审查排除假阳性结果 → 发现同类型的新的漏洞或不存在类似的漏洞</p>
+
+<p>例子：CVE-2022-0185</p>
+
+<p><img src="/assets/posts/2024-12-23-Linux内核漏洞挖掘与利用入门/Untitled%207.png" alt="Untitled" /></p>
+
+<p>代码3的位置是漏洞点，PAGE_SIZE为堆块大小为4096，如果在前面调用的过程中，size已经累加到4095，由于len是无符号整数，那么PAGE_SIZE-2-size就会向下溢出并且强制类型转化成大整数，造成此处的if判断被绕过。
+代码4的位置，memcpy函数目的地址ctx→legacy_data是大小为4096的堆块，拷贝的字节数param→size和拷贝的内容param→string都是攻击者控制的，若代码3的位置被整数溢出绕过，那么memcpy就会发生越界写。</p>
+
+<p>提取漏洞原语：</p>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">if</span><span class="err">分支语句</span>
+		<span class="err">条件判断部分</span>
+				<span class="err">大于关系运算或小于关系运算</span>
+							<span class="err">关系运算符操作数都是无符号整数类型</span>
+										<span class="err">小的操作数是一个减法运算表达式</span>
+													<span class="err">减法运算的左操作数是一个常量表达式右操作数是一个变量访问表达式</span>
+</code></pre></div></div>
+
+<p>根据漏洞原语编写CodeQL查询语句：</p>
+
+<div class="language-sql highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="cm">/**
+ * @kind problem
+*/</span>
+
+<span class="n">import</span> <span class="n">cpp</span>
+
+<span class="k">from</span> <span class="n">IfStmt</span> <span class="n">ifStmt</span><span class="p">,</span> <span class="n">Expr</span> <span class="n">cond</span>
+<span class="k">where</span>
+    <span class="n">ifStmt</span><span class="p">.</span><span class="n">getCondition</span><span class="p">()</span> <span class="o">=</span> <span class="n">cond</span> <span class="k">and</span>      <span class="o">//</span><span class="err">提取</span><span class="n">if</span><span class="err">语句的条件判断部分</span>
+    <span class="n">cond</span> <span class="n">instanceof</span> <span class="n">GTExpr</span> <span class="k">and</span>            <span class="o">//</span><span class="err">条件判断部分是一个</span> <span class="o">&gt;</span><span class="err">关系运算符</span>
+    <span class="o">//</span> <span class="o">&gt;</span><span class="err">关系运算符的左侧是一个无符号整数</span>
+    <span class="n">ifStmt</span><span class="p">.</span><span class="n">getCondition</span><span class="p">().(</span><span class="n">GTExpr</span><span class="p">).</span><span class="n">getGreaterOperand</span><span class="p">().</span><span class="n">getUnderlyingType</span><span class="p">().(</span><span class="n">IntegralType</span><span class="p">).</span><span class="n">isUnsigned</span><span class="p">()</span> <span class="k">and</span>
+    <span class="o">//</span> <span class="o">&gt;</span><span class="err">关系运算符的右侧是一个减法表达式，且被减数是一个变量访问表达式</span>
+    <span class="k">exists</span><span class="p">(</span><span class="n">SubExpr</span> <span class="n">sub</span><span class="p">,</span> <span class="n">VariableAccess</span> <span class="n">va</span> <span class="o">|</span> 
+        <span class="n">ifStmt</span><span class="p">.</span><span class="n">getCondition</span><span class="p">().(</span><span class="n">GTExpr</span><span class="p">).</span><span class="n">getLesserOperand</span><span class="p">()</span> <span class="o">=</span> <span class="n">sub</span> <span class="k">and</span>
+        <span class="n">sub</span><span class="p">.</span><span class="n">getRightOperand</span><span class="p">()</span> <span class="o">=</span> <span class="n">va</span><span class="p">)</span>
+<span class="k">select</span> <span class="n">ifStmt</span><span class="p">,</span> <span class="nv">"may be underflow "</span>
+</code></pre></div></div>
+
+<p>分析查询结果：</p>
+
+<p>在Linux内核源码中找到81处这样的代码，CVE-2022-0185的漏洞位置也包含在其中，点击查询结果即可导航到源码的位置。上述CodeQL查询可以进一步优化。</p>
+
+<p><img src="/assets/posts/2024-12-23-Linux内核漏洞挖掘与利用入门/33.png" alt="截屏2024-04-13 08.31.12.png" /></p>
+
+<ul>
+  <li>漏洞利用开发阶段查找有用的数据结构</li>
+</ul>
+
+<p>我们想寻找一个包含函数指针的结构体用于控制流劫持，可以编写如下查询代码：</p>
+
+<div class="language-sql highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">import</span> <span class="n">cpp</span>
+
+<span class="o">//</span> <span class="err">定义一个</span><span class="n">CodeQL</span><span class="err">类，这个类继承自普通的类，其中包含函数指针的结构体</span>
+<span class="k">class</span> <span class="n">StructWithFunctionPointer</span> <span class="n">extends</span> <span class="n">Struct</span> <span class="p">{</span>
+<span class="o">//</span> <span class="err">类的构造函数，符合条件的结构体组成</span><span class="n">StructWithFunctionPointer</span><span class="err">集合</span>
+  <span class="n">StructWithFunctionPointer</span><span class="p">()</span> <span class="p">{</span>
+    <span class="k">exists</span><span class="p">(</span><span class="n">Field</span> <span class="n">f</span><span class="p">,</span> <span class="n">FunctionPointerType</span> <span class="n">fp</span> <span class="o">|</span>
+<span class="o">//</span> <span class="err">如果存在结构体成员的类型是函数指针类型</span>
+      <span class="n">f</span><span class="p">.</span><span class="n">getType</span><span class="p">()</span> <span class="o">=</span> <span class="n">fp</span> <span class="k">and</span>
+<span class="o">//</span> <span class="err">并且结构体成员定义在</span><span class="n">Struct</span><span class="err">内部</span>
+      <span class="n">f</span><span class="p">.</span><span class="n">getDeclaringType</span><span class="p">()</span> <span class="o">=</span> <span class="n">this</span>
+<span class="o">//</span> <span class="err">满足这样条件的结构体就是函数指针结构体</span>
+    <span class="p">)</span>
+  <span class="p">}</span>
+<span class="p">}</span>
+
+<span class="k">from</span> <span class="n">StructWithFunctionPointer</span> <span class="n">s</span><span class="p">,</span> <span class="n">Field</span> <span class="n">f</span> 
+<span class="k">where</span> 
+    <span class="n">f</span><span class="p">.</span><span class="n">getDeclaringType</span><span class="p">()</span> <span class="o">=</span> <span class="n">s</span> <span class="k">and</span>
+    <span class="n">f</span><span class="p">.</span><span class="n">getType</span><span class="p">()</span> <span class="n">instanceof</span> <span class="n">FunctionPointerType</span>
+<span class="k">select</span> <span class="n">s</span><span class="p">,</span> <span class="n">f</span>
+</code></pre></div></div>
+
+<p>找到了5681个包含函数指针的结构体，其中不乏一些在漏洞利用中常用到的结构体。</p>
+
+<p><img src="/assets/posts/2024-12-23-Linux内核漏洞挖掘与利用入门/34.png" alt="截屏2024-04-13 08.37.05.png" /></p>
+
+<ul>
+  <li>CodeQL自动化审计</li>
+</ul>
+
+<p>CodeQL配合Github Actions可以实现对Github项目的自动化审计。</p>
+
+<p>GitHub Actions是GitHub提供的一项功能，可以让开发者在其代码仓库中设置自动化的工作流程。通过GitHub Actions，用户可以编写自定义的任务和操作，例如自动运行测试、构建应用程序、部署到服务器等。这些任务可以触发于各种事件，例如代码提交、拉取请求合并等。</p>
+
+<p>二者结合可以在代码提交的时候进行安全检查，及时发现安全漏洞。</p>
+
+<p>配置Github Actions的方法是在仓库根目录下创建.github/workflows/xxxx.yml文件。Github提供了生成CodeQL自动化审计模板的方法，以下基于此介绍。</p>
+
+<p>步骤一：配置Github Actions</p>
+
+<p>进入“配置”选项卡</p>
+
+<p><img src="/assets/posts/2024-12-23-Linux内核漏洞挖掘与利用入门/35.png" alt="截屏2024-04-13 13.38.49.png" /></p>
+
+<p>选择CodeQL高级配置，接下来页面会跳转到codeql.yml模板编辑页面</p>
+
+<p><img src="/assets/posts/2024-12-23-Linux内核漏洞挖掘与利用入门/36.png" alt="截屏2024-04-13 13.40.05.png" /></p>
+
+<p>此处定义了发生代码push和pull request的时候触发CodeQL对整个项目的扫描</p>
+
+<p><img src="/assets/posts/2024-12-23-Linux内核漏洞挖掘与利用入门/37.png" alt="截屏2024-04-13 13.46.43.png" /></p>
+
+<p>runs-on定义了项目的编译环境，这里选择ubuntu-latest</p>
+
+<p><img src="/assets/posts/2024-12-23-Linux内核漏洞挖掘与利用入门/38.png" alt="截屏2024-04-13 13.52.57.png" /></p>
+
+<p>整个项目由C语言编写，在c-cpp一项中把编译方式修改为manual。因为一些代码通常是使用configure和make命令来编译，而不是系统默认的gcc编译命令，所以这里要把编译方式改为手动，否则CodeQL会使用系统默认编译命令，导致数据库构建失败。</p>
+
+<p><img src="/assets/posts/2024-12-23-Linux内核漏洞挖掘与利用入门/39.png" alt="截屏2024-04-13 13.50.06.png" /></p>
+
+<p>把run后面的内容替换为项目的编译命令，这样Github云端就能生成项目的数据库了。</p>
+
+<p><img src="/assets/posts/2024-12-23-Linux内核漏洞挖掘与利用入门/40.png" alt="截屏2024-04-13 13.54.00.png" /></p>
+
+<p>步骤二：</p>
+
+<p>保存codeql.yml文件，Github云端开始对整个项目使用CodeQL进行扫描。扫描完成后进入“安全”选项卡。</p>
+
+<p><img src="/assets/posts/2024-12-23-Linux内核漏洞挖掘与利用入门/41.png" alt="截屏2024-04-13 13.32.22.png" /></p>
+
+<p>可以看到CodeQL已经识别出了插入到代码中的double free漏洞，并且给出了引入该漏洞的代码提交信息。</p>
+
+<p><img src="/assets/posts/2024-12-23-Linux内核漏洞挖掘与利用入门/42.png" alt="截屏2024-04-13 13.34.50.png" /></p>
+
+<ul>
+  <li>CodeQL与ChatGPT</li>
+</ul>
+
+<p>可以与ChatGPT通过问答的方式提取漏洞原语，自己编写CodeQL查询语句或让ChatGPT自动生成。</p>
+
+<h3 id="模糊测试工具syzkaller">模糊测试工具syzkaller</h3>
+
+<p>Syzkaller是由谷歌的安全工程师Dmitry Vyukov领导开发的一个开源的、可扩展的内核模糊测试工具，主要用于发现操作系统内核中的安全漏洞。</p>
+
+<p>syzkaller由go语言编写，实现了一套用于描述系统调用的语言syz-lang。用户使用syz-lang编写系统调用描述符用于描述系统调用接收的参数和返回值，syzkaller根据系统调用描述符生成测试用例对内核进行fuzz。</p>
+
+<p>fuzz过程通过自动生成系统调用序列来对内核进行压力测试，以此来触发内核崩溃、死锁或者其他错误行为，进而揭露可能的漏洞。syzkaller 支持多种操作系统平台，包括但不限于 Linux、Windows、FreeBSD、NetBSD 和 Fuchsia。</p>
+
+<ol>
+  <li>syzkaller工作原理</li>
+</ol>
+
+<p>syzkaller主要由syz-manager、syz-fuzzer、syz-executor三部分组成。被测试的内核运行在虚拟机中，使用ssh与host通信。</p>
+
+<p><img src="/assets/posts/2024-12-23-Linux内核漏洞挖掘与利用入门/43.jpg" alt="linux内核安全入门-第 4 页.jpg" /></p>
+
+<p>syz-manager运行在host中，主要负责启动、监控、重启虚拟机，在运行的虚拟机中启动syz-fuzzer进程。在fuzz过程中syz-manager通过监控虚拟机的内核日志来发现内核异常，并将内核异常的现场和触发异常的输入保存到数据库中。</p>
+
+<p>syz-fuzzer和syz-executor都运行在虚拟机中，syz-manager使用scp命令将这两个文件拷贝到虚拟机中。syz-fuzzer的作用是生成测试用例，在fuzz过程中对测试用例进行变异，将测试用例输入给syz-executor执行，同时收集代码覆盖率信息，将触发了新的程序路径的测试用例通过RPC发送到syz-manager保存。</p>
+
+<p>syz-executor接收来自syz-fuzzer的测试用例，将执行的结果返回给syz-fuzzer。</p>
+
+<ol>
+  <li>syzkaller目录结构</li>
+</ol>
+
+<p>对syzkaller进行编译生成的可执行文件保存在bin目录中。sys目录用于保存系统调用描述符。</p>
+
+<p><img src="/assets/posts/2024-12-23-Linux内核漏洞挖掘与利用入门/44.png" alt="截屏2024-04-13 15.21.03.png" /></p>
+
+<p>sys目录下按照操作系统类型分类存放系统调用描述符。</p>
+
+<p><img src="/assets/posts/2024-12-23-Linux内核漏洞挖掘与利用入门/45.png" alt="截屏2024-04-13 15.45.47.png" /></p>
+
+<p>以Linux系统为例，.txt文件保存的是系统调用描述符，每个文件都对应一个同名的.const文件，用于保存从内核源码中提取出来的常数。用户在此目录下添加或修改.txt文件来自定义fuzz行为。</p>
+
+<p><img src="/assets/posts/2024-12-23-Linux内核漏洞挖掘与利用入门/46.png" alt="截屏2024-04-13 15.48.09.png" /></p>
+
+<ol>
+  <li>syzkaller实战挖掘漏洞的例子</li>
+</ol>
+
+<p>案例一：CVE-2022-0185 文件系统的整数溢出漏洞</p>
+
+<p>2022年1月6日willsroot团队使用syzkaller模糊测试工具发现了该漏洞：</p>
+
+<p><img src="/assets/posts/2024-12-23-Linux内核漏洞挖掘与利用入门/Untitled%208.png" alt="Untitled" /></p>
+
+<p>syzkaller根据触发崩溃的测试用例生成了PoC代码：</p>
+
+<p><img src="/assets/posts/2024-12-23-Linux内核漏洞挖掘与利用入门/Untitled%209.png" alt="Untitled" /></p>
+
+<p>经验证，该崩溃是fsconfig系统调用存在整数溢出引起的，可被用来提权。</p>
+
+<p>案例二：2022年1月发现的蓝牙驱动UAF漏洞</p>
+
+<p>该漏洞影响linux5.12.0-linux5.15.0版本的内核，位于net/bluetooth/sco.c文件中的sco_sock_timeout函数。</p>
+
+<p><img src="/assets/posts/2024-12-23-Linux内核漏洞挖掘与利用入门/47.png" alt="截屏2024-03-24 21.40.19.png" /></p>
+
+<p>该漏洞的成因是如果对同一个蓝牙socket进行两次connect操作，第二次connect操作会将第一次connect生成的sock对象释放掉，但对应的定时器却没有取消。超时之后调用sco_sock_timeout函数，该函数到已被释放的sock对象中修改变量、调用函数指针，造成了UAF。</p>
+
+<p><img src="/assets/posts/2024-12-23-Linux内核漏洞挖掘与利用入门/48.png" alt="截屏2024-03-24 22.09.37.png" /></p>
+
+<p>该UAF漏洞中存在对函数指针的调用，因此是一个品相比较好的漏洞。经过和王宇轩的一番研究写出了漏洞利用程序。</p>
+
+<p><img src="/assets/posts/2024-12-23-Linux内核漏洞挖掘与利用入门/49.png" alt="截屏2023-04-17 22.31.37.png" /></p>
+
+<ol>
+  <li>如何开始测试一个新的接口</li>
+</ol>
+
+<p>syzkaller实现了一套用于描述Linux系统调用接口的语言syz-lang。使用syz-lang描述系统调用的名称、接收的参数和返回值，统称为系统调用描述符。</p>
+
+<p>系统调用描述符需要研究人员根据Linux系统调用的实现进行编写。</p>
+
+<p>syzkaller根据系统调用描述符，按照依赖关系生成系统调用序列和对应的参数作为测试用例。</p>
+
+<p>syzkaller提供了不同操作系统各个子系统的模板，保存在项目sys文件夹中，按照操作系统分类。</p>
+
+<p>可以使用默认的模板直接进行fuzz，但会产生很多误报和漏报。</p>
+
+<p><img src="/assets/posts/2024-12-23-Linux内核漏洞挖掘与利用入门/50.png" alt="截屏2024-03-24 22.21.13.png" /></p>
+
+<ul>
+  <li>研究接口，找到与之对应的系统调用</li>
+</ul>
+
+<p>到网上找到关于接口的信息、特殊常量</p>
+
+<p>到源码目录下查询Document目录</p>
+
+<p>到源码目录下查找 tools/testing目录</p>
+
+<p>到源码中查看注释</p>
+
+<p>使用git blame命令或者git log命令查找最开始添加接口时的提交注释</p>
+
+<p>阅读内核源代码、阅读用户态库、阅读应用代码</p>
+
+<ul>
+  <li>阅读syzkaller文档和现成的例子写出系统调用描述符</li>
+</ul>
+
+<p>sys/linux/<subsystem>.txt文件描述了特定子系统的接口</subsystem></p>
+
+<p>sys/linux/sys.txt文件描述了更加底层范围更广的接口，是<subsystem.txt>的依赖</subsystem.txt></p>
+
+<ul>
+  <li>运行新增/修改系统调用描述符</li>
+  <li>查看代码覆盖率信息</li>
+</ul>
+
+<p>“人在回路中”测试，通过检查代码覆盖信息发现fuzz过程卡在哪个环节，最大限度提高代码覆盖率。</p>
+
+<ul>
+  <li>系统调优，提高fuzz的效率</li>
+</ul>
+
+<p>根据系统的负载调整虚拟机的数量、虚拟机的内存和CPU配置、每个虚拟机内fuzz进程的数量，最大限度利用系统的计算资源。</p>
+
+<ol>
+  <li>示例：对Linux内核netfilter防火墙进行fuzz</li>
+</ol>
+
+<p>fuzz对象是Linux-6.8.0-rc1</p>
+
+<p>步骤一：编写系统调用描述符</p>
+
+<p>syzkaller自带了netfilter系统调用描述符，Linux-6.8.0-rc1版本的netfilter子系统发生了变动，因此要根据变动对原有的文件进行修改。</p>
+
+<p>系统调用描述符文件大致由3部分内容组成</p>
+
+<p>include头文件：这些都是linux内核中的头文件，保存了常数的定义，编译生成syzkaller可执行文件的过程中，会到这些头文件中提取常数并在同级目录下生成同名的.const文件。</p>
+
+<p>系统调用函数：根据man手册编写，定义了系统调用名称、参数和返回值。</p>
+
+<p>结构体：系统调用参数部分需要用到的结构体。</p>
+
+<p>需要注意的是，这些定义的名称尽可能与Linux内核源码保持一致。</p>
+
+<p><img src="/assets/posts/2024-12-23-Linux内核漏洞挖掘与利用入门/51.png" alt="截屏2024-04-13 16.35.54.png" /></p>
+
+<p>步骤二：编写运行配置</p>
+
+<p>配置文件一般和可执行文件一起放在bin目录下，是一个json格式的文件。</p>
+
+<p>target字段设置系统调用的架构。例如在amd64架构下，Linux内核同时实现了64位和32位的系统调用，当我们要在64位的内核环境中测试32位的系统调用，就需要指定这个字段。在qemu的磁盘镜像中包含了构建目标系统elf文件的工具链，测试用例在虚拟机中现场编译，target字段控制编译的目标架构。</p>
+
+<p>syzkaller会开启一个http服务，用于查看整个fuzz的过程。http字段指定服务的监听地址和端口。</p>
+
+<p>image字段指向qemu运行的磁盘镜像，该镜像由syzkaller自带的脚本生成，需要用户手动运行该脚本，最终会生成一个debian磁盘镜像，其中包含了ssh服务和编译工具链。</p>
+
+<p>enable_syscalls字段是一个列表，包含了需要fuzz的系统调用，这里包含了和netfilter相关的所有系统调用。</p>
+
+<p><img src="/assets/posts/2024-12-23-Linux内核漏洞挖掘与利用入门/52.png" alt="截屏2024-04-13 17.07.48.png" /></p>
+
+<p>步骤三：开始fuzz</p>
+
+<p><img src="/assets/posts/2024-12-23-Linux内核漏洞挖掘与利用入门/53.png" alt="截屏2024-04-13 17.34.17.png" /></p>
+
+<h2 id="常见的防御手段">常见的防御手段</h2>
+
+<h3 id="kaslr">kaslr</h3>
+
+<p>系统把Linux内核的代码段加载到0xffffffff81000000 + n * 0x1000的位置，使攻击者难以预测内核中数据和代码的内存地址。</p>
+
+<h3 id="freelist-randomfreelist-harderning">freelist random、freelist harderning</h3>
+
+<p>freelist random（空闲列表随机化）和freelist harderning（空闲列表加固）是两种用于增强slub分配器安全的技术，前者旨在防止攻击者对堆地址空间进行堆喷射，后者用于保护空闲堆块的链表指针不被攻击者篡改。</p>
+
+<h3 id="smepsmap">SMEP、SMAP</h3>
+
+<p>SMEP用于防止在内核态执行用户空间（即非特权模式）的代码，用于防御ret2user攻击。</p>
+
+<p>SMAP用于防止在内核态访问用户空间的数据。</p>
+
+<h3 id="结构体布局随机化">结构体布局随机化</h3>
+
+<p>通过改变编译时内核结构体的字段排序来增加随机性。这意味着即使攻击者能够找到一个漏洞来读写内核内存，他们也无法确定任何特定数据的确切位置，因为这些位置在每次内核编译时都会改变。</p>
+
+<h2 id="工具与方法论">工具与方法论</h2>
+
+<ul>
+  <li>工具选择很重要</li>
+</ul>
+
+<p>因为代码量很大，选择合适的工具，先使用、再理解、最后改进</p>
+
+<ul>
+  <li>摆脱随机挖洞，把经验以工具的形式沉淀，针对特定的子系统进行挖掘</li>
+  <li>关注安全公告</li>
+</ul>
+
+    </div>
+</article>
+
+                
+                <footer class="footer">
+        <section class="footer__about">
+                <p class="footer__about__copyright">© qts588 2025</p>
+                
+                <span class="divider">·</span>
+                
+                <span class="footer__about__theme"><p>theme</p><a id="simplex-logo" href="https://github.com/andreondra/jekyll-theme-simplex" target="_blank"><img alt="Simplex theme logo" src="http://localhost:4000/assets/img/icons/simplex_logo.svg"/></a><p>by <a href="https://ondrej.golasowski.com/">golas</a></p></span>
+        </section>
+</footer>
+
+                <script src="http://localhost:4000/assets/js/jquery.slim.min.js"></script>
+<script src="http://localhost:4000/assets/js/lity.min.js"></script>
+<script src="http://localhost:4000/assets/js/tools.js"></script>
+<script src="http://localhost:4000/assets/js/pic.js"></script>
+<script src="http://localhost:4000/assets/js/toc-highlight.js"></script>
+            </main>
+        </div>
+    
+</body>
+</html>
