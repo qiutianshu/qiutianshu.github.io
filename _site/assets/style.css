@@ -1124,6 +1124,7 @@ table:not([class]) th, table:not([class]) td {
   text-align: center;
   margin: 1rem;
   width: 390px;
+  display: none;
   color: var(--c-postText);
   font-size: 0.7rem;
 }
@@ -1131,6 +1132,7 @@ table:not([class]) th, table:not([class]) td {
   .header desc {
     margin-top: 2rem;
     width: 690px;
+    display: flex;
     font-size: 0.9rem;
   }
 }
@@ -1257,6 +1259,16 @@ table:not([class]) th, table:not([class]) td {
 @media (max-width: 768px) {
   .feed__description h1 {
     margin: 0;
+    font-size: 1.3rem;
+  }
+}
+.feed__description p {
+  font-size: var(--s-p);
+  color: var(--c-snippetHeading);
+}
+@media (max-width: 768px) {
+  .feed__description p {
+    font-size: 0.8rem;
   }
 }
 .feed .snippet {
@@ -1859,7 +1871,7 @@ table:not([class]) th, table:not([class]) td {
 }
 @media (max-width: 768px) {
   .page-container .post__meta__divider {
-    margin-top: 0.8rem;
+    margin-top: 0.5rem;
   }
 }
 .page-container .post__meta__category {
@@ -1884,6 +1896,7 @@ table:not([class]) th, table:not([class]) td {
     margin: 0;
     width: 100%;
     text-align: center;
+    font-size: 0.8rem;
   }
 }
 .page-container .post__meta__date {
@@ -1892,6 +1905,7 @@ table:not([class]) th, table:not([class]) td {
 @media (max-width: 768px) {
   .page-container .post__meta__date {
     margin-top: 0.5rem;
+    font-size: 0.95rem;
   }
 }
 .page-container .post__meta__author {
@@ -1927,7 +1941,7 @@ table:not([class]) th, table:not([class]) td {
   font-size: 1.4rem;
 }
 .page-container .post__content table {
-  margin: 2rem auto;
+  margin: 1rem auto;
   border: none;
   width: 100%;
   table-layout: auto;
@@ -1943,7 +1957,7 @@ table:not([class]) th, table:not([class]) td {
   }
 }
 .page-container .post__content th, .page-container .post__content td {
-  padding: 0.75rem;
+  padding: 0.1rem;
   border: 1px solid var(--c-tableBorder);
   text-align: center;
 }

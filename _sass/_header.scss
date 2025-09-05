@@ -317,8 +317,8 @@
         justify-content: center;
         text-align: center;
         margin: 1rem;
-        //width: 90%;
         width: 390px;
+        display: none;
         color: var(--c-postText);
         font-size: 0.7rem;
     }
@@ -326,8 +326,8 @@
     @media (min-width: 768px) {
         desc {
             margin-top: 2rem;
-            //width: 33%;
             width: 690px;
+            display: flex;
             font-size: 0.9rem;
         }
     }

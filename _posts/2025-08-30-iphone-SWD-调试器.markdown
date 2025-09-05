@@ -197,12 +197,12 @@ Kanzi Cable （不开源）
 
 - 赛灵思 xc7a100t FPGA 开发板；
     
-    ![1bf2d0fd6722dcafda05910ac8322b45e4d3b4f2.png@1192w.webp](/assets/posts/2025-08-30-iphone-SWD-调试器/1bf2d0fd6722dcafda05910ac8322b45e4d3b4f2.png1192w.webp)
+![1bf2d0fd6722dcafda05910ac8322b45e4d3b4f2.png@1192w.webp](/assets/posts/2025-08-30-iphone-SWD-调试器/1bf2d0fd6722dcafda05910ac8322b45e4d3b4f2.png1192w.webp)
     
 - iPhone 7 plus 手机；
 - Jlink 调试器；
     
-    ![204d5d3466926f69a3dfde4680533355.jpg](/assets/posts/2025-08-30-iphone-SWD-调试器/204d5d3466926f69a3dfde4680533355.jpg)
+![204d5d3466926f69a3dfde4680533355.jpg](/assets/posts/2025-08-30-iphone-SWD-调试器/204d5d3466926f69a3dfde4680533355.jpg)
     
 - 逻辑分析仪；
 

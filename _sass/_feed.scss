@@ -32,6 +32,15 @@
 
             @include for-size('tablet'){
                 margin: 0;
+                font-size: 1.3rem;
+            }
+        }
+
+        p{
+            font-size: var(--s-p);
+            color: var(--c-snippetHeading);
+            @include for-size('tablet'){
+                font-size: 0.8rem;
             }
         }
     }
