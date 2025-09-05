@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <link rel="stylesheet" href="http://localhost:4000/assets/fonts/fonts.css"/>
+<link rel="stylesheet" href="http://localhost:4000/assets/style.css"/>
+<link rel="stylesheet" href="http://localhost:4000/assets/js/lity.min.css"/>
+
+
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<meta property="og:site_name" content="极目楚天舒" />
+<meta 
+    property="og:title"
+    content="
+        
+            利用 meltdown 漏洞绕过 Linux 内核地址随机化
+        
+    " 
+/>
+
+<meta property="og:url" content="http://localhost:4000//intel_processor/2020/06/01/%E5%88%A9%E7%94%A8-meltdown-%E6%BC%8F%E6%B4%9E%E7%BB%95%E8%BF%87-Linux-%E5%86%85%E6%A0%B8%E5%9C%B0%E5%9D%80%E9%9A%8F%E6%9C%BA%E5%8C%96.html" />
+
+    <meta property="og:type" content="article" />
+
+
+
+    <meta property="fb:app_id" content="" />
+
+
+
+<title>
+    
+        利用 meltdown 漏洞绕过 Linux 内核地址随机化
+    
+</title>
+</head>
+<body class="index">
+    
+        <div class="page-container">
+            <aside class="main-sidebar">
+                <!-- 包含 TOC -->
+                <sidebar class="sidebar">
+<ul class="toc-list"><li><a href="#meltdown-漏洞简介">meltdown 漏洞简介</a></li><li><a href="#流线对异常的处理">流⽔线对异常的处理</a></li><li><a href="#linux地址空间映射">Linux地址空间映射</a></li><li><a href="#flushreload攻击">Flush+Reload攻击</a></li><li><a href="#熔毁与幽灵的异同">“熔毁”与“幽灵”的异同</a></li><li><a href="#利用meltdown绕过kaslr">利用meltdown绕过KASLR</a></li><li><a href="#攻击程序的设计">攻击程序的设计</a></li><li><a href="#附件">附件</a></li></ul></sidebar>
+            </aside>
+            <!-- 主内容区域 -->
+            <main class="main-content">
+                <header class="header">
+    <section class="logo">
+        <a href="http://localhost:4000/" class="logo__link">
+            
+                <h1>极目楚天舒</h1>
+            
+        </a>
+    </section>
+    
+    <button id="menuToggle">
+        <div></div>
+        <div></div>
+        <div></div>
+    </button>
+    <nav class="menu">
+        
+<ul class="list primary">
+
+    
+        <li class="item">
+
+            <div class="item-controls">
+                <a href="http://localhost:4000/category/linux_kernel.html">
+                
+                    <img src="http://localhost:4000/assets/img/icons/tux.png"/>
+                
+                
+                    <p style="color: var(--c-themeHueRed)">Linux kernel</p>
+                
+                </a>
+
+            
+            </div>
+            
+        </li>   
+    
+        <li class="item">
+
+            <div class="item-controls">
+                <a href="http://localhost:4000/category/linux_userspace.html">
+                
+                    <img src="http://localhost:4000/assets/img/icons/userspace.png"/>
+                
+                
+                    <p style="color: var(--c-themeHueRed)">Linux userspace</p>
+                
+                </a>
+
+            
+            </div>
+            
+        </li>   
+    
+        <li class="item">
+
+            <div class="item-controls">
+                <a href="http://localhost:4000/category/hardware.html">
+                
+                    <img src="http://localhost:4000/assets/img/icons/chip.svg"/>
+                
+                
+                    <p style="color: var(--c-themeHueRed)">Hardware</p>
+                
+                </a>
+
+            
+            </div>
+            
+        </li>   
+    
+        <li class="item">
+
+            <div class="item-controls">
+                <a href="http://localhost:4000/category/meltdown_spectre.html">
+                
+                    <img src="http://localhost:4000/assets/img/icons/meltdown_spectre.png"/>
+                
+                
+                    <p style="color: var(--c-themeHueRed)">Side Channel</p>
+                
+                </a>
+
+            
+            </div>
+            
+        </li>   
+    
+        <li class="item">
+
+            <div class="item-controls">
+                <a href="http://localhost:4000/category/riscv.html">
+                
+                    <img src="http://localhost:4000/assets/img/icons/riscv.png"/>
+                
+                
+                    <p style="color: var(--c-themeHueRed)">Riscv</p>
+                
+                </a>
+
+            
+            </div>
+            
+        </li>   
+    
+</ul>
+    </nav>
+</header>
+                
+                <article class="post">
+
+    <div class="post__title">
+       利用 meltdown 漏洞绕过 Linux 内核地址随机化
+    </div>
+    <div class="post__meta"> 
+        <div class="post__meta__category">
+            
+                <p class="post__meta__category__title" style="background: var(--c-themeHuePurple)">CPU侧信道攻击</p>
+            
+        </div>
+        <p class="post__meta__divider">·</p>
+        <div class="post__meta__date">
+            2020-06-01
+        </div>
+        
+    </div>
+
+    
+    <div class="post__content">
+        <p>我对利用“熔毁”漏洞绕过 Linux 内核地址随机化的研究最早发布在看雪课程<a href="https://www.kanxue.com/book-section_list-76.htm">《<strong>Intel CPU漏洞研究</strong>》</a>，这篇文章是我整理出的第三节内容的文字版。</p>
+
+<h1 id="meltdown-漏洞简介">meltdown 漏洞简介</h1>
+
+<p>Meltdown破坏了位于⽤户和操作系统之间的基本隔离，此攻击允许程序访问内存，因此其他程序以
+及操作系统的敏感信息会被窃取。这个漏洞“熔化”了由硬件来实现的安全边界。允许低权限⽤户级别的应⽤程序“越界”访问系统级的内存，从⽽造成数据泄露。
+“熔毁”漏洞的根本原因是CPU流⽔线执⾏指令过程中异常信号的发出和乱序执⾏之间存在竞争 。当⽤
+户程序访问内核地址空间时，CPU的乱序执⾏使得本来应该被地址异常阻⽌的⾮法访问指令在流⽔线中得到执⾏，虽然这个结果最后会被丢弃，但是乱序执⾏导致了CPU微架构状态的改变。攻击者可以通过探测微架构状态的改变获知内核地址处的信息。</p>
+
+<h1 id="流线对异常的处理">流⽔线对异常的处理</h1>
+
+<ul>
+  <li><strong>内部异常的产⽣</strong></li>
+</ul>
+
+<p>异常的产⽣：halt指令 2、⾮法指令、试图访问⼀个⾮法地址</p>
+
+<ul>
+  <li><strong>流⽔线对内部异常的处理</strong></li>
+</ul>
+
+<p>如果⼀条指令在流⽔线中的某⼀个阶段产⽣了⼀个异常，异常状态和指令信息会沿流⽔线传播，⼀直到达流⽔线的写回阶段，这个时候流⽔线逻辑就会发现异常停⽌指令的执⾏并清空流⽔线</p>
+
+<p><img src="/assets/posts/2020-06-02-利用-meltdown-漏洞绕过-Linux-内核地址随机化/e13a26f1813ef35f6e10c136f02879cd.png" alt="e13a26f1813ef35f6e10c136f02879cd.png" /></p>
+
+<p>⽤户空间通过mov指令访问内核空间地址时，在流⽔线的访存阶段会检测到这⼀⾮法访问。具体的过程是1）执⾏单元从内核地址处获得数据 2）访存的同时执⾏单元访问⻚表进⾏权限检查 3）检测到从⽤户空间访问内核的⾏为并发出异常 4）在写回阶段停⽌指令的执⾏并清空流⽔线。
+问题就出在第⼆步执⾏权限检查要通过访问⻚表项来实现，这⾥⼜要进⾏⼀次访存，所以就会有⼀个时间窗⼝使得异常指令之后的指令得到执⾏并且利⽤第⼀步中获得的内核地址处的内容！</p>
+
+<p><img src="/assets/posts/2020-06-02-利用-meltdown-漏洞绕过-Linux-内核地址随机化/56d723b78d94aa61eff8db0ef6dbe828.jpg" alt="56d723b78d94aa61eff8db0ef6dbe828.jpg" /></p>
+
+<h1 id="linux地址空间映射">Linux地址空间映射</h1>
+
+<p><img src="/assets/posts/2020-06-02-利用-meltdown-漏洞绕过-Linux-内核地址随机化/b692bf092b66118611a37fa2e9a37eae.jpg" alt="b692bf092b66118611a37fa2e9a37eae.jpg" /></p>
+
+<p><img src="/assets/posts/2020-06-02-利用-meltdown-漏洞绕过-Linux-内核地址随机化/fb1ef6879d9a6dd7ecf1c2c1eb212348.jpg" alt="fb1ef6879d9a6dd7ecf1c2c1eb212348.jpg" /></p>
+
+<h1 id="flushreload攻击">Flush+Reload攻击</h1>
+
+<p><img src="/assets/posts/2020-06-02-利用-meltdown-漏洞绕过-Linux-内核地址随机化/30f89362b75b7e0b38952c66083028ff.png" alt="30f89362b75b7e0b38952c66083028ff.png" /></p>
+
+<p><img src="/assets/posts/2020-06-02-利用-meltdown-漏洞绕过-Linux-内核地址随机化/fb12ce806c14344dc39407bad0107f04.png" alt="fb12ce806c14344dc39407bad0107f04.png" /></p>
+
+<h1 id="熔毁与幽灵的异同">“熔毁”与“幽灵”的异同</h1>
+
+<ul>
+  <li><strong>相同点</strong></li>
+</ul>
+
+<p>都利⽤了处理器乱序执⾏的特点，使得在正常执⾏流中不可能得到执⾏的代码被加载到流⽔线中并得到执⾏，虽然执⾏结果得不到提交但影响了CPU的微架构状态。攻击者利⽤微架构状态的改变作为隐蔽信道实现数据的传输。
+• <strong>不同点</strong></p>
+
+<ol>
+  <li>“幽灵”漏洞利⽤的前导是分⽀指令，利⽤的是分⽀预测执⾏；“熔毁”漏洞利⽤的前导是内部异常指令，利⽤的是乱序执⾏。</li>
+  <li>“幽灵”漏洞突破的进程之间的隔离，攻击者可以窥探⽬标进程内的数据；“熔毁”突破了操作系统内核态和⽤户态之间的内存访问隔离，攻击者可以获得内核地址空间的内容。</li>
+</ol>
+
+<h1 id="利用meltdown绕过kaslr">利用meltdown绕过KASLR</h1>
+
+<p><img src="/assets/posts/2020-06-02-利用-meltdown-漏洞绕过-Linux-内核地址随机化/bc9108006fe49d2973bb4c98f41329e4.jpg" alt="bc9108006fe49d2973bb4c98f41329e4.jpg" /></p>
+
+<p><img src="/assets/posts/2020-06-02-利用-meltdown-漏洞绕过-Linux-内核地址随机化/9f3b494870badcb6a0a89ee5f55a915f.jpg" alt="9f3b494870badcb6a0a89ee5f55a915f.jpg" /></p>
+
+<h1 id="攻击程序的设计">攻击程序的设计</h1>
+
+<p>通过爆破得到linux_proc_banner字符串的运行时地址，减去链接地址得到随机化偏移，再将随机化偏移加上内核代码段的链接地址得到内核代码段运行时地址。</p>
+
+<p><img src="/assets/posts/2020-06-02-利用-meltdown-漏洞绕过-Linux-内核地址随机化/e02dc695d98f59ee73e119f86bed9ccc.jpg" alt="e02dc695d98f59ee73e119f86bed9ccc.jpg" /></p>
+
+<p>计算内核代码段基地，配合实施程序流劫持攻击。</p>
+
+<p>逐地址爆破得到linux_proc_banner的运行时地址，减去字符串在在vmlinux文件中的偏移得到运行时基地址。</p>
+
+<p>内核代码段基地址 = addr(linux_proc_banner) - offset</p>
+
+<p><a href="https://www.bilibili.com/video/BV1G8a4z8EZx/?vd_source=e55c3842a48b813bb7e691d3241e4a19">演示视频</a></p>
+
+<h1 id="附件">附件</h1>
+
+<p><a href="/assets/posts/2020-06-02-利用-meltdown-漏洞绕过-Linux-内核地址随机化/熔毁漏洞原理.pdf">“熔毁”漏洞原理.pdf</a></p>
+
+<p><a href="/assets/posts/2020-06-02-利用-meltdown-漏洞绕过-Linux-内核地址随机化/内核地址随机化在Linux5.0内核x86_64下的实现.pdf">内核地址随机化在Linux5.0内核x86_64下的实现.pdf</a></p>
+
+<p><a href="/assets/posts/2020-06-02-利用-meltdown-漏洞绕过-Linux-内核地址随机化/实验代码.zip">实验代码.zip</a></p>
+
+    </div>
+</article>
+
+                
+                <footer class="footer">
+        <section class="footer__about">
+                <p class="footer__about__copyright">© qts588 2025</p>
+                
+                <span class="divider">·</span>
+                
+                <span class="footer__about__theme"><p>theme</p><a id="simplex-logo" href="https://github.com/andreondra/jekyll-theme-simplex" target="_blank"><img alt="Simplex theme logo" src="http://localhost:4000/assets/img/icons/simplex_logo.svg"/></a><p>by <a href="https://ondrej.golasowski.com/">golas</a></p></span>
+        </section>
+</footer>
+
+                <script src="http://localhost:4000/assets/js/jquery.slim.min.js"></script>
+<script src="http://localhost:4000/assets/js/lity.min.js"></script>
+<script src="http://localhost:4000/assets/js/tools.js"></script>
+<script src="http://localhost:4000/assets/js/pic.js"></script>
+<script src="http://localhost:4000/assets/js/toc-highlight.js"></script>
+            </main>
+        </div>
+    
+</body>
+</html>
