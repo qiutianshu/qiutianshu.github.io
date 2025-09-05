@@ -42,7 +42,7 @@
             <aside class="main-sidebar">
                 <!-- 包含 TOC -->
                 <sidebar class="sidebar">
-<ul class="toc-list"><li><a href="#事件背景">事件背景</a><ul><li><a href="#事件发展">事件发展</a></li><li><a href="#影响范围">影响范围</a></li></ul></li><li><a href="#研究对象">研究对象</a></li><li><a href="#ios安全启动机制">iOS安全启动机制</a><ul><li><a href="#securerom简介">SecureROM简介</a></li></ul></li><li><a href="#dfu模式协议">DFU模式/协议</a><ul><li><a href="#dfu模式和dfu协议介绍">DFU模式和DFU协议介绍</a></li><li><a href="#usb通信过程">USB通信过程</a></li></ul></li><li><a href="#iphone7进入dfu模式的方法">iPhone7进入DFU模式的方法</a><ul><li><a href="#关机状态下进入dfu">关机状态下进入DFU</a></li><li><a href="#开机状态下进入dfu">开机状态下进入DFU</a></li></ul></li><li><a href="#ipwndfu工具初探">ipwndfu工具初探</a></li><li><a href="#苹果设备启动过程">苹果设备启动过程</a><ul><li><a href="#securerom做的事情">SecureROM做的事情</a></li><li><a href="#苹果设备的dfu模式">苹果设备的DFU模式</a></li><li><a href="#设备安全性降级">设备安全性降级</a></li></ul></li><li><a href="#漏洞分析">漏洞分析</a><ul><li><a href="#usb子系统初始化">USB子系统初始化</a></li><li><a href="#dfu生命周期">DFU生命周期</a></li><li><a href="#dfu镜像接收过程">DFU镜像接收过程</a></li><li><a href="#usb资源析构">USB资源析构</a></li><li><a href="#uaf-漏洞函数">UAF 漏洞函数</a></li><li><a href="#内存泄漏bug">内存泄漏BUG</a></li><li><a href="#利用思路">利用思路</a></li><li><a href="#堆块控制能力">堆块控制能力</a></li><li><a href="#堆管理器">堆管理器</a></li><li><a href="#securerom内存布局">SecureROM内存布局</a></li></ul></li><li><a href="#ipwndfu分析">ipwndfu分析</a><ul><li><a href="#堆风水">堆风水</a></li><li><a href="#堆模拟器">堆模拟器</a></li><li><a href="#控制流劫持">控制流劫持</a></li></ul></li><li><a href="#rop过程分析">ROP过程分析</a><ul><li><a href="#拷贝rop链">拷贝ROP链</a></li><li><a href="#rop链的推进">ROP链的推进</a></li><li><a href="#fx指令片段">“f(x)”指令片段</a></li><li><a href="#关闭wxn">关闭WXN</a></li><li><a href="#跳转到shellcode执行">跳转到shellcode执行</a></li><li><a href="#crauemu插件模拟rop过程">crauEmu插件模拟ROP过程</a></li></ul></li><li><a href="#shellcode执行">shellcode执行</a></li><li><a href="#功能扩展">功能扩展</a></li><li><a href="#事件回顾">事件回顾</a><ul><li><a href="#checkm8能力及威胁评估">checkm8能力及威胁评估</a></li><li><a href="#事件后续">事件后续</a></li></ul></li><li><a href="#固件分析方法">固件分析方法</a><ul><li><a href="#加载地址的恢复">加载地址的恢复</a></li><li><a href="#ida分析过程">IDA分析过程</a><ul><li><a href="#参数的修改">参数的修改</a></li></ul></li></ul></li><li><a href="#参考资料">参考资料</a></li><li><a href="#附件">附件</a></li></ul></sidebar>
+<ul class="toc-list"><li><a href="#事件背景">事件背景</a><ul><li><a href="#事件发展">事件发展</a></li><li><a href="#影响范围">影响范围</a></li></ul></li><li><a href="#研究对象">研究对象</a></li><li><a href="#ios安全启动机制">iOS安全启动机制</a><ul><li><a href="#securerom简介">SecureROM简介</a></li></ul></li><li><a href="#dfu模式协议">DFU模式/协议</a><ul><li><a href="#dfu模式和dfu协议介绍">DFU模式和DFU协议介绍</a></li><li><a href="#usb通信过程">USB通信过程</a></li></ul></li><li><a href="#iphone7进入dfu模式的方法">iPhone7进入DFU模式的方法</a><ul><li><a href="#关机状态下进入dfu">关机状态下进入DFU</a></li><li><a href="#开机状态下进入dfu">开机状态下进入DFU</a></li></ul></li><li><a href="#ipwndfu工具初探">ipwndfu工具初探</a></li><li><a href="#苹果设备启动过程">苹果设备启动过程</a><ul><li><a href="#设备安全性降级">设备安全性降级</a></li></ul></li><li><a href="#漏洞分析">漏洞分析</a><ul><li><a href="#usb子系统初始化">USB子系统初始化</a></li><li><a href="#dfu生命周期">DFU生命周期</a></li><li><a href="#dfu镜像接收过程">DFU镜像接收过程</a></li><li><a href="#usb资源析构">USB资源析构</a></li><li><a href="#uaf-漏洞函数">UAF 漏洞函数</a></li><li><a href="#内存泄漏bug">内存泄漏BUG</a></li><li><a href="#利用思路">利用思路</a></li><li><a href="#堆块控制能力">堆块控制能力</a></li><li><a href="#堆管理器">堆管理器</a></li><li><a href="#securerom内存布局">SecureROM内存布局</a></li></ul></li><li><a href="#ipwndfu分析">ipwndfu分析</a><ul><li><a href="#堆风水">堆风水</a></li><li><a href="#堆模拟器">堆模拟器</a></li><li><a href="#控制流劫持">控制流劫持</a></li></ul></li><li><a href="#rop过程分析">ROP过程分析</a><ul><li><a href="#拷贝rop链">拷贝ROP链</a></li><li><a href="#rop链的推进">ROP链的推进</a></li><li><a href="#fx指令片段">“f(x)”指令片段</a></li><li><a href="#关闭wxn">关闭WXN</a></li><li><a href="#跳转到shellcode执行">跳转到shellcode执行</a></li><li><a href="#crauemu插件模拟rop过程">crauEmu插件模拟ROP过程</a></li></ul></li><li><a href="#shellcode执行">shellcode执行</a></li><li><a href="#功能扩展">功能扩展</a></li><li><a href="#事件回顾">事件回顾</a><ul><li><a href="#checkm8能力及威胁评估">checkm8能力及威胁评估</a></li><li><a href="#事件后续">事件后续</a></li></ul></li><li><a href="#参考资料">参考资料</a></li><li><a href="#附件">附件</a></li></ul></sidebar>
             </aside>
             <!-- 主内容区域 -->
             <main class="main-content">
@@ -255,25 +255,103 @@
 
 <h2 id="影响范围">影响范围</h2>
 
-<p>| <strong>SoC型号</strong> | <strong>内部代号</strong> | <strong>受影响的设备</strong> | <strong>图片</strong> |
-| — | — | — | — |
-| A5 | S5L8940XSI | iPhone 4S， iPad 2 |  |
-| A5 | S5L8942XSI | iPod touch 4，iPad 2/mini 1G，Apple TV 3 |  |
-| A5 | S5L8947XSI | Apple TV 2/3 |  |
-| A5X | S5L8945XSI | iPad 3 |  |
-| A6 | S5L8950XSI | iPhone 5/5C |  |
-| A6X | S5L8955XSI | iPad4 |  |
-| A7 | S5L8960XSI | iPhone 5S，iPad Air 1，iPad mini 2/3 |  |
-| S1 | S7002SI | Apple Watch 1代 |  |
-| A8 | T7000SI | iPhone 6/6 plus， iPad mini 4， Apple TV 4，iPod touch 6 |  |
-| A8X | T7001SI | iPad Air 2 |  |
-| A9 | S8000SI | iPhone 6S/6S plus，iPhone SE一代，iPad5 |  |
-| A9X | S8001SI | iPad Pro 1代 |  |
-| A10 | T8010SI | iPhone 7/7 plus，iPad 6/7，iPod touch 7 |  |
-| A10X | T8011SI | iPad Pro（2017），Apple TV 4K |  |
-| A11 | T8015SI | iPhone 8/ 8 plus/X |  |
-|  | T8002SI | Apple Watch Series 1/2 |  |
-| S3 | T8004SI | Apple Watch Series 3 |  |</p>
+<table>
+  <thead>
+    <tr>
+      <th><strong>SoC型号</strong></th>
+      <th><strong>内部代号</strong></th>
+      <th><strong>受影响的设备</strong></th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>A5</td>
+      <td>S5L8940XSI</td>
+      <td>iPhone 4S， iPad 2</td>
+    </tr>
+    <tr>
+      <td>A5</td>
+      <td>S5L8942XSI</td>
+      <td>iPod touch 4，iPad 2/mini 1G，Apple TV 3</td>
+    </tr>
+    <tr>
+      <td>A5</td>
+      <td>S5L8947XSI</td>
+      <td>Apple TV 2/3</td>
+    </tr>
+    <tr>
+      <td>A5X</td>
+      <td>S5L8945XSI</td>
+      <td>iPad 3</td>
+    </tr>
+    <tr>
+      <td>A6</td>
+      <td>S5L8950XSI</td>
+      <td>iPhone 5/5C</td>
+    </tr>
+    <tr>
+      <td>A6X</td>
+      <td>S5L8955XSI</td>
+      <td>iPad4</td>
+    </tr>
+    <tr>
+      <td>A7</td>
+      <td>S5L8960XSI</td>
+      <td>iPhone 5S，iPad Air 1，iPad mini 2/3</td>
+    </tr>
+    <tr>
+      <td>S1</td>
+      <td>S7002SI</td>
+      <td>Apple Watch 1代</td>
+    </tr>
+    <tr>
+      <td>A8</td>
+      <td>T7000SI</td>
+      <td>iPhone 6/6 plus， iPad mini 4， Apple TV 4，iPod touch 6</td>
+    </tr>
+    <tr>
+      <td>A8X</td>
+      <td>T7001SI</td>
+      <td>iPad Air 2</td>
+    </tr>
+    <tr>
+      <td>A9</td>
+      <td>S8000SI</td>
+      <td>iPhone 6S/6S plus，iPhone SE一代，iPad5</td>
+    </tr>
+    <tr>
+      <td>A9X</td>
+      <td>S8001SI</td>
+      <td>iPad Pro 1代</td>
+    </tr>
+    <tr>
+      <td>A10</td>
+      <td>T8010SI</td>
+      <td>iPhone 7/7 plus，iPad 6/7，iPod touch 7</td>
+    </tr>
+    <tr>
+      <td>A10X</td>
+      <td>T8011SI</td>
+      <td>iPad Pro（2017），Apple TV 4K</td>
+    </tr>
+    <tr>
+      <td>A11</td>
+      <td>T8015SI</td>
+      <td>iPhone 8/ 8 plus/X</td>
+    </tr>
+    <tr>
+      <td> </td>
+      <td>T8002SI</td>
+      <td>Apple Watch Series 1/2</td>
+    </tr>
+    <tr>
+      <td>S3</td>
+      <td>T8004SI</td>
+      <td>Apple Watch Series 3</td>
+    </tr>
+  </tbody>
+</table>
+
 <ul>
   <li>iPhone设备</li>
 </ul>
@@ -537,8 +615,6 @@
 
 <h1 id="苹果设备启动过程">苹果设备启动过程</h1>
 
-<h2 id="securerom做的事情">SecureROM做的事情</h2>
-
 <ul>
   <li>平台启动：设置特定于平台的寄存器；</li>
   <li>重定位循环：</li>
@@ -551,12 +627,6 @@
   <li>平台后期初始化：其他的苹果设备特定初始化例程，主板其他组件的初始化；</li>
   <li>获取引导设备和所选的引导配置。这通常会加载下一阶段（由illb标签标记）。但如果该阶段无法加载（或者前面被强制DFU了），那么就会下降到DFU模式；</li>
 </ul>
-
-<h2 id="苹果设备的dfu模式">苹果设备的DFU模式</h2>
-
-<p><img src="/assets/posts/2025-05-25-深入分析苹果设备-checkm8-漏洞/%E6%88%AA%E5%B1%8F2025-02-20_17.05.17.png" alt="截屏2025-02-20 17.05.17.png" /></p>
-
-<p>然后SecureROM等待DFU下载请求。通常情况可以向设备传送一个(recovery mode LLB/iBoot)iBSS镜像，如果验证通过，镜像将被启动。</p>
 
 <h2 id="设备安全性降级">设备安全性降级</h2>
 
@@ -573,6 +643,8 @@
 <p>因此我们只要把寄存器的值修改掉，就可以降低设备的安全等级，打开JTAG调试器。</p>
 
 <p>需要注意的是，设备降级在下一次重启之后就会失效，并不是永久的。</p>
+
+<p>我们后面计划研究如何打开苹果手机的 JTAG 调试功能。</p>
 
 <h1 id="漏洞分析">漏洞分析</h1>
 
@@ -597,32 +669,23 @@
 <p>usb_init函数完成了4件事：</p>
 
 <ol>
-  <li>创建synopsys_otg_task任务</li>
-</ol>
+  <li>
+    <p>创建synopsys_otg_task任务，配合USB中断处理函数，相当于中断的下半部；</p>
+  </li>
+  <li>
+    <p>在堆上面分配0x800大小的io_buffer，暂存接收到的启动镜像；</p>
+  </li>
+  <li>
+    <p>注册DFU处理函数handler_interface_request，实现了DFU协议栈；</p>
+  </li>
+  <li>
+    <p>注册USB中断处理函数synopsys_otg_int_handler；</p>
 
-<p>配合USB中断处理函数，相当于中断的下半部。</p>
-
-<ol>
-  <li>在堆上面分配0x800大小的io_buffer</li>
-</ol>
-
-<p>暂存接收到的启动镜像。</p>
-
-<ol>
-  <li>注册DFU处理函数handler_interface_request</li>
-</ol>
-
-<p>实现了DFU协议栈。</p>
-
-<ol>
-  <li>注册USB中断处理函数synopsys_otg_int_handler
-    <ol>
-      <li>处理SETUP token 或者 OUT token</li>
-    </ol>
+    <p>a. <strong>处理SETUP token 或者 OUT token</strong></p>
 
     <p>从DMA拷贝数据到全局数组ep0_rx_buffer[0x40]，通知synopsys_otg_task任务解析。从接收缓冲区的大小可知，DFU数据包分段长度为0x40字节；</p>
 
-    <p>b.  处理IN token</p>
+    <p>b.  <strong>处理IN token</strong></p>
 
     <p>继续DEVICE to HOST传输任务，设备向主机发送的数据包分段长度为0x40。</p>
   </li>
@@ -638,11 +701,12 @@
 
 <ol>
   <li>调用usb_init初始化USB子系统</li>
-  <li>睡眠等待dfu_event事件
-    <ol>
-      <li>在此期间中断处理函数synopsys_otg_int_handler和synopsys_otg_task任务接收DFU镜像</li>
-      <li>若DFU镜像接收完毕，或主机发送RESET命令，则dfu_done被置1，进入USB资源释放流程</li>
-    </ol>
+  <li>
+    <p>睡眠等待dfu_event事件</p>
+
+    <p>a. 在此期间中断处理函数synopsys_otg_int_handler和synopsys_otg_task任务接收DFU镜像</p>
+
+    <p>b. 若DFU镜像接收完毕，或主机发送RESET命令，则dfu_done被置1，进入USB资源释放流程</p>
   </li>
 </ol>
 
@@ -711,15 +775,11 @@
 
 <p>全局变量ep0_data_phase_buffer和ep0_data_phase_length由函数handle_interface_request赋值，该函数实现了USB DFU协议栈，具体过程如下：</p>
 
-<ol>
-  <li>在正式传输DFU镜像之前，主机需要发送bmRequest=0x21，bRequest=DFU_DNLOAD的SETUP package；</li>
-</ol>
+<p>第一步：在正式传输DFU镜像之前，主机需要发送bmRequest=0x21，bRequest=DFU_DNLOAD的SETUP package；</p>
 
 <p><img src="/assets/posts/2025-05-25-深入分析苹果设备-checkm8-漏洞/%E6%88%AA%E5%B1%8F2025-03-23_16.27.37.png" alt="截屏2025-03-23 16.27.37.png" /></p>
 
-<ol>
-  <li>全局变量ep0_data_phase_buffer作为引用传递给handle_interface_request函数作为参数；</li>
-</ol>
+<p>第二步：全局变量ep0_data_phase_buffer作为引用传递给handle_interface_request函数作为参数；</p>
 
 <div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kt">void</span> <span class="nf">usb_core_handle_usb_control_receive</span> <span class="p">(</span><span class="n">u_int8_t</span> <span class="o">*</span><span class="n">ep0_rx_buffer</span><span class="p">,</span> 
 												<span class="n">bool</span> <span class="n">is_setup</span><span class="p">,</span> <span class="kt">int</span> <span class="n">receive_length</span><span class="p">,</span> <span class="n">bool</span> <span class="o">*</span><span class="n">data_phase</span><span class="p">)</span>
@@ -734,9 +794,7 @@
                                                                              
 </code></pre></div></div>
 
-<ol>
-  <li>handle_interface_request函数中把io_buffer指针保存在全局变量ep0_data_phase_buffer中，把wLength字段作为返回值赋值给全局变量ep0_data_phase_length。</li>
-</ol>
+<p>第三步：handle_interface_request函数中把io_buffer指针保存在全局变量ep0_data_phase_buffer中，把wLength字段作为返回值赋值给全局变量ep0_data_phase_length。</p>
 
 <div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">static</span> <span class="kt">int</span> <span class="nf">handle_interface_request</span><span class="p">(</span><span class="k">struct</span> <span class="n">usb_device_request</span> <span class="o">*</span><span class="n">request</span><span class="p">,</span>
 																		 <span class="kt">uint8_t</span> <span class="o">**</span><span class="n">out_buffer</span><span class="p">)</span>
@@ -987,9 +1045,7 @@
 
 <h2 id="堆块控制能力">堆块控制能力</h2>
 
-<ol>
-  <li><strong>分配和释放usb_device_io_request对象的时机可控</strong></li>
-</ol>
+<p><strong>1. 分配和释放usb_device_io_request对象的时机可控</strong></p>
 
 <p>堆风水的重要前提是攻击者能够控制堆块的分配和释放，无论这种控制是直接的还是间接的。</p>
 
@@ -1032,9 +1088,7 @@
 
 <p>主机通过中断device to host传输的方式，可以精确控制usb_device_io_request对象的分配和释放。</p>
 
-<ol>
-  <li><strong>分配连续usb_device_io_request对象</strong></li>
-</ol>
+<p><strong>2. 分配连续usb_device_io_request对象</strong></p>
 
 <p>device to host传输阻塞的过程中，设备还能继续接收新的device to host传输请求，新的usb_device_io_request对象继续加入传输队列。</p>
 
@@ -1045,9 +1099,7 @@
 	 <span class="nf">no_leak</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
 </code></pre></div></div>
 
-<ol>
-  <li><strong>制造usb_device_io_request对象内存泄漏</strong></li>
-</ol>
+<p><strong>3. 制造usb_device_io_request对象内存泄漏</strong></p>
 
 <p>若传输任务的数据量是0x40的倍数，且比实际请求的数据量小，在释放usb_device_io_request对象之前又会申请一个zlp usb_device_io_request对象，该zlp对象失去引用变成内存泄漏。</p>
 
@@ -1066,9 +1118,7 @@
 
 <h2 id="堆管理器">堆管理器</h2>
 
-<ol>
-  <li>核心数据结构</li>
-</ol>
+<p><strong>1. 核心数据结构</strong></p>
 
 <p>Apple自己开发了堆管理器，SecureROM和iBoot阶段使用的都是同一套代码。</p>
 
@@ -1108,9 +1158,7 @@
 
 <p><img src="/assets/posts/2025-05-25-深入分析苹果设备-checkm8-漏洞/%E6%88%AA%E5%B1%8F2025-03-12_14.55.57.png" alt="截屏2025-03-12 14.55.57.png" /></p>
 
-<ol>
-  <li>空闲对象链表</li>
-</ol>
+<p><strong>2. 空闲对象链表</strong></p>
 
 <p>bins[32]数组是空闲对象链表的核心，作用是把空闲对象按照大小分类，加入不同的链表中。</p>
 
@@ -1140,9 +1188,7 @@
 
 <p><img src="/assets/posts/2025-05-25-深入分析苹果设备-checkm8-漏洞/checkm8-%E5%A0%86%E7%AE%A1%E7%90%86%E5%99%A8%E7%9A%84%E5%AE%9E%E7%8E%B0_%E7%A9%BA%E9%97%B2%E9%93%BE%E8%A1%A8.jpg" alt="checkm8-堆管理器的实现 空闲链表.jpg" /></p>
 
-<ol>
-  <li>空闲对象的合并</li>
-</ol>
+<p><strong>3. 空闲对象的合并</strong></p>
 
 <p>释放一个对象时，会检查相邻前后的对象是否活跃，若相邻对象不活跃则与之合并。</p>
 
@@ -1183,9 +1229,7 @@
 <span class="p">}</span>
 </code></pre></div></div>
 
-<ol>
-  <li>堆块分配策略</li>
-</ol>
+<p><strong>4. 堆块分配策略</strong></p>
 
 <p>计算实际分配大小时，会在用户请求大小的基础上增加堆头元数据的空间，能够分配的最小堆块为0x50，大于0x50的堆块要和0x40对齐。</p>
 
@@ -1221,9 +1265,7 @@
 <span class="p">}</span>
 </code></pre></div></div>
 
-<ol>
-  <li>堆的初始化</li>
-</ol>
+<p><strong>5. 堆的初始化</strong></p>
 
 <p>堆的初始化由heap_add_chunk函数完成，调用路径为_main —&gt; sys_init —&gt; heap_add_chunk。</p>
 
@@ -1235,9 +1277,7 @@
 
 <p><img src="/assets/posts/2025-05-25-深入分析苹果设备-checkm8-漏洞/checkm8-%E7%AC%AC_15_%E9%A1%B5.jpg" alt="checkm8-第 15 页.jpg" /></p>
 
-<ol>
-  <li>安全检查</li>
-</ol>
+<p><strong>6. 安全检查</strong></p>
 
 <p>verify_block_checksum函数计算堆块元数据heap_block的校验和，与保存在heap_block中的checksum对比，若不相等则触发panic。作用是检查堆块是否被破坏。</p>
 
@@ -1641,9 +1681,7 @@
 <span class="n">t8010_handle_interface_request</span> <span class="o">=</span> <span class="mh">0x10000DFB8</span>
 </code></pre></div></div>
 
-<ol>
-  <li>t8010_dc_civac(0x1800B0600)</li>
-</ol>
+<p><strong>1. t8010_dc_civac(0x1800B0600)</strong></p>
 
 <p>使虚拟地址0x1800B0600对应的缓存行失效，确保后面CPU能正确执行disable_wxn_arm64代码。</p>
 
@@ -1651,9 +1689,7 @@
 <span class="p">.</span><span class="n">shellcode</span><span class="o">:</span><span class="mo">0000000100000470</span>                 <span class="n">RET</span>
 </code></pre></div></div>
 
-<ol>
-  <li>t8010_dmb(0)</li>
-</ol>
+<p><strong>2. t8010_dmb(0)</strong></p>
 
 <p>内存屏障指令，确保该指令之前的所有指令都已经执行完毕。高性能处理器会打乱指令执行的顺序，有时候需要手动同步。</p>
 
@@ -1661,15 +1697,11 @@
 <span class="p">.</span><span class="n">shellcode</span><span class="o">:</span><span class="mo">000000010000047</span><span class="n">C</span>                 <span class="n">RET</span>
 </code></pre></div></div>
 
-<ol>
-  <li>t8010_enter_critical_section(0)</li>
-</ol>
+<p><strong>3. t8010_enter_critical_section(0)</strong></p>
 
 <p>屏蔽中断，确保后续修改页表的操作是原子操作。</p>
 
-<ol>
-  <li>t8010_write_ttbr0(0x1800B0000)</li>
-</ol>
+<p><strong>4. t8010_write_ttbr0(0x1800B0000)</strong></p>
 
 <p>设置页表基地址寄存器TTBR0_EL1的值为0x1800B0000。</p>
 
@@ -1709,9 +1741,7 @@
 
 <p><img src="/assets/posts/2025-05-25-深入分析苹果设备-checkm8-漏洞/checkm8-%E9%A1%B5%E8%A1%A8%E5%B1%9E%E6%80%A7.jpg" alt="checkm8-页表属性.jpg" /></p>
 
-<ol>
-  <li>t8010_tlbi(0)</li>
-</ol>
+<p><strong>5. t8010_tlbi(0)</strong></p>
 
 <p>使TLB缓存记录失效，使用新的页表进行地址转换。</p>
 
@@ -1722,9 +1752,7 @@
 <span class="p">.</span><span class="n">shellcode</span><span class="o">:</span><span class="mo">0000000100000444</span>                 <span class="n">RET</span>
 </code></pre></div></div>
 
-<ol>
-  <li>0x1820B0610 — disable_wxn_arm64(0)</li>
-</ol>
+<p><strong>6. 0x1820B0610 — disable_wxn_arm64(0)</strong></p>
 
 <p>disable_wxn_arm64指令片段起始地址0x1820B0610，映射到物理地址0x1800B0610，可执行。</p>
 
@@ -1738,23 +1766,17 @@
 
 <p><img src="/assets/posts/2025-05-25-深入分析苹果设备-checkm8-漏洞/%E6%88%AA%E5%B1%8F2025-03-11_10.12.13.png" alt="截屏2025-03-11 10.12.13.png" /></p>
 
-<ol>
-  <li>t8010_write_ttbr0(0x1800A0000)</li>
-</ol>
+<p><strong>7. t8010_write_ttbr0(0x1800A0000)</strong></p>
 
 <p>恢复旧的页表。因为旧的页表中还包含设备IO寄存器地址到虚拟地址空间的映射，恢复旧页表确保系统功能正常。</p>
 
 <p><img src="/assets/posts/2025-05-25-深入分析苹果设备-checkm8-漏洞/%E6%88%AA%E5%B1%8F2025-03-09_13.00.49.png" alt="截屏2025-03-09 13.00.49.png" /></p>
 
-<ol>
-  <li>t8010_tlbi(0)</li>
-</ol>
+<p><strong>8. t8010_tlbi(0)</strong></p>
 
 <p>使TLB缓存记录失效，使用新的页表进行地址转换。</p>
 
-<ol>
-  <li>t8010_exit_critical_section(0)</li>
-</ol>
+<p><strong>9. t8010_exit_critical_section(0)</strong></p>
 
 <p>恢复中断。</p>
 
@@ -1868,9 +1890,7 @@
 
 <h1 id="shellcode执行">shellcode执行</h1>
 
-<ol>
-  <li>shellcode的结构</li>
-</ol>
+<p><strong>1. shellcode的结构</strong></p>
 
 <p>shellcode的构造函数如下：</p>
 
@@ -1889,9 +1909,7 @@
 
 <p><img src="/assets/posts/2025-05-25-深入分析苹果设备-checkm8-漏洞/checkm8-%E7%BA%AFshellcode.jpg" alt="checkm8-纯shellcode.jpg" /></p>
 
-<ol>
-  <li>恢复USB配置描述符</li>
-</ol>
+<p><strong>2. 恢复USB配置描述符</strong></p>
 
 <p>SecureROM初始化阶段为2个USB配置描述符在堆上分配空间，地址分别保存在usb_core_hs_configuration_descriptor和usb_core_fs_configuration_descriptor两个全局变量中。</p>
 
@@ -1929,9 +1947,7 @@
 <span class="p">.</span><span class="n">word</span> <span class="mh">0x190209</span><span class="p">,</span> <span class="mh">0x80050101</span><span class="p">,</span> <span class="mh">0x409fa</span><span class="p">,</span> <span class="mh">0x1fe0000</span><span class="p">,</span> <span class="mh">0x21070000</span><span class="p">,</span> <span class="mh">0xa01</span><span class="p">,</span> <span class="mh">0x8</span><span class="p">,</span> <span class="mh">0x0</span>
 </code></pre></div></div>
 
-<ol>
-  <li>”     PWND:[checkm8]“</li>
-</ol>
+<p><strong>3. “     PWND:[checkm8]”</strong></p>
 
 <p>首先找到序列号字符串的结束符，再把” PWND:[checkm8]”字符串拷贝到原始序列号末尾，得到新的序列号字符串。</p>
 
@@ -1977,9 +1993,7 @@
 
 <p><img src="/assets/posts/2025-05-25-深入分析苹果设备-checkm8-漏洞/%E6%88%AA%E5%B1%8F2025-03-06_20.00.32.png" alt="截屏2025-03-06 20.00.32.png" /></p>
 
-<ol>
-  <li>劫持USB报文处理句柄</li>
-</ol>
+<p><strong>4. 劫持USB报文处理句柄</strong>*</p>
 
 <p>全局对象usb_dfu_interface_instance的handle_request指向的函数实现了USB DFU协议栈，负责处理主机发送的bmRequestType=0x21的Setup Transaction。</p>
 
@@ -2015,9 +2029,7 @@
 
 <p><img src="/assets/posts/2025-05-25-深入分析苹果设备-checkm8-漏洞/checkm8-%E7%BA%AFshellcode.jpg" alt="checkm8-纯shellcode.jpg" /></p>
 
-<ol>
-  <li>拷贝USB功能代码</li>
-</ol>
+<p><strong>5. 拷贝USB功能代码</strong></p>
 
 <p>shellcode中的蓝色和绿色部分被拷贝到BOOT_TRAMPOLINE内存区域。</p>
 
@@ -2061,9 +2073,7 @@
 
 <h1 id="功能扩展">功能扩展</h1>
 
-<ol>
-  <li>自定义USB报文处理句柄</li>
-</ol>
+<p><strong>1. 自定义USB报文处理句柄</strong></p>
 
 <p>上面提到，shellcode把usb_dfu_interface_instance.handle_request覆盖为0x1800AFC18。该指针原来指向handle_interface_request函数，实现了DFU下载功能。</p>
 
@@ -2077,9 +2087,7 @@
 
 <p><img src="/assets/posts/2025-05-25-深入分析苹果设备-checkm8-漏洞/%E6%88%AA%E5%B1%8F2025-03-12_08.16.25.png" alt="截屏2025-03-12 08.16.25.png" /></p>
 
-<ol>
-  <li>对正常DFU报文的处理</li>
-</ol>
+<p><strong>2. 对正常DFU报文的处理</strong></p>
 
 <p>以—dump-rom参数的实现为例子，主机首先向设备发送正常的DFU请求，其中bmRequestType=0x21， bRequest=1。该请求经过跳板代码路由到handle_interface_request函数处理。其中data参数包含了将要dump的地址范围，设备接收到data参数之后保存在0x1800B0000。</p>
 
@@ -2092,9 +2100,7 @@
         <span class="n">index</span> <span class="o">+=</span> <span class="n">amount</span>
 </code></pre></div></div>
 
-<ol>
-  <li>对攻击指令的处理</li>
-</ol>
+<p><strong>3. 对攻击指令的处理</strong></p>
 
 <p>接着主机向设备发送恶意功能指令，其中bmRequestType=0xa1，bRequest=2，wValue=0xFFFF，该数据包交给USB功能代码处理。</p>
 
@@ -2316,26 +2322,6 @@
 
 <p><img src="/assets/posts/2025-05-25-深入分析苹果设备-checkm8-漏洞/EG91kipUEAAtlh4.jpeg" alt="EG91kipUEAAtlh4.jpeg" /></p>
 
-<h1 id="固件分析方法">固件分析方法</h1>
-
-<h2 id="加载地址的恢复">加载地址的恢复</h2>
-
-<h2 id="ida分析过程">IDA分析过程</h2>
-
-<ol>
-  <li>
-    <p>新建内存段</p>
-  </li>
-  <li>
-    <p>添加结构体</p>
-  </li>
-  <li>
-    <p>对象的恢复</p>
-  </li>
-</ol>
-
-<h3 id="参数的修改">参数的修改</h3>
-
 <h1 id="参考资料">参考资料</h1>
 
 <p><a href="https://xuanxuanblingbling.github.io/ios/2020/07/10/checkm8/">Checkm8 漏洞研究</a></p>
@@ -2358,9 +2344,9 @@
 
 <h1 id="附件">附件</h1>
 
-<p><a href="%E5%A0%86%E6%A8%A1%E6%8B%9F%E5%99%A8.zip">堆模拟器.zip</a></p>
+<p><a href="/assets/posts/2025-05-25-深入分析苹果设备-checkm8-漏洞/%E5%A0%86%E6%A8%A1%E6%8B%9F%E5%99%A8.zip">堆模拟器.zip</a></p>
 
-<p><a href="uEmu-master.zip">uEmu-master.zip</a></p>
+<p><a href="/assets/posts/2025-05-25-深入分析苹果设备-checkm8-漏洞/uEmu-master.zip">uEmu-master.zip</a></p>
 
     </div>
 </article>
