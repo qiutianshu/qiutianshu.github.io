@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <link rel="stylesheet" href="http://localhost:4000/assets/fonts/fonts.css"/>
+<link rel="stylesheet" href="http://localhost:4000/assets/style.css"/>
+<link rel="stylesheet" href="http://localhost:4000/assets/js/lity.min.css"/>
+
+
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<meta property="og:site_name" content="极目楚天舒" />
+<meta 
+    property="og:title"
+    content="
+        
+            蓝牙sco条件竞争漏洞挖掘与利用
+        
+    " 
+/>
+
+<meta property="og:url" content="http://localhost:4000//linux_kernel/2023/02/11/%E8%93%9D%E7%89%99sco%E6%9D%A1%E4%BB%B6%E7%AB%9E%E4%BA%89%E6%BC%8F%E6%B4%9E%E6%8C%96%E6%8E%98%E4%B8%8E%E5%88%A9%E7%94%A8.html" />
+
+    <meta property="og:type" content="article" />
+
+
+
+    <meta property="fb:app_id" content="" />
+
+
+
+<title>
+    
+        蓝牙sco条件竞争漏洞挖掘与利用
+    
+</title>
+</head>
+<body class="index">
+    
+        <div class="page-container">
+            <aside class="main-sidebar">
+                <!-- 包含 TOC -->
+                <sidebar class="sidebar">
+<ul class="toc-list"><li><a href="#时间线">时间线</a></li><li><a href="#提交历史">提交历史</a></li><li><a href="#漏洞分析">漏洞分析</a></li><li><a href="#漏洞利用">漏洞利用</a></li><li><a href="#横向挖掘">横向挖掘</a></li><li><a href="#附件">附件</a></li></ul></sidebar>
+            </aside>
+            <!-- 主内容区域 -->
+            <main class="main-content">
+                <header class="header">
+    <section class="logo">
+        <a href="http://localhost:4000/" class="logo__link">
+            
+                <h1>极目楚天舒</h1>
+            
+        </a>
+    </section>
+    
+    <button id="menuToggle">
+        <div></div>
+        <div></div>
+        <div></div>
+    </button>
+    <nav class="menu">
+        
+<ul class="list primary">
+
+    
+        <li class="item">
+
+            <div class="item-controls">
+                <a href="http://localhost:4000/category/linux_kernel.html">
+                
+                    <img src="http://localhost:4000/assets/img/icons/tux.png"/>
+                
+                
+                    <p style="color: var(--c-themeHueRed)">Linux内核漏洞</p>
+                
+                </a>
+
+            
+            </div>
+            
+        </li>   
+    
+        <li class="item">
+
+            <div class="item-controls">
+                <a href="http://localhost:4000/category/linux_userspace.html">
+                
+                    <img src="http://localhost:4000/assets/img/icons/userspace.png"/>
+                
+                
+                    <p style="color: var(--c-themeHueRed)">Linux用户态漏洞</p>
+                
+                </a>
+
+            
+            </div>
+            
+        </li>   
+    
+        <li class="item">
+
+            <div class="item-controls">
+                <a href="http://localhost:4000/category/hardware.html">
+                
+                    <img src="http://localhost:4000/assets/img/icons/chip.svg"/>
+                
+                
+                    <p style="color: var(--c-themeHueRed)">硬件安全研究</p>
+                
+                </a>
+
+            
+            </div>
+            
+        </li>   
+    
+        <li class="item">
+
+            <div class="item-controls">
+                <a href="http://localhost:4000/category/meltdown_spectre.html">
+                
+                    <img src="http://localhost:4000/assets/img/icons/meltdown_spectre.png"/>
+                
+                
+                    <p style="color: var(--c-themeHueRed)">CPU 侧信道</p>
+                
+                </a>
+
+            
+            </div>
+            
+        </li>   
+    
+        <li class="item">
+
+            <div class="item-controls">
+                <a href="http://localhost:4000/category/riscv.html">
+                
+                    <img src="http://localhost:4000/assets/img/icons/riscv.png"/>
+                
+                
+                    <p style="color: var(--c-themeHueRed)">RISC-V</p>
+                
+                </a>
+
+            
+            </div>
+            
+        </li>   
+    
+</ul>
+    </nav>
+</header>
+                
+                <article class="post">
+
+    <div class="post__title">
+       蓝牙sco条件竞争漏洞挖掘与利用
+    </div>
+    <div class="post__meta"> 
+        <div class="post__meta__category">
+            
+                <p class="post__meta__category__title" style="background: var(--c-themeHueBlue)">Linux内核漏洞</p>
+            
+        </div>
+        <p class="post__meta__divider">·</p>
+        <div class="post__meta__date">
+            2023-02-11
+        </div>
+        
+    </div>
+
+    
+    <div class="post__content">
+        <p>8 个月之前 Linux 主线中已经修补了这个漏洞，在上一个版本的 Ubuntu 20.04 这个漏洞还未修补，而且这些设备不一定会更新到最新版本的内核，如果是国产操作系统的话，内核的更新尤为滞后，所以我们认为这个漏洞有搞头。
+linux 内核漏洞修补不一定有 cve 号，可能开发人员看到测到就修了，那么没事看看 diff 也是一种捡漏洞的方法，毕竟除了 ctf 题目，目标不可能是最新版linux。</p>
+
+<h1 id="时间线">时间线</h1>
+
+<ul>
+  <li>2023年 1 月 17 日使用 syzkaller 对蓝牙驱动进行 fuzz；</li>
+  <li>2023 年 1 月 22 日触发了 UAF ；</li>
+  <li>2023年 4 月 17 日完成漏洞利用。</li>
+</ul>
+
+<p>从syzkaller的崩溃日志可以看出，漏洞位于 bluetoot.ko 文件 sco_sock_timeout 函数的 struct sock 对象。</p>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="p">[</span> <span class="mi">1198</span><span class="p">.</span><span class="mi">222242</span><span class="p">]</span> <span class="n">BUG</span><span class="o">:</span> <span class="n">KASAN</span><span class="o">:</span> <span class="n">use</span><span class="o">-</span><span class="n">after</span><span class="o">-</span><span class="n">free</span> <span class="n">in</span> <span class="n">sco_sock_timeout</span><span class="o">+</span><span class="mh">0x246</span><span class="o">/</span><span class="mh">0x270</span>
+<span class="p">[</span> <span class="mi">1198</span><span class="p">.</span><span class="mi">222865</span><span class="p">]</span> <span class="n">Read</span> <span class="n">of</span> <span class="n">size</span> <span class="mi">1</span> <span class="n">at</span> <span class="n">addr</span> <span class="n">ffff88812580b012</span> <span class="n">by</span> <span class="n">task</span> <span class="n">kworker</span><span class="o">/</span><span class="mi">3</span><span class="o">:</span><span class="mi">2</span><span class="o">/</span><span class="mi">277</span>
+
+<span class="p">[</span> <span class="mi">1198</span><span class="p">.</span><span class="mi">223677</span><span class="p">]</span> <span class="n">CPU</span><span class="o">:</span> <span class="mi">3</span> <span class="n">PID</span><span class="o">:</span> <span class="mi">277</span> <span class="n">Comm</span><span class="o">:</span> <span class="n">kworker</span><span class="o">/</span><span class="mi">3</span><span class="o">:</span><span class="mi">2</span> <span class="n">Not</span> <span class="n">tainted</span> <span class="mi">5</span><span class="p">.</span><span class="mi">15</span><span class="p">.</span><span class="mi">0</span> <span class="err">#</span><span class="mi">18</span>
+<span class="p">[</span> <span class="mi">1198</span><span class="p">.</span><span class="mi">224280</span><span class="p">]</span> <span class="n">Hardware</span> <span class="n">name</span><span class="o">:</span> <span class="n">QEMU</span> <span class="n">Standard</span> <span class="n">PC</span> <span class="p">(</span><span class="n">i440FX</span> <span class="o">+</span> <span class="n">PIIX</span><span class="p">,</span> <span class="mi">1996</span><span class="p">),</span> <span class="n">BIOS</span> <span class="mi">1</span><span class="p">.</span><span class="mi">15</span><span class="p">.</span><span class="mi">0</span><span class="o">-</span><span class="mi">1</span> <span class="mo">04</span><span class="o">/</span><span class="mo">01</span><span class="o">/</span><span class="mi">2014</span>
+<span class="p">[</span> <span class="mi">1198</span><span class="p">.</span><span class="mi">225068</span><span class="p">]</span> <span class="n">Workqueue</span><span class="o">:</span> <span class="n">events</span> <span class="n">sco_sock_timeout</span>
+<span class="p">[</span> <span class="mi">1198</span><span class="p">.</span><span class="mi">225498</span><span class="p">]</span> <span class="n">Call</span> <span class="n">Trace</span><span class="o">:</span>
+<span class="p">[</span> <span class="mi">1198</span><span class="p">.</span><span class="mi">225744</span><span class="p">]</span>  <span class="n">dump_stack_lvl</span><span class="o">+</span><span class="mh">0x8b</span><span class="o">/</span><span class="mh">0xb3</span>
+<span class="p">[</span> <span class="mi">1198</span><span class="p">.</span><span class="mi">226112</span><span class="p">]</span>  <span class="n">print_address_description</span><span class="p">.</span><span class="n">constprop</span><span class="p">.</span><span class="mi">0</span><span class="o">+</span><span class="mh">0x1f</span><span class="o">/</span><span class="mh">0x140</span>
+<span class="p">[</span> <span class="mi">1198</span><span class="p">.</span><span class="mi">226674</span><span class="p">]</span>  <span class="o">?</span> <span class="n">sco_sock_timeout</span><span class="o">+</span><span class="mh">0x246</span><span class="o">/</span><span class="mh">0x270</span>
+<span class="p">[</span> <span class="mi">1198</span><span class="p">.</span><span class="mi">227078</span><span class="p">]</span>  <span class="n">kasan_report</span><span class="p">.</span><span class="n">cold</span><span class="o">+</span><span class="mh">0x7f</span><span class="o">/</span><span class="mh">0x11b</span>
+<span class="p">[</span> <span class="mi">1198</span><span class="p">.</span><span class="mi">227479</span><span class="p">]</span>  <span class="o">?</span> <span class="n">sco_sock_timeout</span><span class="o">+</span><span class="mh">0x246</span><span class="o">/</span><span class="mh">0x270</span>
+<span class="p">[</span> <span class="mi">1198</span><span class="p">.</span><span class="mi">227892</span><span class="p">]</span>  <span class="n">sco_sock_timeout</span><span class="o">+</span><span class="mh">0x246</span><span class="o">/</span><span class="mh">0x270</span>
+<span class="p">[</span> <span class="mi">1198</span><span class="p">.</span><span class="mi">228292</span><span class="p">]</span>  <span class="n">process_one_work</span><span class="o">+</span><span class="mh">0xa40</span><span class="o">/</span><span class="mh">0x1670</span>
+<span class="p">[</span> <span class="mi">1198</span><span class="p">.</span><span class="mi">228698</span><span class="p">]</span>  <span class="o">?</span> <span class="n">pwq_dec_nr_in_flight</span><span class="o">+</span><span class="mh">0x2a0</span><span class="o">/</span><span class="mh">0x2a0</span>
+<span class="p">[</span> <span class="mi">1198</span><span class="p">.</span><span class="mi">229143</span><span class="p">]</span>  <span class="o">?</span> <span class="n">rwlock_bug</span><span class="p">.</span><span class="n">part</span><span class="p">.</span><span class="mi">0</span><span class="o">+</span><span class="mh">0x90</span><span class="o">/</span><span class="mh">0x90</span>
+<span class="p">[</span> <span class="mi">1198</span><span class="p">.</span><span class="mi">229560</span><span class="p">]</span>  <span class="n">worker_thread</span><span class="o">+</span><span class="mh">0x62a</span><span class="o">/</span><span class="mh">0x13e0</span>
+<span class="p">[</span> <span class="mi">1198</span><span class="p">.</span><span class="mi">229940</span><span class="p">]</span>  <span class="o">?</span> <span class="n">__kthread_parkme</span><span class="o">+</span><span class="mh">0x126</span><span class="o">/</span><span class="mh">0x1f0</span>
+<span class="p">[</span> <span class="mi">1198</span><span class="p">.</span><span class="mi">230358</span><span class="p">]</span>  <span class="o">?</span> <span class="n">process_one_work</span><span class="o">+</span><span class="mh">0x1670</span><span class="o">/</span><span class="mh">0x1670</span>
+<span class="p">[</span> <span class="mi">1198</span><span class="p">.</span><span class="mi">230788</span><span class="p">]</span>  <span class="n">kthread</span><span class="o">+</span><span class="mh">0x3c3</span><span class="o">/</span><span class="mh">0x4a0</span>
+<span class="p">[</span> <span class="mi">1198</span><span class="p">.</span><span class="mi">231104</span><span class="p">]</span>  <span class="o">?</span> <span class="n">_raw_spin_unlock_irq</span><span class="o">+</span><span class="mh">0x1f</span><span class="o">/</span><span class="mh">0x30</span>
+<span class="p">[</span> <span class="mi">1198</span><span class="p">.</span><span class="mi">231524</span><span class="p">]</span>  <span class="o">?</span> <span class="n">set_kthread_struct</span><span class="o">+</span><span class="mh">0x130</span><span class="o">/</span><span class="mh">0x130</span>
+<span class="p">[</span> <span class="mi">1198</span><span class="p">.</span><span class="mi">231953</span><span class="p">]</span>  <span class="n">ret_from_fork</span><span class="o">+</span><span class="mh">0x22</span><span class="o">/</span><span class="mh">0x30</span>
+
+<span class="p">[</span> <span class="mi">1198</span><span class="p">.</span><span class="mi">232484</span><span class="p">]</span> <span class="n">Allocated</span> <span class="n">by</span> <span class="n">task</span> <span class="mi">13663</span><span class="o">:</span>
+<span class="p">[</span> <span class="mi">1198</span><span class="p">.</span><span class="mi">232826</span><span class="p">]</span>  <span class="n">kasan_save_stack</span><span class="o">+</span><span class="mh">0x1b</span><span class="o">/</span><span class="mh">0x40</span>
+<span class="p">[</span> <span class="mi">1198</span><span class="p">.</span><span class="mi">233192</span><span class="p">]</span>  <span class="n">__kasan_kmalloc</span><span class="o">+</span><span class="mh">0x7c</span><span class="o">/</span><span class="mh">0x90</span>
+<span class="p">[</span> <span class="mi">1198</span><span class="p">.</span><span class="mi">233555</span><span class="p">]</span>  <span class="n">sk_prot_alloc</span><span class="o">+</span><span class="mh">0x11d</span><span class="o">/</span><span class="mh">0x290</span>
+<span class="p">[</span> <span class="mi">1198</span><span class="p">.</span><span class="mi">233922</span><span class="p">]</span>  <span class="n">sk_alloc</span><span class="o">+</span><span class="mh">0x30</span><span class="o">/</span><span class="mh">0x360</span>
+<span class="p">[</span> <span class="mi">1198</span><span class="p">.</span><span class="mi">234240</span><span class="p">]</span>  <span class="n">sco_sock_alloc</span><span class="p">.</span><span class="n">constprop</span><span class="p">.</span><span class="mi">0</span><span class="o">+</span><span class="mh">0x31</span><span class="o">/</span><span class="mh">0x220</span>
+<span class="p">[</span> <span class="mi">1198</span><span class="p">.</span><span class="mi">234700</span><span class="p">]</span>  <span class="n">sco_sock_create</span><span class="o">+</span><span class="mh">0xd5</span><span class="o">/</span><span class="mh">0x170</span>
+<span class="p">[</span> <span class="mi">1198</span><span class="p">.</span><span class="mi">235065</span><span class="p">]</span>  <span class="n">bt_sock_create</span><span class="o">+</span><span class="mh">0x159</span><span class="o">/</span><span class="mh">0x2b0</span>
+<span class="p">[</span> <span class="mi">1198</span><span class="p">.</span><span class="mi">235435</span><span class="p">]</span>  <span class="n">__sock_create</span><span class="o">+</span><span class="mh">0x355</span><span class="o">/</span><span class="mh">0x760</span>
+<span class="p">[</span> <span class="mi">1198</span><span class="p">.</span><span class="mi">235799</span><span class="p">]</span>  <span class="n">__sys_socket</span><span class="o">+</span><span class="mh">0xef</span><span class="o">/</span><span class="mh">0x200</span>
+<span class="p">[</span> <span class="mi">1198</span><span class="p">.</span><span class="mi">236143</span><span class="p">]</span>  <span class="n">__x64_sys_socket</span><span class="o">+</span><span class="mh">0x6e</span><span class="o">/</span><span class="mh">0xb0</span>
+<span class="p">[</span> <span class="mi">1198</span><span class="p">.</span><span class="mi">236520</span><span class="p">]</span>  <span class="n">do_syscall_64</span><span class="o">+</span><span class="mh">0x3b</span><span class="o">/</span><span class="mh">0x90</span>
+<span class="p">[</span> <span class="mi">1198</span><span class="p">.</span><span class="mi">236865</span><span class="p">]</span>  <span class="n">entry_SYSCALL_64_after_hwframe</span><span class="o">+</span><span class="mh">0x44</span><span class="o">/</span><span class="mh">0xae</span>
+
+<span class="p">[</span> <span class="mi">1198</span><span class="p">.</span><span class="mi">237504</span><span class="p">]</span> <span class="n">Freed</span> <span class="n">by</span> <span class="n">task</span> <span class="mi">13663</span><span class="o">:</span>
+<span class="p">[</span> <span class="mi">1198</span><span class="p">.</span><span class="mi">237815</span><span class="p">]</span>  <span class="n">kasan_save_stack</span><span class="o">+</span><span class="mh">0x1b</span><span class="o">/</span><span class="mh">0x40</span>
+<span class="p">[</span> <span class="mi">1198</span><span class="p">.</span><span class="mi">238191</span><span class="p">]</span>  <span class="n">kasan_set_track</span><span class="o">+</span><span class="mh">0x1c</span><span class="o">/</span><span class="mh">0x30</span>
+<span class="p">[</span> <span class="mi">1198</span><span class="p">.</span><span class="mi">238554</span><span class="p">]</span>  <span class="n">kasan_set_free_info</span><span class="o">+</span><span class="mh">0x20</span><span class="o">/</span><span class="mh">0x30</span>
+<span class="p">[</span> <span class="mi">1198</span><span class="p">.</span><span class="mi">238956</span><span class="p">]</span>  <span class="n">__kasan_slab_free</span><span class="o">+</span><span class="mh">0xec</span><span class="o">/</span><span class="mh">0x120</span>
+<span class="p">[</span> <span class="mi">1198</span><span class="p">.</span><span class="mi">239340</span><span class="p">]</span>  <span class="n">kfree</span><span class="o">+</span><span class="mh">0xca</span><span class="o">/</span><span class="mh">0x480</span>
+<span class="p">[</span> <span class="mi">1198</span><span class="p">.</span><span class="mi">239636</span><span class="p">]</span>  <span class="n">__sk_destruct</span><span class="o">+</span><span class="mh">0x5f5</span><span class="o">/</span><span class="mh">0x740</span>
+<span class="p">[</span> <span class="mi">1198</span><span class="p">.</span><span class="mi">239997</span><span class="p">]</span>  <span class="n">sk_destruct</span><span class="o">+</span><span class="mh">0xbd</span><span class="o">/</span><span class="mh">0xe0</span>
+<span class="p">[</span> <span class="mi">1198</span><span class="p">.</span><span class="mi">240333</span><span class="p">]</span>  <span class="n">__sk_free</span><span class="o">+</span><span class="mh">0xed</span><span class="o">/</span><span class="mh">0x3d0</span>
+<span class="p">[</span> <span class="mi">1198</span><span class="p">.</span><span class="mi">240651</span><span class="p">]</span>  <span class="n">sk_free</span><span class="o">+</span><span class="mh">0x78</span><span class="o">/</span><span class="mh">0xa0</span>
+<span class="p">[</span> <span class="mi">1198</span><span class="p">.</span><span class="mi">240941</span><span class="p">]</span>  <span class="n">sco_sock_kill</span><span class="o">+</span><span class="mh">0x16d</span><span class="o">/</span><span class="mh">0x1a0</span>
+<span class="p">[</span> <span class="mi">1198</span><span class="p">.</span><span class="mi">241294</span><span class="p">]</span>  <span class="n">sco_sock_release</span><span class="o">+</span><span class="mh">0x1ed</span><span class="o">/</span><span class="mh">0x360</span>
+<span class="p">[</span> <span class="mi">1198</span><span class="p">.</span><span class="mi">241667</span><span class="p">]</span>  <span class="n">__sock_release</span><span class="o">+</span><span class="mh">0xd2</span><span class="o">/</span><span class="mh">0x290</span>
+<span class="p">[</span> <span class="mi">1198</span><span class="p">.</span><span class="mi">242020</span><span class="p">]</span>  <span class="n">sock_close</span><span class="o">+</span><span class="mh">0x18</span><span class="o">/</span><span class="mh">0x20</span>
+<span class="p">[</span> <span class="mi">1198</span><span class="p">.</span><span class="mi">242336</span><span class="p">]</span>  <span class="n">__fput</span><span class="o">+</span><span class="mh">0x283</span><span class="o">/</span><span class="mh">0x9e0</span>
+<span class="p">[</span> <span class="mi">1198</span><span class="p">.</span><span class="mi">242643</span><span class="p">]</span>  <span class="n">task_work_run</span><span class="o">+</span><span class="mh">0xe2</span><span class="o">/</span><span class="mh">0x1a0</span>
+<span class="p">[</span> <span class="mi">1198</span><span class="p">.</span><span class="mi">242997</span><span class="p">]</span>  <span class="n">get_signal</span><span class="o">+</span><span class="mh">0x1aab</span><span class="o">/</span><span class="mh">0x20a0</span>
+<span class="p">[</span> <span class="mi">1198</span><span class="p">.</span><span class="mi">243354</span><span class="p">]</span>  <span class="n">arch_do_signal_or_restart</span><span class="o">+</span><span class="mh">0x2b0</span><span class="o">/</span><span class="mh">0x16e0</span>
+<span class="p">[</span> <span class="mi">1198</span><span class="p">.</span><span class="mi">243819</span><span class="p">]</span>  <span class="n">exit_to_user_mode_prepare</span><span class="o">+</span><span class="mh">0x141</span><span class="o">/</span><span class="mh">0x1d0</span>
+<span class="p">[</span> <span class="mi">1198</span><span class="p">.</span><span class="mi">244282</span><span class="p">]</span>  <span class="n">syscall_exit_to_user_mode</span><span class="o">+</span><span class="mh">0x19</span><span class="o">/</span><span class="mh">0x50</span>
+<span class="p">[</span> <span class="mi">1198</span><span class="p">.</span><span class="mi">244720</span><span class="p">]</span>  <span class="n">do_syscall_64</span><span class="o">+</span><span class="mh">0x48</span><span class="o">/</span><span class="mh">0x90</span>
+<span class="p">[</span> <span class="mi">1198</span><span class="p">.</span><span class="mi">245064</span><span class="p">]</span>  <span class="n">entry_SYSCALL_64_after_hwframe</span><span class="o">+</span><span class="mh">0x44</span><span class="o">/</span><span class="mh">0xae</span>
+
+<span class="p">[</span> <span class="mi">1198</span><span class="p">.</span><span class="mi">245694</span><span class="p">]</span> <span class="n">The</span> <span class="n">buggy</span> <span class="n">address</span> <span class="n">belongs</span> <span class="n">to</span> <span class="n">the</span> <span class="n">object</span> <span class="n">at</span> <span class="n">ffff88812580b000</span>
+                <span class="n">which</span> <span class="n">belongs</span> <span class="n">to</span> <span class="n">the</span> <span class="n">cache</span> <span class="n">kmalloc</span><span class="o">-</span><span class="mi">2</span><span class="n">k</span> <span class="n">of</span> <span class="n">size</span> <span class="mi">2048</span>
+<span class="p">[</span> <span class="mi">1198</span><span class="p">.</span><span class="mi">246831</span><span class="p">]</span> <span class="n">The</span> <span class="n">buggy</span> <span class="n">address</span> <span class="n">is</span> <span class="n">located</span> <span class="mi">18</span> <span class="n">bytes</span> <span class="n">inside</span> <span class="n">of</span>
+                <span class="mi">2048</span><span class="o">-</span><span class="n">byte</span> <span class="n">region</span> <span class="p">[</span><span class="n">ffff88812580b000</span><span class="p">,</span> <span class="n">ffff88812580b800</span><span class="p">)</span>
+<span class="p">[</span> <span class="mi">1198</span><span class="p">.</span><span class="mi">247908</span><span class="p">]</span> <span class="n">The</span> <span class="n">buggy</span> <span class="n">address</span> <span class="n">belongs</span> <span class="n">to</span> <span class="n">the</span> <span class="n">page</span><span class="o">:</span>
+<span class="p">[</span> <span class="mi">1198</span><span class="p">.</span><span class="mi">248366</span><span class="p">]</span> <span class="n">page</span><span class="o">:</span><span class="mo">00000000</span><span class="n">fd6372df</span> <span class="n">refcount</span><span class="o">:</span><span class="mi">1</span> <span class="n">mapcount</span><span class="o">:</span><span class="mi">0</span> <span class="n">mapping</span><span class="o">:</span><span class="mo">0000000000000000</span> <span class="n">index</span><span class="o">:</span><span class="mh">0x0</span> <span class="n">pfn</span><span class="o">:</span><span class="mh">0x125808</span>
+<span class="p">[</span> <span class="mi">1198</span><span class="p">.</span><span class="mi">249235</span><span class="p">]</span> <span class="n">head</span><span class="o">:</span><span class="mo">00000000</span><span class="n">fd6372df</span> <span class="n">order</span><span class="o">:</span><span class="mi">3</span> <span class="n">compound_mapcount</span><span class="o">:</span><span class="mi">0</span> <span class="n">compound_pincount</span><span class="o">:</span><span class="mi">0</span>
+<span class="p">[</span> <span class="mi">1198</span><span class="p">.</span><span class="mi">249923</span><span class="p">]</span> <span class="n">flags</span><span class="o">:</span> <span class="mh">0x200000000010200</span><span class="p">(</span><span class="n">slab</span><span class="o">|</span><span class="n">head</span><span class="o">|</span><span class="n">node</span><span class="o">=</span><span class="mi">0</span><span class="o">|</span><span class="n">zone</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+<span class="p">[</span> <span class="mi">1198</span><span class="p">.</span><span class="mi">250474</span><span class="p">]</span> <span class="n">raw</span><span class="o">:</span> <span class="mo">0200000000010200</span> <span class="n">dead000000000100</span> <span class="n">dead000000000122</span> <span class="n">ffff888100042f00</span>
+<span class="p">[</span> <span class="mi">1198</span><span class="p">.</span><span class="mi">251179</span><span class="p">]</span> <span class="n">raw</span><span class="o">:</span> <span class="mo">0000000000000000</span> <span class="mo">00000000000</span><span class="mi">80008</span> <span class="mo">00000001</span><span class="n">ffffffff</span> <span class="mo">0000000000000000</span>
+<span class="p">[</span> <span class="mi">1198</span><span class="p">.</span><span class="mi">251893</span><span class="p">]</span> <span class="n">page</span> <span class="n">dumped</span> <span class="n">because</span><span class="o">:</span> <span class="n">kasan</span><span class="o">:</span> <span class="n">bad</span> <span class="n">access</span> <span class="n">detected</span>
+
+<span class="p">[</span> <span class="mi">1198</span><span class="p">.</span><span class="mi">252571</span><span class="p">]</span> <span class="n">Memory</span> <span class="n">state</span> <span class="n">around</span> <span class="n">the</span> <span class="n">buggy</span> <span class="n">address</span><span class="o">:</span>
+<span class="p">[</span> <span class="mi">1198</span><span class="p">.</span><span class="mi">253024</span><span class="p">]</span>  <span class="n">ffff88812580af00</span><span class="o">:</span> <span class="n">fc</span> <span class="n">fc</span> <span class="n">fc</span> <span class="n">fc</span> <span class="n">fc</span> <span class="n">fc</span> <span class="n">fc</span> <span class="n">fc</span> <span class="n">fc</span> <span class="n">fc</span> <span class="n">fc</span> <span class="n">fc</span> <span class="n">fc</span> <span class="n">fc</span> <span class="n">fc</span> <span class="n">fc</span>
+<span class="p">[</span> <span class="mi">1198</span><span class="p">.</span><span class="mi">253681</span><span class="p">]</span>  <span class="n">ffff88812580af80</span><span class="o">:</span> <span class="n">fc</span> <span class="n">fc</span> <span class="n">fc</span> <span class="n">fc</span> <span class="n">fc</span> <span class="n">fc</span> <span class="n">fc</span> <span class="n">fc</span> <span class="n">fc</span> <span class="n">fc</span> <span class="n">fc</span> <span class="n">fc</span> <span class="n">fc</span> <span class="n">fc</span> <span class="n">fc</span> <span class="n">fc</span>
+<span class="p">[</span> <span class="mi">1198</span><span class="p">.</span><span class="mi">254341</span><span class="p">]</span> <span class="o">&gt;</span><span class="n">ffff88812580b000</span><span class="o">:</span> <span class="n">fa</span> <span class="n">fb</span> <span class="n">fb</span> <span class="n">fb</span> <span class="n">fb</span> <span class="n">fb</span> <span class="n">fb</span> <span class="n">fb</span> <span class="n">fb</span> <span class="n">fb</span> <span class="n">fb</span> <span class="n">fb</span> <span class="n">fb</span> <span class="n">fb</span> <span class="n">fb</span> <span class="n">fb</span>
+<span class="p">[</span> <span class="mi">1198</span><span class="p">.</span><span class="mi">254997</span><span class="p">]</span>                          <span class="o">^</span>
+<span class="p">[</span> <span class="mi">1198</span><span class="p">.</span><span class="mi">255359</span><span class="p">]</span>  <span class="n">ffff88812580b080</span><span class="o">:</span> <span class="n">fb</span> <span class="n">fb</span> <span class="n">fb</span> <span class="n">fb</span> <span class="n">fb</span> <span class="n">fb</span> <span class="n">fb</span> <span class="n">fb</span> <span class="n">fb</span> <span class="n">fb</span> <span class="n">fb</span> <span class="n">fb</span> <span class="n">fb</span> <span class="n">fb</span> <span class="n">fb</span> <span class="n">fb</span>
+<span class="p">[</span> <span class="mi">1198</span><span class="p">.</span><span class="mi">256027</span><span class="p">]</span>  <span class="n">ffff88812580b100</span><span class="o">:</span> <span class="n">fb</span> <span class="n">fb</span> <span class="n">fb</span> <span class="n">fb</span> <span class="n">fb</span> <span class="n">fb</span> <span class="n">fb</span> <span class="n">fb</span> <span class="n">fb</span> <span class="n">fb</span> <span class="n">fb</span> <span class="n">fb</span> <span class="n">fb</span> <span class="n">fb</span> <span class="n">fb</span> <span class="n">fb</span>
+<span class="p">[</span> <span class="mi">1198</span><span class="p">.</span><span class="mi">256690</span><span class="p">]</span> <span class="o">==================================================================</span>
+<span class="p">[</span> <span class="mi">1198</span><span class="p">.</span><span class="mi">257349</span><span class="p">]</span> <span class="n">Disabling</span> <span class="n">lock</span> <span class="n">debugging</span> <span class="n">due</span> <span class="n">to</span> <span class="n">kernel</span> <span class="n">taint</span>
+<span class="p">[</span> <span class="mi">1198</span><span class="p">.</span><span class="mi">257882</span><span class="p">]</span> <span class="n">Bluetooth</span><span class="o">:</span> <span class="n">sock</span> <span class="mo">000000006</span><span class="n">ae68011</span> <span class="n">state</span> <span class="mi">9</span>
+<span class="p">[</span> <span class="mi">1198</span><span class="p">.</span><span class="mi">257894</span><span class="p">]</span> <span class="o">------------</span><span class="p">[</span> <span class="n">cut</span> <span class="n">here</span> <span class="p">]</span><span class="o">------------</span>
+<span class="p">[</span> <span class="mi">1198</span><span class="p">.</span><span class="mi">258343</span><span class="p">]</span> <span class="n">refcount_t</span><span class="o">:</span> <span class="n">addition</span> <span class="n">on</span> <span class="mi">0</span><span class="p">;</span> <span class="n">use</span><span class="o">-</span><span class="n">after</span><span class="o">-</span><span class="n">free</span><span class="p">.</span>
+<span class="p">[</span> <span class="mi">1198</span><span class="p">.</span><span class="mi">258878</span><span class="p">]</span> <span class="n">WARNING</span><span class="o">:</span> <span class="n">CPU</span><span class="o">:</span> <span class="mi">3</span> <span class="n">PID</span><span class="o">:</span> <span class="mi">277</span> <span class="n">at</span> <span class="n">lib</span><span class="o">/</span><span class="n">refcount</span><span class="p">.</span><span class="n">c</span><span class="o">:</span><span class="mi">25</span> <span class="n">refcount_warn_saturate</span><span class="o">+</span><span class="mh">0x178</span><span class="o">/</span><span class="mh">0x1f0</span>
+<span class="p">[</span> <span class="mi">1198</span><span class="p">.</span><span class="mi">259687</span><span class="p">]</span> <span class="n">Modules</span> <span class="n">linked</span> <span class="n">in</span><span class="o">:</span>
+<span class="p">[</span> <span class="mi">1198</span><span class="p">.</span><span class="mi">259985</span><span class="p">]</span> <span class="n">CPU</span><span class="o">:</span> <span class="mi">3</span> <span class="n">PID</span><span class="o">:</span> <span class="mi">277</span> <span class="n">Comm</span><span class="o">:</span> <span class="n">kworker</span><span class="o">/</span><span class="mi">3</span><span class="o">:</span><span class="mi">2</span> <span class="n">Tainted</span><span class="o">:</span> <span class="n">G</span>    <span class="n">B</span>             <span class="mi">5</span><span class="p">.</span><span class="mi">15</span><span class="p">.</span><span class="mi">0</span> <span class="err">#</span><span class="mi">18</span>
+<span class="p">[</span> <span class="mi">1198</span><span class="p">.</span><span class="mi">260732</span><span class="p">]</span> <span class="n">Hardware</span> <span class="n">name</span><span class="o">:</span> <span class="n">QEMU</span> <span class="n">Standard</span> <span class="n">PC</span> <span class="p">(</span><span class="n">i440FX</span> <span class="o">+</span> <span class="n">PIIX</span><span class="p">,</span> <span class="mi">1996</span><span class="p">),</span> <span class="n">BIOS</span> <span class="mi">1</span><span class="p">.</span><span class="mi">15</span><span class="p">.</span><span class="mi">0</span><span class="o">-</span><span class="mi">1</span> <span class="mo">04</span><span class="o">/</span><span class="mo">01</span><span class="o">/</span><span class="mi">2014</span>
+<span class="p">[</span> <span class="mi">1198</span><span class="p">.</span><span class="mi">261515</span><span class="p">]</span> <span class="n">Workqueue</span><span class="o">:</span> <span class="n">events</span> <span class="n">sco_sock_timeout</span>
+<span class="p">[</span> <span class="mi">1198</span><span class="p">.</span><span class="mi">261938</span><span class="p">]</span> <span class="n">RIP</span><span class="o">:</span> <span class="mo">0010</span><span class="o">:</span><span class="n">refcount_warn_saturate</span><span class="o">+</span><span class="mh">0x178</span><span class="o">/</span><span class="mh">0x1f0</span>
+<span class="p">[</span> <span class="mi">1198</span><span class="p">.</span><span class="mi">262449</span><span class="p">]</span> <span class="n">Code</span><span class="o">:</span> <span class="mo">04</span> <span class="mi">31</span> <span class="n">ff</span> <span class="mi">89</span> <span class="n">de</span> <span class="n">e8</span> <span class="mi">38</span> <span class="mi">14</span> <span class="n">f0</span> <span class="n">fe</span> <span class="mi">84</span> <span class="n">db</span> <span class="mi">0</span><span class="n">f</span> <span class="mi">85</span> <span class="mi">2</span><span class="n">e</span> <span class="n">ff</span> <span class="n">ff</span> <span class="n">ff</span> <span class="n">e8</span> <span class="mi">8</span><span class="n">b</span> <span class="mi">0</span><span class="n">c</span> <span class="n">f0</span> <span class="n">fe</span> <span class="mi">48</span> <span class="n">c7</span> <span class="n">c7</span> <span class="n">a0</span> <span class="mi">99</span> <span class="n">a6</span> <span class="mi">85</span> <span class="n">c6</span> <span class="mo">05</span> <span class="mi">27</span> <span class="mi">38</span> <span class="n">ff</span> <span class="mo">04</span> <span class="mo">01</span> <span class="n">e8</span> <span class="n">c2</span> <span class="mi">71</span> <span class="n">ae</span> <span class="mo">02</span> <span class="o">&lt;</span><span class="mi">0</span><span class="n">f</span><span class="o">&gt;</span> <span class="mi">0</span><span class="n">b</span> <span class="n">e9</span> <span class="mi">0</span><span class="n">f</span> <span class="n">ff</span> <span class="n">ff</span> <span class="n">ff</span> <span class="n">e8</span> <span class="mi">6</span><span class="n">c</span> <span class="mi">0</span><span class="n">c</span> <span class="n">f0</span> <span class="n">fe</span> <span class="mi">0</span><span class="n">f</span> <span class="n">b6</span> <span class="mi">1</span><span class="n">d</span> <span class="mi">11</span> <span class="mi">38</span> <span class="n">ff</span> <span class="mo">04</span> <span class="mi">31</span> <span class="n">ff</span> <span class="mi">89</span>
+<span class="p">[</span> <span class="mi">1198</span><span class="p">.</span><span class="mi">264188</span><span class="p">]</span> <span class="n">RSP</span><span class="o">:</span> <span class="mo">001</span><span class="mi">8</span><span class="o">:</span><span class="n">ffff888123e1fcd8</span> <span class="n">EFLAGS</span><span class="o">:</span> <span class="mo">000102</span><span class="mi">86</span>
+<span class="p">[</span> <span class="mi">1198</span><span class="p">.</span><span class="mi">264673</span><span class="p">]</span> <span class="n">RAX</span><span class="o">:</span> <span class="mo">0000000000000000</span> <span class="n">RBX</span><span class="o">:</span> <span class="mo">0000000000000000</span> <span class="n">RCX</span><span class="o">:</span> <span class="mo">0000000000000000</span>
+<span class="p">[</span> <span class="mi">1198</span><span class="p">.</span><span class="mi">265355</span><span class="p">]</span> <span class="n">RDX</span><span class="o">:</span> <span class="n">ffff88811eef3200</span> <span class="n">RSI</span><span class="o">:</span> <span class="n">ffffffff814bf4b8</span> <span class="n">RDI</span><span class="o">:</span> <span class="n">ffffed10247c3f8d</span>
+<span class="p">[</span> <span class="mi">1198</span><span class="p">.</span><span class="mi">266007</span><span class="p">]</span> <span class="n">RBP</span><span class="o">:</span> <span class="n">ffff88812580b080</span> <span class="n">R08</span><span class="o">:</span> <span class="mo">0000000000000001</span> <span class="n">R09</span><span class="o">:</span> <span class="mo">0000000000000000</span>
+<span class="p">[</span> <span class="mi">1198</span><span class="p">.</span><span class="mi">266678</span><span class="p">]</span> <span class="n">R10</span><span class="o">:</span> <span class="n">ffffffff8170403f</span> <span class="n">R11</span><span class="o">:</span> <span class="mo">0000000000000000</span> <span class="n">R12</span><span class="o">:</span> <span class="n">ffff8881213b3e08</span>
+<span class="p">[</span> <span class="mi">1198</span><span class="p">.</span><span class="mi">267370</span><span class="p">]</span> <span class="n">R13</span><span class="o">:</span> <span class="n">ffff88812580b080</span> <span class="n">R14</span><span class="o">:</span> <span class="n">ffff8883aeaf0300</span> <span class="n">R15</span><span class="o">:</span> <span class="n">ffff888118f19000</span>
+<span class="p">[</span> <span class="mi">1198</span><span class="p">.</span><span class="mi">268033</span><span class="p">]</span> <span class="n">FS</span><span class="o">:</span>  <span class="mo">0000000000000000</span><span class="p">(</span><span class="mo">0000</span><span class="p">)</span> <span class="n">GS</span><span class="o">:</span><span class="n">ffff8883aeac0000</span><span class="p">(</span><span class="mo">0000</span><span class="p">)</span> <span class="n">knlGS</span><span class="o">:</span><span class="mo">0000000000000000</span>
+<span class="p">[</span> <span class="mi">1198</span><span class="p">.</span><span class="mi">268812</span><span class="p">]</span> <span class="n">CS</span><span class="o">:</span>  <span class="mo">0010</span> <span class="n">DS</span><span class="o">:</span> <span class="mo">0000</span> <span class="n">ES</span><span class="o">:</span> <span class="mo">0000</span> <span class="n">CR0</span><span class="o">:</span> <span class="mo">00000000</span><span class="mi">80050033</span>
+<span class="p">[</span> <span class="mi">1198</span><span class="p">.</span><span class="mi">269375</span><span class="p">]</span> <span class="n">CR2</span><span class="o">:</span> <span class="mo">00007</span><span class="n">ffe087b2000</span> <span class="n">CR3</span><span class="o">:</span> <span class="mo">0000000100</span><span class="n">f92000</span> <span class="n">CR4</span><span class="o">:</span> <span class="mf">00000000000006e0</span>
+<span class="p">[</span> <span class="mi">1198</span><span class="p">.</span><span class="mi">270030</span><span class="p">]</span> <span class="n">Call</span> <span class="n">Trace</span><span class="o">:</span>
+<span class="p">[</span> <span class="mi">1198</span><span class="p">.</span><span class="mi">270292</span><span class="p">]</span>  <span class="n">sco_sock_timeout</span><span class="o">+</span><span class="mh">0x208</span><span class="o">/</span><span class="mh">0x270</span>
+<span class="p">[</span> <span class="mi">1198</span><span class="p">.</span><span class="mi">270675</span><span class="p">]</span>  <span class="n">process_one_work</span><span class="o">+</span><span class="mh">0xa40</span><span class="o">/</span><span class="mh">0x1670</span>
+<span class="p">[</span> <span class="mi">1198</span><span class="p">.</span><span class="mi">271065</span><span class="p">]</span>  <span class="o">?</span> <span class="n">pwq_dec_nr_in_flight</span><span class="o">+</span><span class="mh">0x2a0</span><span class="o">/</span><span class="mh">0x2a0</span>
+<span class="p">[</span> <span class="mi">1198</span><span class="p">.</span><span class="mi">271523</span><span class="p">]</span>  <span class="o">?</span> <span class="n">rwlock_bug</span><span class="p">.</span><span class="n">part</span><span class="p">.</span><span class="mi">0</span><span class="o">+</span><span class="mh">0x90</span><span class="o">/</span><span class="mh">0x90</span>
+<span class="p">[</span> <span class="mi">1198</span><span class="p">.</span><span class="mi">271921</span><span class="p">]</span>  <span class="n">worker_thread</span><span class="o">+</span><span class="mh">0x62a</span><span class="o">/</span><span class="mh">0x13e0</span>
+<span class="p">[</span> <span class="mi">1198</span><span class="p">.</span><span class="mi">272328</span><span class="p">]</span>  <span class="o">?</span> <span class="n">__kthread_parkme</span><span class="o">+</span><span class="mh">0x126</span><span class="o">/</span><span class="mh">0x1f0</span>
+<span class="p">[</span> <span class="mi">1198</span><span class="p">.</span><span class="mi">272734</span><span class="p">]</span>  <span class="o">?</span> <span class="n">process_one_work</span><span class="o">+</span><span class="mh">0x1670</span><span class="o">/</span><span class="mh">0x1670</span>
+<span class="p">[</span> <span class="mi">1198</span><span class="p">.</span><span class="mi">273178</span><span class="p">]</span>  <span class="n">kthread</span><span class="o">+</span><span class="mh">0x3c3</span><span class="o">/</span><span class="mh">0x4a0</span>
+<span class="p">[</span> <span class="mi">1198</span><span class="p">.</span><span class="mi">273493</span><span class="p">]</span>  <span class="o">?</span> <span class="n">_raw_spin_unlock_irq</span><span class="o">+</span><span class="mh">0x1f</span><span class="o">/</span><span class="mh">0x30</span>
+<span class="p">[</span> <span class="mi">1198</span><span class="p">.</span><span class="mi">273915</span><span class="p">]</span>  <span class="o">?</span> <span class="n">set_kthread_struct</span><span class="o">+</span><span class="mh">0x130</span><span class="o">/</span><span class="mh">0x130</span>
+<span class="p">[</span> <span class="mi">1198</span><span class="p">.</span><span class="mi">274361</span><span class="p">]</span>  <span class="n">ret_from_fork</span><span class="o">+</span><span class="mh">0x22</span><span class="o">/</span><span class="mh">0x30</span>
+<span class="p">[</span> <span class="mi">1198</span><span class="p">.</span><span class="mi">274712</span><span class="p">]</span> <span class="n">irq</span> <span class="n">event</span> <span class="n">stamp</span><span class="o">:</span> <span class="mi">32262</span>
+<span class="p">[</span> <span class="mi">1198</span><span class="p">.</span><span class="mi">275037</span><span class="p">]</span> <span class="n">hardirqs</span> <span class="n">last</span>  <span class="n">enabled</span> <span class="n">at</span> <span class="p">(</span><span class="mi">32261</span><span class="p">)</span><span class="o">:</span> <span class="p">[</span><span class="o">&lt;</span><span class="n">ffffffff8538d5ef</span><span class="o">&gt;</span><span class="p">]</span> <span class="n">_raw_spin_unlock_irq</span><span class="o">+</span><span class="mh">0x1f</span><span class="o">/</span><span class="mh">0x30</span>
+<span class="p">[</span> <span class="mi">1198</span><span class="p">.</span><span class="mi">275883</span><span class="p">]</span> <span class="n">hardirqs</span> <span class="n">last</span> <span class="n">disabled</span> <span class="n">at</span> <span class="p">(</span><span class="mi">32262</span><span class="p">)</span><span class="o">:</span> <span class="p">[</span><span class="o">&lt;</span><span class="n">ffffffff8538d44b</span><span class="o">&gt;</span><span class="p">]</span> <span class="n">_raw_spin_lock_irqsave</span><span class="o">+</span><span class="mh">0x4b</span><span class="o">/</span><span class="mh">0x50</span>
+<span class="p">[</span> <span class="mi">1198</span><span class="p">.</span><span class="mi">276760</span><span class="p">]</span> <span class="n">softirqs</span> <span class="n">last</span>  <span class="n">enabled</span> <span class="n">at</span> <span class="p">(</span><span class="mi">32256</span><span class="p">)</span><span class="o">:</span> <span class="p">[</span><span class="o">&lt;</span><span class="n">ffffffff841cd494</span><span class="o">&gt;</span><span class="p">]</span> <span class="n">update_defense_level</span><span class="o">+</span><span class="mh">0xa94</span><span class="o">/</span><span class="mh">0x1110</span>
+<span class="p">[</span> <span class="mi">1198</span><span class="p">.</span><span class="mi">277637</span><span class="p">]</span> <span class="n">softirqs</span> <span class="n">last</span> <span class="n">disabled</span> <span class="n">at</span> <span class="p">(</span><span class="mi">32254</span><span class="p">)</span><span class="o">:</span> <span class="p">[</span><span class="o">&lt;</span><span class="n">ffffffff841ccaa9</span><span class="o">&gt;</span><span class="p">]</span> <span class="n">update_defense_level</span><span class="o">+</span><span class="mh">0xa9</span><span class="o">/</span><span class="mh">0x1110</span>
+<span class="p">[</span> <span class="mi">1198</span><span class="p">.</span><span class="mi">278505</span><span class="p">]</span> <span class="o">---</span><span class="p">[</span> <span class="n">end</span> <span class="n">trace</span> <span class="mi">58</span><span class="n">deb9f77f47f936</span> <span class="p">]</span><span class="o">---</span>
+<span class="p">[</span> <span class="mi">1198</span><span class="p">.</span><span class="mi">278942</span><span class="p">]</span> <span class="o">------------</span><span class="p">[</span> <span class="n">cut</span> <span class="n">here</span> <span class="p">]</span><span class="o">------------</span>
+<span class="p">[</span> <span class="mi">1198</span><span class="p">.</span><span class="mi">279387</span><span class="p">]</span> <span class="n">refcount_t</span><span class="o">:</span> <span class="n">underflow</span><span class="p">;</span> <span class="n">use</span><span class="o">-</span><span class="n">after</span><span class="o">-</span><span class="n">free</span><span class="p">.</span>
+<span class="p">[</span> <span class="mi">1198</span><span class="p">.</span><span class="mi">279898</span><span class="p">]</span> <span class="n">WARNING</span><span class="o">:</span> <span class="n">CPU</span><span class="o">:</span> <span class="mi">3</span> <span class="n">PID</span><span class="o">:</span> <span class="mi">277</span> <span class="n">at</span> <span class="n">lib</span><span class="o">/</span><span class="n">refcount</span><span class="p">.</span><span class="n">c</span><span class="o">:</span><span class="mi">28</span> <span class="n">refcount_warn_saturate</span><span class="o">+</span><span class="mh">0x103</span><span class="o">/</span><span class="mh">0x1f0</span>
+<span class="p">[</span> <span class="mi">1198</span><span class="p">.</span><span class="mi">280712</span><span class="p">]</span> <span class="n">Modules</span> <span class="n">linked</span> <span class="n">in</span><span class="o">:</span>
+<span class="p">[</span> <span class="mi">1198</span><span class="p">.</span><span class="mi">281001</span><span class="p">]</span> <span class="n">CPU</span><span class="o">:</span> <span class="mi">3</span> <span class="n">PID</span><span class="o">:</span> <span class="mi">277</span> <span class="n">Comm</span><span class="o">:</span> <span class="n">kworker</span><span class="o">/</span><span class="mi">3</span><span class="o">:</span><span class="mi">2</span> <span class="n">Tainted</span><span class="o">:</span> <span class="n">G</span>    <span class="n">B</span>   <span class="n">W</span>         <span class="mi">5</span><span class="p">.</span><span class="mi">15</span><span class="p">.</span><span class="mi">0</span> <span class="err">#</span><span class="mi">18</span>
+<span class="p">[</span> <span class="mi">1198</span><span class="p">.</span><span class="mi">281738</span><span class="p">]</span> <span class="n">Hardware</span> <span class="n">name</span><span class="o">:</span> <span class="n">QEMU</span> <span class="n">Standard</span> <span class="n">PC</span> <span class="p">(</span><span class="n">i440FX</span> <span class="o">+</span> <span class="n">PIIX</span><span class="p">,</span> <span class="mi">1996</span><span class="p">),</span> <span class="n">BIOS</span> <span class="mi">1</span><span class="p">.</span><span class="mi">15</span><span class="p">.</span><span class="mi">0</span><span class="o">-</span><span class="mi">1</span> <span class="mo">04</span><span class="o">/</span><span class="mo">01</span><span class="o">/</span><span class="mi">2014</span>
+<span class="p">[</span> <span class="mi">1198</span><span class="p">.</span><span class="mi">282519</span><span class="p">]</span> <span class="n">Workqueue</span><span class="o">:</span> <span class="n">events</span> <span class="n">sco_sock_timeout</span>
+<span class="p">[</span> <span class="mi">1198</span><span class="p">.</span><span class="mi">282941</span><span class="p">]</span> <span class="n">RIP</span><span class="o">:</span> <span class="mo">0010</span><span class="o">:</span><span class="n">refcount_warn_saturate</span><span class="o">+</span><span class="mh">0x103</span><span class="o">/</span><span class="mh">0x1f0</span>
+<span class="p">[</span> <span class="mi">1198</span><span class="p">.</span><span class="mi">283456</span><span class="p">]</span> <span class="n">Code</span><span class="o">:</span> <span class="mi">1</span><span class="n">d</span> <span class="n">bb</span> <span class="mi">38</span> <span class="n">ff</span> <span class="mo">04</span> <span class="mi">31</span> <span class="n">ff</span> <span class="mi">89</span> <span class="n">de</span> <span class="n">e8</span> <span class="n">a9</span> <span class="mi">14</span> <span class="n">f0</span> <span class="n">fe</span> <span class="mi">84</span> <span class="n">db</span> <span class="mi">75</span> <span class="n">a3</span> <span class="n">e8</span> <span class="mo">00</span> <span class="mi">0</span><span class="n">d</span> <span class="n">f0</span> <span class="n">fe</span> <span class="mi">48</span> <span class="n">c7</span> <span class="n">c7</span> <span class="mo">00</span> <span class="mi">9</span><span class="n">a</span> <span class="n">a6</span> <span class="mi">85</span> <span class="n">c6</span> <span class="mo">05</span> <span class="mi">9</span><span class="n">b</span> <span class="mi">38</span> <span class="n">ff</span> <span class="mo">04</span> <span class="mo">01</span> <span class="n">e8</span> <span class="mi">37</span> <span class="mi">72</span> <span class="n">ae</span> <span class="mo">02</span> <span class="o">&lt;</span><span class="mi">0</span><span class="n">f</span><span class="o">&gt;</span> <span class="mi">0</span><span class="n">b</span> <span class="n">eb</span> <span class="mi">87</span> <span class="n">e8</span> <span class="n">e4</span> <span class="mi">0</span><span class="n">c</span> <span class="n">f0</span> <span class="n">fe</span> <span class="mi">0</span><span class="n">f</span> <span class="n">b6</span> <span class="mi">1</span><span class="n">d</span> <span class="mi">84</span> <span class="mi">38</span> <span class="n">ff</span> <span class="mo">04</span> <span class="mi">31</span> <span class="n">ff</span> <span class="mi">89</span> <span class="n">de</span> <span class="n">e8</span> <span class="mi">74</span>
+<span class="p">[</span> <span class="mi">1198</span><span class="p">.</span><span class="mi">285172</span><span class="p">]</span> <span class="n">RSP</span><span class="o">:</span> <span class="mo">001</span><span class="mi">8</span><span class="o">:</span><span class="n">ffff888123e1fcd8</span> <span class="n">EFLAGS</span><span class="o">:</span> <span class="mo">000102</span><span class="mi">86</span>
+<span class="p">[</span> <span class="mi">1198</span><span class="p">.</span><span class="mi">285655</span><span class="p">]</span> <span class="n">RAX</span><span class="o">:</span> <span class="mo">0000000000000000</span> <span class="n">RBX</span><span class="o">:</span> <span class="mo">0000000000000000</span> <span class="n">RCX</span><span class="o">:</span> <span class="mo">0000000000000000</span>
+<span class="p">[</span> <span class="mi">1198</span><span class="p">.</span><span class="mi">286327</span><span class="p">]</span> <span class="n">RDX</span><span class="o">:</span> <span class="n">ffff88811eef3200</span> <span class="n">RSI</span><span class="o">:</span> <span class="n">ffffffff814bf4b8</span> <span class="n">RDI</span><span class="o">:</span> <span class="n">ffffed10247c3f8d</span>
+<span class="p">[</span> <span class="mi">1198</span><span class="p">.</span><span class="mi">286984</span><span class="p">]</span> <span class="n">RBP</span><span class="o">:</span> <span class="n">ffff88812580b080</span> <span class="n">R08</span><span class="o">:</span> <span class="mo">0000000000000001</span> <span class="n">R09</span><span class="o">:</span> <span class="mo">0000000000000000</span>
+<span class="p">[</span> <span class="mi">1198</span><span class="p">.</span><span class="mi">287666</span><span class="p">]</span> <span class="n">R10</span><span class="o">:</span> <span class="n">ffffffff8170403f</span> <span class="n">R11</span><span class="o">:</span> <span class="mo">0000000000000000</span> <span class="n">R12</span><span class="o">:</span> <span class="n">ffff8881213b3e08</span>
+<span class="p">[</span> <span class="mi">1198</span><span class="p">.</span><span class="mi">288346</span><span class="p">]</span> <span class="n">R13</span><span class="o">:</span> <span class="n">ffff88812580b080</span> <span class="n">R14</span><span class="o">:</span> <span class="n">ffff8883aeaf0300</span> <span class="n">R15</span><span class="o">:</span> <span class="n">ffff888118f19000</span>
+<span class="p">[</span> <span class="mi">1198</span><span class="p">.</span><span class="mi">289006</span><span class="p">]</span> <span class="n">FS</span><span class="o">:</span>  <span class="mo">0000000000000000</span><span class="p">(</span><span class="mo">0000</span><span class="p">)</span> <span class="n">GS</span><span class="o">:</span><span class="n">ffff8883aeac0000</span><span class="p">(</span><span class="mo">0000</span><span class="p">)</span> <span class="n">knlGS</span><span class="o">:</span><span class="mo">0000000000000000</span>
+<span class="p">[</span> <span class="mi">1198</span><span class="p">.</span><span class="mi">289777</span><span class="p">]</span> <span class="n">CS</span><span class="o">:</span>  <span class="mo">0010</span> <span class="n">DS</span><span class="o">:</span> <span class="mo">0000</span> <span class="n">ES</span><span class="o">:</span> <span class="mo">0000</span> <span class="n">CR0</span><span class="o">:</span> <span class="mo">00000000</span><span class="mi">80050033</span>
+<span class="p">[</span> <span class="mi">1198</span><span class="p">.</span><span class="mi">290339</span><span class="p">]</span> <span class="n">CR2</span><span class="o">:</span> <span class="mo">00007</span><span class="n">ffe087b2000</span> <span class="n">CR3</span><span class="o">:</span> <span class="mo">0000000100</span><span class="n">f92000</span> <span class="n">CR4</span><span class="o">:</span> <span class="mf">00000000000006e0</span>
+<span class="p">[</span> <span class="mi">1198</span><span class="p">.</span><span class="mi">291007</span><span class="p">]</span> <span class="n">Call</span> <span class="n">Trace</span><span class="o">:</span>
+<span class="p">[</span> <span class="mi">1198</span><span class="p">.</span><span class="mi">291262</span><span class="p">]</span>  <span class="n">sco_sock_timeout</span><span class="o">+</span><span class="mh">0x21f</span><span class="o">/</span><span class="mh">0x270</span>
+<span class="p">[</span> <span class="mi">1198</span><span class="p">.</span><span class="mi">291648</span><span class="p">]</span>  <span class="n">process_one_work</span><span class="o">+</span><span class="mh">0xa40</span><span class="o">/</span><span class="mh">0x1670</span>
+<span class="p">[</span> <span class="mi">1198</span><span class="p">.</span><span class="mi">292050</span><span class="p">]</span>  <span class="o">?</span> <span class="n">pwq_dec_nr_in_flight</span><span class="o">+</span><span class="mh">0x2a0</span><span class="o">/</span><span class="mh">0x2a0</span>
+<span class="p">[</span> <span class="mi">1198</span><span class="p">.</span><span class="mi">292509</span><span class="p">]</span>  <span class="o">?</span> <span class="n">rwlock_bug</span><span class="p">.</span><span class="n">part</span><span class="p">.</span><span class="mi">0</span><span class="o">+</span><span class="mh">0x90</span><span class="o">/</span><span class="mh">0x90</span>
+<span class="p">[</span> <span class="mi">1198</span><span class="p">.</span><span class="mi">292902</span><span class="p">]</span>  <span class="n">worker_thread</span><span class="o">+</span><span class="mh">0x62a</span><span class="o">/</span><span class="mh">0x13e0</span>
+<span class="p">[</span> <span class="mi">1198</span><span class="p">.</span><span class="mi">293305</span><span class="p">]</span>  <span class="o">?</span> <span class="n">__kthread_parkme</span><span class="o">+</span><span class="mh">0x126</span><span class="o">/</span><span class="mh">0x1f0</span>
+<span class="p">[</span> <span class="mi">1198</span><span class="p">.</span><span class="mi">293706</span><span class="p">]</span>  <span class="o">?</span> <span class="n">process_one_work</span><span class="o">+</span><span class="mh">0x1670</span><span class="o">/</span><span class="mh">0x1670</span>
+<span class="p">[</span> <span class="mi">1198</span><span class="p">.</span><span class="mi">294140</span><span class="p">]</span>  <span class="n">kthread</span><span class="o">+</span><span class="mh">0x3c3</span><span class="o">/</span><span class="mh">0x4a0</span>
+<span class="p">[</span> <span class="mi">1198</span><span class="p">.</span><span class="mi">294456</span><span class="p">]</span>  <span class="o">?</span> <span class="n">_raw_spin_unlock_irq</span><span class="o">+</span><span class="mh">0x1f</span><span class="o">/</span><span class="mh">0x30</span>
+<span class="p">[</span> <span class="mi">1198</span><span class="p">.</span><span class="mi">294866</span><span class="p">]</span>  <span class="o">?</span> <span class="n">set_kthread_struct</span><span class="o">+</span><span class="mh">0x130</span><span class="o">/</span><span class="mh">0x130</span>
+<span class="p">[</span> <span class="mi">1198</span><span class="p">.</span><span class="mi">295300</span><span class="p">]</span>  <span class="n">ret_from_fork</span><span class="o">+</span><span class="mh">0x22</span><span class="o">/</span><span class="mh">0x30</span>
+</code></pre></div></div>
+
+<p>实际上在 fuzz 的第二天便测出了这个崩溃，但 syzkaller 一直无法回归出到底是哪个样本导致的崩溃，于是需要对测试用例进行手工排查。</p>
+
+<p>经过排查发现触发 UAF 的原因是两个线程几乎同时 connect 进去，盲猜是加锁操作不当导致的条件竞争漏洞。</p>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="mi">13</span><span class="o">:</span><span class="mi">36</span><span class="o">:</span><span class="mi">50</span> <span class="n">executing</span> <span class="n">program</span> <span class="mi">1</span><span class="o">:</span>
+<span class="n">r0</span> <span class="o">=</span> <span class="n">syz_init_net_socket</span><span class="err">$</span><span class="n">bt_sco</span><span class="p">(</span><span class="mh">0x1f</span><span class="p">,</span> <span class="mh">0x5</span><span class="p">,</span> <span class="mh">0x2</span><span class="p">)</span> <span class="p">(</span><span class="n">async</span><span class="p">)</span>
+<span class="n">connect</span><span class="err">$</span><span class="n">bt_sco</span><span class="p">(</span><span class="mh">0xffffffffffffffff</span><span class="p">,</span> <span class="o">&amp;</span><span class="p">(</span><span class="mh">0x7f0000000040</span><span class="p">)</span><span class="o">=</span><span class="p">{</span><span class="mh">0x1f</span><span class="p">,</span> <span class="err">@</span><span class="n">none</span><span class="p">},</span> <span class="mh">0x8</span><span class="p">)</span>
+<span class="n">connect</span><span class="err">$</span><span class="n">bt_sco</span><span class="p">(</span><span class="n">r0</span><span class="p">,</span> <span class="o">&amp;</span><span class="p">(</span><span class="mh">0x7f0000000000</span><span class="p">)</span><span class="o">=</span><span class="p">{</span><span class="mh">0x1f</span><span class="p">,</span> <span class="err">@</span><span class="n">fixed</span><span class="o">=</span><span class="p">{</span><span class="err">'\</span><span class="n">xaa</span><span class="err">\</span><span class="n">xaa</span><span class="err">\</span><span class="n">xaa</span><span class="err">\</span><span class="n">xaa</span><span class="err">\</span><span class="n">xaa</span><span class="err">'</span><span class="p">,</span> <span class="mh">0x11</span><span class="p">}},</span> <span class="mh">0x8</span><span class="p">)</span>
+</code></pre></div></div>
+
+<h1 id="提交历史">提交历史</h1>
+
+<p>拿到崩溃信息的第一时间，我就联系 <a href="https://xuanxuanblingbling.github.io/"><strong>王宇轩</strong></a> 一起加入分析。</p>
+
+<p>查找 Linux 内核仓库的提交记录发现，这个漏洞早在 2022 年 5 月 13 日就已经被官方修补了，早了我们 8 个月。</p>
+
+<p><img src="/assets/posts/2023-02-11-蓝牙sco条件竞争漏洞挖掘与利用/1.png" alt="1.png" /></p>
+
+<p>官方的修补方法是把 connect 函数的套接字锁提前：</p>
+
+<p><img src="/assets/posts/2023-02-11-蓝牙sco条件竞争漏洞挖掘与利用/15.png" alt="15.png" /></p>
+
+<p>经过多个 Ubuntu 版本的对比发现，这个漏洞在最新的 Ubuntu 22.04 中已经被修补，内核版本是 5.15.0-50</p>
+
+<p><img src="/assets/posts/2023-02-11-蓝牙sco条件竞争漏洞挖掘与利用/31.jpg" alt="31.jpg" /></p>
+
+<p><img src="/assets/posts/2023-02-11-蓝牙sco条件竞争漏洞挖掘与利用/32.jpg" alt="32.jpg" /></p>
+
+<p>在上一个版本的 Ubuntu 20.04 这个漏洞还未修补，内核版本是 5.15.0-46</p>
+
+<p><img src="/assets/posts/2023-02-11-蓝牙sco条件竞争漏洞挖掘与利用/35.png" alt="35.png" /></p>
+
+<p>考虑到还有大量的设备在运行 Ubuntu 20.04，而且这些设备不一定会更新到最新版本的内核，如果是国产操作系统的话，内核的更新尤为滞后，所以我们认为这个漏洞有搞头，可以继续深入分析。</p>
+
+<h1 id="漏洞分析">漏洞分析</h1>
+
+<p>内核版本：5.15.0-46，使用 Ubuntu 20.04 默认的 .config 文件编译。</p>
+
+<p>正常情况下，当 connect 成功之后，sock::sk_state 会标记为 BT_CONNECTED，这样就可以防止其他线程再次试图 connect。</p>
+
+<p>但是把 lock_sock 放在了状态检查之后，就会导致在 sock::sk_state 更改之前，两个线程同时通过状态检查，在后续造成不确定的状态。</p>
+
+<p><img src="/assets/posts/2023-02-11-蓝牙sco条件竞争漏洞挖掘与利用/3.png" alt="3.png" /></p>
+
+<p>如果有两个 connect1 和 connect2 线程同时对一个蓝牙套接字进行 connect 操作，并且两个线程都绕过了状态检查，那么这两个线程就都保持了对内核套接字 sock 的引用。</p>
+
+<p>若对套接字进行 close 操作，那么内核套接字 sock 就会被释放掉。</p>
+
+<p><img src="/assets/posts/2023-02-11-蓝牙sco条件竞争漏洞挖掘与利用/4.png" alt="4.png" /></p>
+
+<p>注意到 connect1 和 connect2 线程会先后在 sco_sock_connect 函数中进入临界区</p>
+
+<p><img src="/assets/posts/2023-02-11-蓝牙sco条件竞争漏洞挖掘与利用/5.png" alt="5.png" /></p>
+
+<p>每进一次临界区都会调用 sco_conn_add 函数注册延迟任务 timeout_work，而 timeout_work 对象的根结点就是内核套接字 sock，也就是延迟任务是与内核套接字 sock 绑定的。</p>
+
+<p><img src="/assets/posts/2023-02-11-蓝牙sco条件竞争漏洞挖掘与利用/6.png" alt="6.png" /></p>
+
+<p>第二个进入临界区的 connect2 线程会注册新的延迟任务，覆盖掉前一个 connect1 线程注册的延迟任务，那么 connect1 线程的延迟任务就会成为孤儿线程，游荡在内核中，无法被取消，但在未来的某个时间点会运行……</p>
+
+<p>这就会造成很大的麻烦，在 close 掉蓝牙套接字的时候，内核套接字 sock 会被释放掉，connect2 线程注册的延迟任务也会被注销。connect1 线程注册的延迟任务此时已经变成了孤儿线程，但还保持着对内核套接字 sock 的引用，在延迟 40 秒后触发了 UAF。这一点与我们测试 poc 是一致的，poc 也是在大约 40 秒后触发了 UAF。</p>
+
+<p><img src="/assets/posts/2023-02-11-蓝牙sco条件竞争漏洞挖掘与利用/7.png" alt="7.png" /></p>
+
+<p>实际上在进入 sco_sock_connect 临界区里面之后，sco_conn_add 函数中注册了延迟任务只是 sco 协议层面的，根据底层蓝牙硬件的不同，例如底层用的是 usb 蓝牙适配器，bt_usb 驱动层会注册 usb 驱动层面的延迟任务。usb 驱动层面的延迟任务最终也会引用到内核套接字 soc 造成 UAF。</p>
+
+<p><img src="/assets/posts/2023-02-11-蓝牙sco条件竞争漏洞挖掘与利用/8.jpg" alt="8.jpg" /></p>
+
+<p>实测发现有时候确实会报两次 UAF 的 kernel warning，而且从 usb 驱动层造成的 UAF 比 sco 层造成的 UAF 要快，毕竟后者要等待 40 秒才能触发。</p>
+
+<h1 id="漏洞利用">漏洞利用</h1>
+
+<p>利用条件是关闭 KASLR，虽然有两次 UAF 的机会可以用，按道理可以利用第一次 UAF 打一个内核指针泄漏，但是经常是第一次 UAF 之后蓝牙协议栈就失效了，所以这里关闭 KASLR，等后面发现信息泄漏的漏洞再回来看。</p>
+
+<p>注意到在漏洞触发函数中，有对内核套接字 sock 函数指针成员的调用，因此利用思路就是在 close 之后通过堆喷射占位内核套接字对象，劫持函数指针 sk_state_change 达到控制流劫持的目的。</p>
+
+<p><img src="/assets/posts/2023-02-11-蓝牙sco条件竞争漏洞挖掘与利用/2.png" alt="2.png" /></p>
+
+<p>在堆喷射开始之前准备了 1024 个堆喷射线程，一旦内核套接字对象 sock 被释放，立即开始对喷占位。</p>
+
+<p><img src="/assets/posts/2023-02-11-蓝牙sco条件竞争漏洞挖掘与利用/9.png" alt="9.png" /></p>
+
+<p>堆喷射用的是 fuse + setxattr 方法，目标是把 sk_state_change 位置覆盖为内核函数 run_cmd 的地址，该函数可以从内核空间以 root 的身份标识执行用户态程序。</p>
+
+<p><img src="/assets/posts/2023-02-11-蓝牙sco条件竞争漏洞挖掘与利用/10.png" alt="10.png" /></p>
+
+<p>最终成功提权：</p>
+
+<p><img src="/assets/posts/2023-02-11-蓝牙sco条件竞争漏洞挖掘与利用/%E6%88%AA%E5%B1%8F2023-04-17_22.31.37.png" alt="截屏2023-04-17 22.31.37.png" /></p>
+
+<h1 id="横向挖掘">横向挖掘</h1>
+
+<p>在一年后的  2024 年 11 月份，我又在蓝牙 sco 中发现了一个类似漏洞，详见 <a href="https://qiutianshu.github.io/linux_kernel/2025/01/18/%E8%93%9D%E7%89%99sco%E9%A9%B1%E5%8A%A8%E6%9D%A1%E4%BB%B6%E7%AB%9E%E4%BA%89%E6%BC%8F%E6%B4%9E%E6%8C%96%E6%8E%98.html"><strong>蓝牙 sco 条件竞争漏洞挖掘与分析</strong></a></p>
+
+<p>所以linux内核漏洞修补不一定有cve号，可能开发人员看到测到就修了，那么没事看看 diff 也是一种捡漏洞的方法，毕竟除了ctf题目，目标不可能是最新版linux。</p>
+
+<h1 id="附件">附件</h1>
+
+<p><a href="/assets/posts/2023-02-11-蓝牙sco条件竞争漏洞挖掘与利用/exploit.zip">exploit.zip</a></p>
+
+    </div>
+</article>
+
+                
+                <footer class="footer">
+        <section class="footer__about">
+                <p class="footer__about__copyright">© qts588 2025</p>
+                
+                <span class="divider">·</span>
+                
+                <span class="footer__about__theme"><p>theme</p><a id="simplex-logo" href="https://github.com/andreondra/jekyll-theme-simplex" target="_blank"><img alt="Simplex theme logo" src="http://localhost:4000/assets/img/icons/simplex_logo.svg"/></a><p>by <a href="https://ondrej.golasowski.com/">golas</a></p></span>
+        </section>
+</footer>
+
+                <script src="http://localhost:4000/assets/js/jquery.slim.min.js"></script>
+<script src="http://localhost:4000/assets/js/lity.min.js"></script>
+<script src="http://localhost:4000/assets/js/tools.js"></script>
+<script src="http://localhost:4000/assets/js/pic.js"></script>
+<script src="http://localhost:4000/assets/js/toc-highlight.js"></script>
+            </main>
+        </div>
+    
+</body>
+</html>

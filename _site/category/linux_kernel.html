@@ -511,7 +511,7 @@
             </section>
             <p class="snippet__data__metadata__date">2024-01-03</p>
         </section>
-        <p class="snippet__data__text">这篇文章总结了 Linux 内核安全所需的入门知识，虽然不一定很全但是够用。涵盖了从环境搭建，到流行的漏洞挖掘工具使用，再到方法论总结三部分内容。这篇文章是我为2024年1月份回国防科大作交流时，所使用的交流发言稿。
+        <p class="snippet__data__text">这篇文章总结了 Linux 内核安全所需的入门知识，虽然不一定很全但是够用。涵盖了从环境搭建，到流行的漏洞挖掘工具使用，再到方法论总结三部分内容。
 </p>
         
     </section>
@@ -580,6 +580,41 @@
             <p class="snippet__data__metadata__date">2023-12-21</p>
         </section>
         <p class="snippet__data__text">CVE-2021-43267 是一个潜伏于 Linux 内核 TIPC（透明进程间通信）协议簇中的高危漏洞。该漏洞源于其对恶意构建的 MSG_CRYPTO 消息类型处理不当，存在堆缓冲区溢出漏洞。由于 TIPC 模块通常以高权限运行，本地攻击者无需特殊权限即可利用此漏洞，实现内核权限提升或导致系统拒绝服务，危害性极大。
+</p>
+        
+    </section>
+</a> 
+                    
+    </section>
+    
+    <section class="snippet snippet_linux-kernel-2023-02-11-sco">
+            
+                
+                    <style>
+    .snippet_linux-kernel-2023-02-11-sco::after {
+
+        background-image: 
+        radial-gradient(ellipse closest-side, var(--c-snippetBackgroundExternal), var(--c-snippetBackgroundInternal)),
+        url(
+            
+                http://localhost:4000/
+            
+        );
+    }
+    </style>
+<a class="snippet__link" href="/linux_kernel/2023/02/11/%E8%93%9D%E7%89%99sco%E6%9D%A1%E4%BB%B6%E7%AB%9E%E4%BA%89%E6%BC%8F%E6%B4%9E%E6%8C%96%E6%8E%98%E4%B8%8E%E5%88%A9%E7%94%A8.html">
+    <section class="snippet__data">
+        <h2 class="snippet__data__header">蓝牙sco条件竞争漏洞挖掘与利用</h2>
+        <section class="snippet__data__metadata">
+            <section class="snippet__data__metadata__category">
+                
+                    <p class="snippet__data__metadata__category__title" style="background: var(--c-themeHueBlue)">Linux内核漏洞</p>
+                
+            </section>
+            <p class="snippet__data__metadata__date">2023-02-11</p>
+        </section>
+        <p class="snippet__data__text">8 个月之前 Linux 主线中已经修补了这个漏洞，在上一个版本的 Ubuntu 20.04 这个漏洞还未修补，而且这些设备不一定会更新到最新版本的内核，如果是国产操作系统的话，内核的更新尤为滞后，所以我们认为这个漏洞有搞头。
+linux 内核漏洞修补不一定有 cve 号，可能开发人员看到测到就修了，那么没事看看 diff 也是一种捡漏洞的方法，毕竟除了 ctf 题目，目标不可能是最新版linux。
 </p>
         
     </section>
