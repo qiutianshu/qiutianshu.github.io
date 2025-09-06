@@ -1,24 +1,24 @@
-- title: Linux kernel
+- title: Linux内核漏洞
   url: category/linux_kernel.html
   icon: assets/img/icons/tux.png
   hue: "var(--c-themeHueRed)"
 
-- title: Linux userspace
+- title: Linux用户态漏洞
   url: category/linux_userspace.html
   icon: assets/img/icons/userspace.png
   hue: "var(--c-themeHueRed)"
 
-- title: Hardware
+- title: 硬件安全研究
   url: category/hardware.html
   icon: assets/img/icons/chip.svg
   hue: "var(--c-themeHueRed)"
 
-- title: Side Channel #Menu item title.
+- title: CPU 侧信道 #Menu item title.
   url: category/meltdown_spectre.html #Menu item url.
   icon: assets/img/icons/meltdown_spectre.png #Menu item icon.
   hue: "var(--c-themeHueRed)" #Menu item hue - see note [1].
 
-- title: Riscv #Menu item title.
+- title: RISC-V #Menu item title.
   url: category/riscv.html #Menu item url.
   icon: assets/img/icons/riscv.png #Menu item icon.
   hue: "var(--c-themeHueRed)" #Menu item hue - see note [1].
