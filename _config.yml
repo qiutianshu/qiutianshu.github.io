@@ -30,8 +30,6 @@ url: "" # the base hostname & protocol for your site, e.g. http://example.com
 #github_username:  jekyll
 copyright: © qts588 2025 #Your copyright.
 
-# Build settings
-# theme: jekyll-theme-simplex
 plugins:
   - jekyll-feed
 

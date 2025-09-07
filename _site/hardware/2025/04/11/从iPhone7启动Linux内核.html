@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <link rel="stylesheet" href="http://localhost:4000/assets/fonts/fonts.css"/>
+<link rel="stylesheet" href="http://localhost:4000/assets/style.css"/>
+<link rel="stylesheet" href="http://localhost:4000/assets/js/lity.min.css"/>
+
+
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<meta property="og:site_name" content="极目楚天舒" />
+<meta 
+    property="og:title"
+    content="
+        
+            从 iPhone7 启动 Linux 内核
+        
+    " 
+/>
+
+<meta property="og:url" content="http://localhost:4000//hardware/2025/04/11/%E4%BB%8EiPhone7%E5%90%AF%E5%8A%A8Linux%E5%86%85%E6%A0%B8.html" />
+
+    <meta property="og:type" content="article" />
+
+
+
+    <meta property="fb:app_id" content="" />
+
+
+
+<title>
+    
+        从 iPhone7 启动 Linux 内核
+    
+</title>
+</head>
+<body class="index">
+    
+        <div class="page-container">
+            <aside class="main-sidebar">
+                <!-- 包含 TOC -->
+                <sidebar class="sidebar">
+</sidebar>
+            </aside>
+            <!-- 主内容区域 -->
+            <main class="main-content">
+                <header class="header">
+    <section class="logo">
+        <a href="http://localhost:4000/" class="logo__link">
+            
+                <h1>极目楚天舒</h1>
+            
+        </a>
+    </section>
+    
+    <button id="menuToggle">
+        <div></div>
+        <div></div>
+        <div></div>
+    </button>
+    <nav class="menu">
+        
+<ul class="list primary">
+
+    
+        <li class="item">
+
+            <div class="item-controls">
+                <a href="http://localhost:4000/category/linux_kernel.html">
+                
+                    <img src="http://localhost:4000/assets/img/icons/tux.png"/>
+                
+                
+                    <p style="color: var(--c-themeHueRed)">Linux内核漏洞</p>
+                
+                </a>
+
+            
+            </div>
+            
+        </li>   
+    
+        <li class="item">
+
+            <div class="item-controls">
+                <a href="http://localhost:4000/category/linux_userspace.html">
+                
+                    <img src="http://localhost:4000/assets/img/icons/userspace.png"/>
+                
+                
+                    <p style="color: var(--c-themeHueRed)">Linux用户态漏洞</p>
+                
+                </a>
+
+            
+            </div>
+            
+        </li>   
+    
+        <li class="item">
+
+            <div class="item-controls">
+                <a href="http://localhost:4000/category/hardware.html">
+                
+                    <img src="http://localhost:4000/assets/img/icons/chip.svg"/>
+                
+                
+                    <p style="color: var(--c-themeHueRed)">硬件安全研究</p>
+                
+                </a>
+
+            
+            </div>
+            
+        </li>   
+    
+        <li class="item">
+
+            <div class="item-controls">
+                <a href="http://localhost:4000/category/meltdown_spectre.html">
+                
+                    <img src="http://localhost:4000/assets/img/icons/meltdown_spectre.png"/>
+                
+                
+                    <p style="color: var(--c-themeHueRed)">CPU 侧信道</p>
+                
+                </a>
+
+            
+            </div>
+            
+        </li>   
+    
+        <li class="item">
+
+            <div class="item-controls">
+                <a href="http://localhost:4000/category/riscv.html">
+                
+                    <img src="http://localhost:4000/assets/img/icons/riscv.png"/>
+                
+                
+                    <p style="color: var(--c-themeHueRed)">RISC-V</p>
+                
+                </a>
+
+            
+            </div>
+            
+        </li>   
+    
+</ul>
+    </nav>
+</header>
+                
+                <article class="post">
+
+    <div class="post__title">
+       从 iPhone7 启动 Linux 内核
+    </div>
+    <div class="post__meta"> 
+        <div class="post__meta__category">
+            
+                <p class="post__meta__category__title" style="background: var(--c-themeHueOrange)">Hardware</p>
+            
+        </div>
+        <p class="post__meta__divider">·</p>
+        <div class="post__meta__date">
+            2025-04-11
+        </div>
+        
+    </div>
+
+    
+    <div class="post__content">
+        <p>早在2021年4月Linux内核添加了对苹果M1芯片的支持，2024年10月添加了对A7～A11芯片的支持。因此我们打算尝试一下在 iPhone 启动 Linux 内核，并且通过键盘进行交互。 
+要在苹果设备启动 Linux 内核，需要针对不同苹果设备的硬件平台配置，对设备树进行微调。</p>
+
+<p><img src="/assets/posts/2025-04-11-从iPhone7启动Linux内核/image.png" alt="image.png" /></p>
+
+<p>基本原理是：</p>
+
+<ul>
+  <li>借助漏洞利用工具 checkra1n 利用 checkm8 漏洞在 iPhone 端实现任意代码执行；</li>
+</ul>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span>checkra1n <span class="nt">-k</span> Pongo.bin  // Pongo.bin 是上传到 iPhone 的paylod
+</code></pre></div></div>
+
+<ul>
+  <li>Pongo.bin 开启 USB 传输服务，提供命令行服务，实现对 iPhone 的任意地址写；</li>
+  <li>通过PongoOS上传Linux压缩内核、设备树、ramdisk文件系统；</li>
+</ul>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span>./load_linux.py <span class="nt">-k</span> Image.lzma <span class="nt">-d</span> dtbpack <span class="nt">-r</span> initramfs.cpio.gz
+</code></pre></div></div>
+
+<ul>
+  <li>PongoOS设置linux命令行参数，完成物理地址划分，跳转到Linux内核第一行代码；</li>
+  <li>交互的原理是修改 USB gadget 功能为串口，这样在通过数据线连接电脑后会显示 iPhone 为串口设备；</li>
+  <li>在 init 文件中添加 bash 语句，循环读取 /dev/tty 文件的内容作为 bash 命令的输入，这样便实现了上位机通过串口与 iPhone 交互的功能。</li>
+</ul>
+
+<p>漏洞利用效果：</p>
+
+<p><img src="/assets/posts/2025-04-11-从iPhone7启动Linux内核/image%201.png" alt="image.png" /></p>
+
+<p>演示视频：</p>
+
+<p><a href="https://www.bilibili.com/video/BV1DFY5zsEKE?vd_source=cb167874159c7e114d4cd5fd0c4a9ce3">iPhone 7 运行 Linux 内核并与上位机交互_哔哩哔哩_bilibili</a></p>
+
+    </div>
+</article>
+
+                
+                <footer class="footer">
+        <section class="footer__about">
+                <p class="footer__about__copyright">© qts588 2025</p>
+                
+                <span class="divider">·</span>
+                
+                <span class="footer__about__theme"><p>theme</p><a id="simplex-logo" href="https://github.com/andreondra/jekyll-theme-simplex" target="_blank"><img alt="Simplex theme logo" src="http://localhost:4000/assets/img/icons/simplex_logo.svg"/></a><p>by <a href="https://ondrej.golasowski.com/">golas</a></p></span>
+        </section>
+</footer>
+
+                <script src="http://localhost:4000/assets/js/jquery.slim.min.js"></script>
+<script src="http://localhost:4000/assets/js/lity.min.js"></script>
+<script src="http://localhost:4000/assets/js/tools.js"></script>
+<script src="http://localhost:4000/assets/js/pic.js"></script>
+<script src="http://localhost:4000/assets/js/toc-highlight.js"></script>
+            </main>
+        </div>
+    
+</body>
+</html>

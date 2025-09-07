@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" ><generator uri="https://jekyllrb.com/" version="4.4.1">Jekyll</generator><link href="http://localhost:4000/feed.xml" rel="self" type="application/atom+xml" /><link href="http://localhost:4000/" rel="alternate" type="text/html" /><updated>2025-09-06T17:33:31+08:00</updated><id>http://localhost:4000/feed.xml</id><title type="html">极目楚天舒</title><subtitle>专注于系统底层安全，主要研究 Linux 内核漏洞挖掘与利用、iPhone 硬件安全、Intel 处理器安全， 致力于探索复杂系统背后的安全风险</subtitle><entry><title type="html">iPhone SWD 调试器的开发</title><link href="http://localhost:4000/hardware/2025/08/30/iphone-SWD-%E8%B0%83%E8%AF%95%E5%99%A8.html" rel="alternate" type="text/html" title="iPhone SWD 调试器的开发" /><published>2025-08-30T13:27:38+08:00</published><updated>2025-08-30T13:27:38+08:00</updated><id>http://localhost:4000/hardware/2025/08/30/iphone-SWD-%E8%B0%83%E8%AF%95%E5%99%A8</id><content type="html" xml:base="http://localhost:4000/hardware/2025/08/30/iphone-SWD-%E8%B0%83%E8%AF%95%E5%99%A8.html"><![CDATA[<p>PANDA 2025 安全大会上，我们在 iPhone 7 plus 上面成功启动 Linux 内核，我们继续探索苹果手机硬件安全，并于近日成功打开了  iPhone 7 plus 的 SWD 硬件调试端口。</p>
+<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" ><generator uri="https://jekyllrb.com/" version="4.4.1">Jekyll</generator><link href="http://localhost:4000/feed.xml" rel="self" type="application/atom+xml" /><link href="http://localhost:4000/" rel="alternate" type="text/html" /><updated>2025-09-07T16:41:55+08:00</updated><id>http://localhost:4000/feed.xml</id><title type="html">极目楚天舒</title><subtitle>专注于系统底层安全，主要研究 Linux 内核漏洞挖掘与利用、iPhone 硬件安全、Intel 处理器安全， 致力于探索复杂系统背后的安全风险</subtitle><entry><title type="html">iPhone SWD 调试器的开发</title><link href="http://localhost:4000/hardware/2025/08/30/iphone-SWD-%E8%B0%83%E8%AF%95%E5%99%A8.html" rel="alternate" type="text/html" title="iPhone SWD 调试器的开发" /><published>2025-08-30T13:27:38+08:00</published><updated>2025-08-30T13:27:38+08:00</updated><id>http://localhost:4000/hardware/2025/08/30/iphone-SWD-%E8%B0%83%E8%AF%95%E5%99%A8</id><content type="html" xml:base="http://localhost:4000/hardware/2025/08/30/iphone-SWD-%E8%B0%83%E8%AF%95%E5%99%A8.html"><![CDATA[<p>PANDA 2025 安全大会上，我们在 iPhone 7 plus 上面成功启动 Linux 内核，我们继续探索苹果手机硬件安全，并于近日成功打开了  iPhone 7 plus 的 SWD 硬件调试端口。</p>
 
 <h1 id="lighting-接口原理">lighting 接口原理</h1>
 
@@ -6603,195 +6603,38 @@ payload = b</span><span class="sh">'</span><span class="s">/bin/sh</span><span c
 
 <p>torque的编译、安装、部署、使用</p>
 
-<p><a href="https://www.jianghaizhi.com/bckf/1262.html">Torque安装部署以及使用方法详解</a></p>]]></content><author><name></name></author><category term="userspace" /><summary type="html"><![CDATA[漏洞位于pbs_server组件的tcp_gets函数。该函数从socket句柄读取TCP载荷，将获取的数据复制到栈上的时候没有进行数据检查造成栈溢出。 攻击者可以获取远程root shell]]></summary></entry><entry><title type="html">CVE-2019-18683 V4L2框架条件竞争漏洞分析</title><link href="http://localhost:4000/linux_kernel/2025/01/29/CVE-2019-18683-V4L2%E6%A1%86%E6%9E%B6%E6%9D%A1%E4%BB%B6%E7%AB%9E%E4%BA%89%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90.html" rel="alternate" type="text/html" title="CVE-2019-18683 V4L2框架条件竞争漏洞分析" /><published>2025-01-29T13:27:38+08:00</published><updated>2025-01-29T13:27:38+08:00</updated><id>http://localhost:4000/linux_kernel/2025/01/29/CVE-2019-18683-V4L2%E6%A1%86%E6%9E%B6%E6%9D%A1%E4%BB%B6%E7%AB%9E%E4%BA%89%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90</id><content type="html" xml:base="http://localhost:4000/linux_kernel/2025/01/29/CVE-2019-18683-V4L2%E6%A1%86%E6%9E%B6%E6%9D%A1%E4%BB%B6%E7%AB%9E%E4%BA%89%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90.html"><![CDATA[<p>CVE-2019-18683是Linux内核video4Linux2（V4L2）框架中一个高危的条件竞争漏洞。该漏洞源于videobuf2核心组件在内存映射（mmap）操作与缓冲区队列管理之间缺乏有效的同步机制，导致产生UAF漏洞。</p>
+<p><a href="https://www.jianghaizhi.com/bckf/1262.html">Torque安装部署以及使用方法详解</a></p>]]></content><author><name></name></author><category term="userspace" /><summary type="html"><![CDATA[漏洞位于pbs_server组件的tcp_gets函数。该函数从socket句柄读取TCP载荷，将获取的数据复制到栈上的时候没有进行数据检查造成栈溢出。 攻击者可以获取远程root shell]]></summary></entry><entry><title type="html">从 iPhone7 启动 Linux 内核</title><link href="http://localhost:4000/hardware/2025/04/11/%E4%BB%8EiPhone7%E5%90%AF%E5%8A%A8Linux%E5%86%85%E6%A0%B8.html" rel="alternate" type="text/html" title="从 iPhone7 启动 Linux 内核" /><published>2025-04-11T13:27:38+08:00</published><updated>2025-04-11T13:27:38+08:00</updated><id>http://localhost:4000/hardware/2025/04/11/%E4%BB%8EiPhone7%E5%90%AF%E5%8A%A8Linux%E5%86%85%E6%A0%B8</id><content type="html" xml:base="http://localhost:4000/hardware/2025/04/11/%E4%BB%8EiPhone7%E5%90%AF%E5%8A%A8Linux%E5%86%85%E6%A0%B8.html"><![CDATA[<p>早在2021年4月Linux内核添加了对苹果M1芯片的支持，2024年10月添加了对A7～A11芯片的支持。因此我们打算尝试一下在 iPhone 启动 Linux 内核，并且通过键盘进行交互。 
+要在苹果设备启动 Linux 内核，需要针对不同苹果设备的硬件平台配置，对设备树进行微调。</p>
 
-<h2 id="一环境搭建">一、环境搭建</h2>
+<p><img src="/assets/posts/2025-04-11-从iPhone7启动Linux内核/image.png" alt="image.png" /></p>
 
-<p>主机环境：Ubuntu 18.04</p>
+<p>基本原理是：</p>
 
-<p>内核版本：linux 5.4.0-rc2</p>
+<ul>
+  <li>借助漏洞利用工具 checkra1n 利用 checkm8 漏洞在 iPhone 端实现任意代码执行；</li>
+</ul>
 
-<p>对.config文件进行如下配置，确保和漏洞相关的所有组件编译进内核：</p>
-
-<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">CONFIG_VIDEO_DEV</span><span class="o">=</span><span class="n">y</span>
-<span class="n">CONFIG_VIDEO_V4L2</span><span class="o">=</span><span class="n">y</span>
-<span class="n">CONFIG_VIDEO_VIVID</span><span class="o">=</span><span class="n">y</span>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span>checkra1n <span class="nt">-k</span> Pongo.bin  // Pongo.bin 是上传到 iPhone 的paylod
 </code></pre></div></div>
 
-<p>编译安装内核：</p>
+<ul>
+  <li>Pongo.bin 开启 USB 传输服务，提供命令行服务，实现对 iPhone 的任意地址写；</li>
+  <li>通过PongoOS上传Linux压缩内核、设备树、ramdisk文件系统；</li>
+</ul>
 
-<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>/linux-5.4-rc2<span class="nv">$ </span>make menuconfig
-/linux-5.4-rc2<span class="nv">$ </span>make <span class="nt">-j8</span>
-/linux-5.4-rc2<span class="nv">$ </span><span class="nb">sudo </span>make modules_install
-/linux-5.4-rc2<span class="nv">$ </span><span class="nb">sudo </span>make <span class="nb">install</span>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span>./load_linux.py <span class="nt">-k</span> Image.lzma <span class="nt">-d</span> dtbpack <span class="nt">-r</span> initramfs.cpio.gz
 </code></pre></div></div>
 
-<p>安装完成后重启系统，在/dev目录下出现video0和video1两个设备：</p>
+<ul>
+  <li>PongoOS设置linux命令行参数，完成物理地址划分，跳转到Linux内核第一行代码；</li>
+  <li>交互的原理是修改 USB gadget 功能为串口，这样在通过数据线连接电脑后会显示 iPhone 为串口设备；</li>
+  <li>在 init 文件中添加 bash 语句，循环读取 /dev/tty 文件的内容作为 bash 命令的输入，这样便实现了上位机通过串口与 iPhone 交互的功能。</li>
+</ul>
 
-<p><img src="/assets/posts/2025-01-29-CVE-2019-18683-V4L2框架条件竞争漏洞分析/1.png" alt="截屏2025-01-17 10.00.34.png" /></p>
+<p>漏洞利用效果：</p>
 
-<h2 id="二v4l2框架介绍">二、V4L2框架介绍</h2>
+<p><img src="/assets/posts/2025-04-11-从iPhone7启动Linux内核/image%201.png" alt="image.png" /></p>
 
-<p>V4L2是video for linux version 2的简写，是Linux内核里面用于视频采集的框架。</p>
+<p>演示视频：</p>
 
-<p>该框架设计的目的是，为市面上型号繁杂的摄像头提供统一的接入方式，在内核层面抽象出调用框架，以内核API的形式提供给驱动开发者使用。用户态层面通过read/write、ioctl命令、mmap内存映射等系统调用，操作V4L2框架，实现摄像头的开启/关闭、取流/停止、摄像头参数修改、摄像头信息读取等功能。</p>
-
-<p>框架结构如图所示，hardware层是针对不同的SoC芯片的驱动程序，主要包括硬件编码解码、图像画质的硬件处理、控制命令接口等功能。</p>
-
-<p>external device层是连接的摄像头外设，通过USB、I2C、SPI、GPIO接口与SoC进行控制连接，通过MIPI图像传输接口与SoC进行图像传输连接。</p>
-
-<p><img src="/assets/posts/2025-01-29-CVE-2019-18683-V4L2框架条件竞争漏洞分析/2.png" alt="截屏2025-01-17 10.38.24.png" /></p>
-
-<p>v4l2-core目录是整个框架的核心，实现了内核API，实现了系统调用。</p>
-
-<p><img src="/assets/posts/2025-01-29-CVE-2019-18683-V4L2框架条件竞争漏洞分析/3.png" alt="截屏2025-01-17 11.06.54.png" /></p>
-
-<p>platform目录是不同SoC芯片的图像驱动，实现了hardware层功能。</p>
-
-<p><img src="/assets/posts/2025-01-29-CVE-2019-18683-V4L2框架条件竞争漏洞分析/4.png" alt="截屏2025-01-17 11.07.47.png" /></p>
-
-<p>CVE-2019-18683漏洞位于platform/vivid目录，是V4L2框架实现的自测驱动，该漏洞是通过syzkaller进行fuzz的时候发现的。</p>
-
-<p>vivid驱动用于模拟外接视频源，使用vivid就可以不用外接摄像头来测试框架功能了。</p>
-
-<h2 id="三漏洞原理">三、漏洞原理</h2>
-
-<p>vivid模拟外接视频源的核心函数是vivid_thread_vid_cap。</p>
-
-<p>打开取流后，该函数运行在内核线程上，源源不断向用户态申请的缓冲区复制随机生成的“视频帧”。在for无限循环中，生成并复制帧的操作是在dev→mutex信号量的保护之下的。</p>
-
-<p><img src="/assets/posts/2025-01-29-CVE-2019-18683-V4L2框架条件竞争漏洞分析/5.png" alt="截屏2025-01-17 14.10.41.png" /></p>
-
-<p>停止取流的操作中，主线程调用vivid_stop_generating_vid_cap杀掉vivid_thread_vid_cap内核线程，停止取流。</p>
-
-<p>主线程进入到vivid_stop_generating_vid_cap函数之前，也是被dev→mutex信号量保护的，所以在vivid_stop_generating_vid_cap调用mutex_unlock释放信号量之前，vivid_thread_vid_cap内核线程实际上是一直在for循环中等待获取信号量的。</p>
-
-<p><img src="/assets/posts/2025-01-29-CVE-2019-18683-V4L2框架条件竞争漏洞分析/6.png" alt="截屏2025-01-17 14.11.23.png" /></p>
-
-<p>那么为何vivid_stop_generating_vid_cap要先解锁，才杀掉内核线程呢？</p>
-
-<p>我认为，作者是想让vivid_thread_vid_cap内核线程最后一次执行完视频的生成，把那轮for循环执行结束再杀掉内核线程。</p>
-
-<p>但是，如果vivid_stop_generating_vid_cap解锁之后，信号量没有被vivid_thread_vid_cap抢到，而是被vb2_fop_read抢走，那么vb2_fop_read会将那些因停止取流而标记为“待释放”的vb2_buffer重新加入活动链表。close的时候“待释放”的vb2_buffer会被kfree掉，但是由于它们还同时存在于活动链表中，另一个线程有可能继续操作活动链表，造成UAF。</p>
-
-<p>该漏洞的竞争情况极为复杂，角度很刁钻，即使是漏洞发现者，也没有讲清楚里面的细节，只知道该漏洞的效果是造成kmalloc-1k对象的UAF。</p>
-
-<h2 id="四条件竞争漏洞的测试方法">四、条件竞争漏洞的测试方法</h2>
-
-<p>要分析条件竞争漏洞的触发原理，弄清楚多个线程之间的竞争窗口是一件不容易的事情。</p>
-
-<p>一个常见的情况是，通过syzkaller打出了UAF，分析造成UAF的原因。</p>
-
-<p>可以在锁操作语句的后面插入printk函数，打印系统的jiffies节拍、线程号等信息，直观的显示出哪个线程在哪个时间进入到了临界区，由此分析线程之间的竞争关系。</p>
-
-<p>在这个漏洞中，syzkaller给出的poc主要逻辑是，创建2个线程分别绑定不同的cpu，每个线程都运行如下的for循环，若干循环之后触发UAF。</p>
-
-<p><img src="/assets/posts/2025-01-29-CVE-2019-18683-V4L2框架条件竞争漏洞分析/7.png" alt="截屏2025-01-17 15.33.51.png" /></p>
-
-<p>重点要关注线程A、线程B之间的read和close系统调用如何竞争。</p>
-
-<p>对read系统调用的信号量操作插桩如下：</p>
-
-<p><img src="/assets/posts/2025-01-29-CVE-2019-18683-V4L2框架条件竞争漏洞分析/8.png" alt="截屏2025-01-17 15.49.23.png" /></p>
-
-<p><img src="/assets/posts/2025-01-29-CVE-2019-18683-V4L2框架条件竞争漏洞分析/10.png" alt="截屏2025-01-17 15.58.10.png" /></p>
-
-<p><img src="/assets/posts/2025-01-29-CVE-2019-18683-V4L2框架条件竞争漏洞分析/11.png" alt="截屏2025-01-17 16.02.09.png" /></p>
-
-<p><img src="/assets/posts/2025-01-29-CVE-2019-18683-V4L2框架条件竞争漏洞分析/9.png" alt="截屏2025-01-17 15.52.26.png" /></p>
-
-<p>对close系统调用的信号量操作插桩如下：</p>
-
-<p><img src="/assets/posts/2025-01-29-CVE-2019-18683-V4L2框架条件竞争漏洞分析/12.png" alt="截屏2025-01-17 16.06.36.png" /></p>
-
-<p><img src="/assets/posts/2025-01-29-CVE-2019-18683-V4L2框架条件竞争漏洞分析/13.png" alt="截屏2025-01-17 21.11.08.png" /></p>
-
-<p>dmesg日志分析：</p>
-
-<p>第二列的数字表示jiffies节拍，jiffies是时钟中断计数器，cpu每到一次时钟中断，jiffies递增1，同时完成1次进程切换。</p>
-
-<p>所以在打印日志中，jiffies的数值表示了两个线程运行的先后。</p>
-
-<p><img src="/assets/posts/2025-01-29-CVE-2019-18683-V4L2框架条件竞争漏洞分析/14.png" alt="截屏2025-01-17 19.09.24.png" /></p>
-
-<p>上图是一次成功的竞争过程中输出的日志，条件竞争的步骤是：
-第一步，206线程首先进入vb2_fop_read获取信号量，在vb2_ops_wait_prepare函数中释放信号量；</p>
-
-<p>第二步，207线程进入vb2_fop_read获取信号量，完整执行了read系统调用后，进入到close系统调用，并且在漏洞点vivid_stop_generating_vid_cap函数中释放了信号量。</p>
-
-<p>第三步，206线程重新获取信号量，在vb2_core_qbuf函数中调用vid_cap_buf_queue函数，把vb2_buffer对象加入到vid_cap_active链表中。206线程执行完整个read系统调用释放信号量；</p>
-
-<p><img src="/assets/posts/2025-01-29-CVE-2019-18683-V4L2框架条件竞争漏洞分析/15.png" alt="截屏2025-01-17 21.31.56.png" /></p>
-
-<p>第四步，207线程在vivid_stop_generating_vid_cap函数中重新获取信号量，后面进入到vb2_core_reqbufs函数，将vb2_buffer对象释放。此时的vb2_buffer对象虽然已经kfree掉了，但是vid_cap_active链表仍然保留着对它的引用；</p>
-
-<p><img src="/assets/posts/2025-01-29-CVE-2019-18683-V4L2框架条件竞争漏洞分析/16.png" alt="截屏2025-01-17 20.54.04.png" /></p>
-
-<p>第六步，206线程执行close系统调用；</p>
-
-<p>第七步，207线程开始了新的一轮open-read-close循环，重新进入到vb2_fop_read函数，在vid_cap_buf_queue函数中发生释放后重引用；</p>
-
-<p><img src="/assets/posts/2025-01-29-CVE-2019-18683-V4L2框架条件竞争漏洞分析/17.png" alt="截屏2025-01-17 21.40.41.png" /></p>
-
-<p>原因是新的一轮vb2_fop_read申请了一个新的vb2_buffer对象，并且要把新的vb2_buffer对象加入到vid_cap_active链表中。</p>
-
-<p>由于vid_cap_active链表中已经链接了一个已被释放的vb2_buffer对象，所以进行list_add_tail操作导致了新的vb2_buffer对象地址写入到已被释放的对象中，触发了UAF。</p>
-
-<p><img src="/assets/posts/2025-01-29-CVE-2019-18683-V4L2框架条件竞争漏洞分析/18.png" alt="截屏2025-01-17 21.42.28.png" /></p>
-
-<h2 id="五漏洞利用">五、漏洞利用</h2>
-
-<h3 id="信息泄漏">信息泄漏</h3>
-
-<p>在正式触发UAF之前，会首先触发WARN_ON语句，泄漏内核栈地址指针rsp和指向内核代码段地址的rcx寄存器。</p>
-
-<p><img src="/assets/posts/2025-01-29-CVE-2019-18683-V4L2框架条件竞争漏洞分析/19.png" alt="截屏2025-01-19 15.22.42.png" /></p>
-
-<p>WARN_ON语句位于__vb2_queue_cancel函数，位于调用close的过程中。</p>
-
-<p><img src="/assets/posts/2025-01-29-CVE-2019-18683-V4L2框架条件竞争漏洞分析/20.png" alt="截屏2025-01-19 15.19.16.png" /></p>
-
-<h3 id="控制流劫持">控制流劫持</h3>
-
-<p>UAF的对象是vb2_buffer，目标是劫持vb2_buffer→vb2_queue→mem_ops→vaddr(void *buf_priv)</p>
-
-<p>其中函数指针vaddr的参数正是vb2_buffer.planes[n].mem_priv指针的值。</p>
-
-<p><img src="/assets/posts/2025-01-29-CVE-2019-18683-V4L2框架条件竞争漏洞分析/v4l2_objects.png" alt="v4l2_objects.png" /></p>
-
-<p>构造内核对象可以放在内核栈上面，内核栈的基地址由WARN_ON语句泄漏的rsp寄存器计算得到。</p>
-
-<p>目标明确为：</p>
-
-<ol>
-  <li>在内核栈构造vb2_queue对象，使得vb2_queue.mem_ops指向第2步构造的vb2_mem_ops；</li>
-  <li>在内核栈构造vb2_mem_ops对象，其中vb2_mem_ops.vaddr指向rop gadget，用于劫持rip到内核栈；</li>
-  <li>在内核栈构造rop chain，实现提权；</li>
-  <li>堆喷射fake vb2_buffer对象，覆盖已经被UAF对象，其中vb2_buffer.planes[0].mem_priv指向rop chain。</li>
-</ol>
-
-<p>在内核栈构造内容基于的原理是，adjtimex()这类系统调用会把用户态内容copy_from_user到内核栈上面，再结合userfaultfd技术即可实现在内核栈构造任意内容。</p>
-
-<p><img src="/assets/posts/2025-01-29-CVE-2019-18683-V4L2框架条件竞争漏洞分析/v4l2_payload.png" alt="v4l2_payload.png" /></p>
-
-<p>调用read即可触发控制流劫持，函数调用链条是：</p>
-
-<p>vb2_fop_read —&gt; vb2_read —&gt; __vb2_perform_fileio —&gt; __vb2_init_fileio —&gt; vb2_plane_vaddr</p>
-
-<p>—&gt; fake vaddr</p>
-
-<p>控制流劫持的效果是rip指针被劫持到内核栈rop chain区域，执行用于提权的rop chain。</p>
-
-<p>rop chain的内容是执行内核函数run_cmd(”/bin/sh  /home/a13x/pwn”)，该函数由内核态发起，执行用户态命令，具有root权限。</p>
-
-<p><img src="/assets/posts/2025-01-29-CVE-2019-18683-V4L2框架条件竞争漏洞分析/21.png" alt="截屏2025-01-19 16.42.42.png" /></p>
-
-<h2 id="六漏洞修补">六、漏洞修补</h2>
-
-<p>漏洞修补思路是用信号量完整的保护vivid_stop_generating_vid_cap函数杀掉vivid_thread_vid_cap内核线程的整个过程。</p>
-
-<p>vivid_stop_generating_vid_cap函数去掉了中间加锁和解锁的步骤，使得整个过程被dev→mutex全程保护。</p>
-
-<p>vivid_thread_vid_cap函数for循环中尝试去获取dev→mutex信号量，如果获取失败，那么线程睡眠1秒，线程醒来后continue循环，再次尝试获取dev→mutex，如此往复直到获取信号量。若检测到线程被杀掉，kthread_should_stop()返回ture，循环结束。</p>
-
-<p><img src="/assets/posts/2025-01-29-CVE-2019-18683-V4L2框架条件竞争漏洞分析/22.png" alt="截屏2025-01-18 19.03.02.png" /></p>]]></content><author><name></name></author><category term="linux_kernel" /><summary type="html"><![CDATA[CVE-2019-18683是Linux内核video4Linux2（V4L2）框架中一个高危的条件竞争漏洞。该漏洞源于videobuf2核心组件在内存映射（mmap）操作与缓冲区队列管理之间缺乏有效的同步机制，导致产生UAF漏洞。]]></summary></entry></feed>
+<p><a href="https://www.bilibili.com/video/BV1DFY5zsEKE?vd_source=cb167874159c7e114d4cd5fd0c4a9ce3">iPhone 7 运行 Linux 内核并与上位机交互_哔哩哔哩_bilibili</a></p>]]></content><author><name></name></author><category term="hardware" /><summary type="html"><![CDATA[早在2021年4月Linux内核添加了对苹果M1芯片的支持，2024年10月添加了对A7～A11芯片的支持。因此我们打算尝试一下在 iPhone 启动 Linux 内核，并且通过键盘进行交互。 要在苹果设备启动 Linux 内核，需要针对不同苹果设备的硬件平台配置，对设备树进行微调。]]></summary></entry></feed>

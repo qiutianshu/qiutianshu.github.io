@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <link rel="stylesheet" href="http://localhost:4000/assets/fonts/fonts.css"/>
+<link rel="stylesheet" href="http://localhost:4000/assets/style.css"/>
+<link rel="stylesheet" href="http://localhost:4000/assets/js/lity.min.css"/>
+
+
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<meta property="og:site_name" content="极目楚天舒" />
+<meta 
+    property="og:title"
+    content="
+        
+            利用 checkm8 解密 iBoot 固件
+        
+    " 
+/>
+
+<meta property="og:url" content="http://localhost:4000//hardware/2025/04/08/%E5%88%A9%E7%94%A8-checkm8-%E8%A7%A3%E5%AF%86-iBoot-%E5%9B%BA%E4%BB%B6.html" />
+
+    <meta property="og:type" content="article" />
+
+
+
+    <meta property="fb:app_id" content="" />
+
+
+
+<title>
+    
+        利用 checkm8 解密 iBoot 固件
+    
+</title>
+</head>
+<body class="index">
+    
+        <div class="page-container">
+            <aside class="main-sidebar">
+                <!-- 包含 TOC -->
+                <sidebar class="sidebar">
+<ul class="toc-list"><li><a href="#背景知识">背景知识</a></li><li><a href="#基本原理">基本原理</a></li><li><a href="#操作步骤">操作步骤</a></li><li><a href="#附件">附件</a></li></ul></sidebar>
+            </aside>
+            <!-- 主内容区域 -->
+            <main class="main-content">
+                <header class="header">
+    <section class="logo">
+        <a href="http://localhost:4000/" class="logo__link">
+            
+                <h1>极目楚天舒</h1>
+            
+        </a>
+    </section>
+    
+    <button id="menuToggle">
+        <div></div>
+        <div></div>
+        <div></div>
+    </button>
+    <nav class="menu">
+        
+<ul class="list primary">
+
+    
+        <li class="item">
+
+            <div class="item-controls">
+                <a href="http://localhost:4000/category/linux_kernel.html">
+                
+                    <img src="http://localhost:4000/assets/img/icons/tux.png"/>
+                
+                
+                    <p style="color: var(--c-themeHueRed)">Linux内核漏洞</p>
+                
+                </a>
+
+            
+            </div>
+            
+        </li>   
+    
+        <li class="item">
+
+            <div class="item-controls">
+                <a href="http://localhost:4000/category/linux_userspace.html">
+                
+                    <img src="http://localhost:4000/assets/img/icons/userspace.png"/>
+                
+                
+                    <p style="color: var(--c-themeHueRed)">Linux用户态漏洞</p>
+                
+                </a>
+
+            
+            </div>
+            
+        </li>   
+    
+        <li class="item">
+
+            <div class="item-controls">
+                <a href="http://localhost:4000/category/hardware.html">
+                
+                    <img src="http://localhost:4000/assets/img/icons/chip.svg"/>
+                
+                
+                    <p style="color: var(--c-themeHueRed)">硬件安全研究</p>
+                
+                </a>
+
+            
+            </div>
+            
+        </li>   
+    
+        <li class="item">
+
+            <div class="item-controls">
+                <a href="http://localhost:4000/category/meltdown_spectre.html">
+                
+                    <img src="http://localhost:4000/assets/img/icons/meltdown_spectre.png"/>
+                
+                
+                    <p style="color: var(--c-themeHueRed)">CPU 侧信道</p>
+                
+                </a>
+
+            
+            </div>
+            
+        </li>   
+    
+        <li class="item">
+
+            <div class="item-controls">
+                <a href="http://localhost:4000/category/riscv.html">
+                
+                    <img src="http://localhost:4000/assets/img/icons/riscv.png"/>
+                
+                
+                    <p style="color: var(--c-themeHueRed)">RISC-V</p>
+                
+                </a>
+
+            
+            </div>
+            
+        </li>   
+    
+</ul>
+    </nav>
+</header>
+                
+                <article class="post">
+
+    <div class="post__title">
+       利用 checkm8 解密 iBoot 固件
+    </div>
+    <div class="post__meta"> 
+        <div class="post__meta__category">
+            
+                <p class="post__meta__category__title" style="background: var(--c-themeHueOrange)">Hardware</p>
+            
+        </div>
+        <p class="post__meta__divider">·</p>
+        <div class="post__meta__date">
+            2025-04-08
+        </div>
+        
+    </div>
+
+    
+    <div class="post__content">
+        <p>硬件 GID 是同一型号或批次的苹果处理器共享一串字符，它是 iPhone <strong>固件加密</strong>的种子。GID 在处理器制造的过程中被固化于 SEP 处理器中，它的存储与处理过程
+都在 SEP 处理器中隐秘地进行，无法被外界观测和调试。本文利用 checkm8 漏洞实现任意代码执行，对 SecureROM 中的解密函数进行 hook，在不接触 GID 的情况下对固件
+升级包的 iv 和 key 进行解密，最终实现对苹果升级固件的解密。</p>
+
+<h2 id="背景知识">背景知识</h2>
+
+<p>固件升级包采用AES加密算法</p>
+
+<p>固件的文件格式为img4格式</p>
+
+<p>iv 和 key 作为 KBAG 类型的对象，附在 img4 文件的末尾</p>
+
+<p>iv 和 key 经过GID加密</p>
+
+<p>GID 烧写在应用处理器的ROM中</p>
+
+<p>GID 无法被直接访问，也无法通过JTAG读取</p>
+
+<p><img src="/assets/posts/2025-04-08-利用-checkm8-解密-iBoot-固件/4.png" alt="4.png" /></p>
+
+<h2 id="基本原理">基本原理</h2>
+
+<ul>
+  <li>使用 ipsw 工具从升级包提取出加密的 iv 和 key；</li>
+  <li>使用 ipwndfu 工具利用 checkm8 漏洞任意代码执行，把加密的 iv 和 key 提交给 SecureROM 解密功能函数进行解密，ipwndfu 返回解密后的 iv 和 key；</li>
+  <li>用解密后的 iv 和 key 对固件进行解密。</li>
+</ul>
+
+<h2 id="操作步骤">操作步骤</h2>
+
+<p>步骤一：从img4文件中提取被加密的 iv 和 key</p>
+
+<p><img src="/assets/posts/2025-04-08-利用-checkm8-解密-iBoot-固件/1.png" alt="1.png" /></p>
+
+<p>步骤二：ipwndfu解密 iv 和 key</p>
+
+<p><img src="/assets/posts/2025-04-08-利用-checkm8-解密-iBoot-固件/2.png" alt="2.png" /></p>
+
+<p>步骤三：解密 iBoot固件</p>
+
+<p><img src="/assets/posts/2025-04-08-利用-checkm8-解密-iBoot-固件/3.png" alt="3.png" /></p>
+
+<h2 id="附件">附件</h2>
+
+<p>iBoot 升级包：<a href="/assets/posts/2025-04-08-利用-checkm8-解密-iBoot-固件/iBoot.d11.RELEASE.im4p">iBoot.d11.RELEASE.im4p</a></p>
+
+    </div>
+</article>
+
+                
+                <footer class="footer">
+        <section class="footer__about">
+                <p class="footer__about__copyright">© qts588 2025</p>
+                
+                <span class="divider">·</span>
+                
+                <span class="footer__about__theme"><p>theme</p><a id="simplex-logo" href="https://github.com/andreondra/jekyll-theme-simplex" target="_blank"><img alt="Simplex theme logo" src="http://localhost:4000/assets/img/icons/simplex_logo.svg"/></a><p>by <a href="https://ondrej.golasowski.com/">golas</a></p></span>
+        </section>
+</footer>
+
+                <script src="http://localhost:4000/assets/js/jquery.slim.min.js"></script>
+<script src="http://localhost:4000/assets/js/lity.min.js"></script>
+<script src="http://localhost:4000/assets/js/tools.js"></script>
+<script src="http://localhost:4000/assets/js/pic.js"></script>
+<script src="http://localhost:4000/assets/js/toc-highlight.js"></script>
+            </main>
+        </div>
+    
+</body>
+</html>
